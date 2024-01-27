@@ -1,6 +1,0 @@
-@CityDistanceService_HostAddress = http://localhost:5189
-
-GET {{CityDistanceService_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
