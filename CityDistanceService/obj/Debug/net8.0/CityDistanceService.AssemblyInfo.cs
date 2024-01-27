@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CityDistanceService")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7a156a956a9ee0295db48e2c7cdb1a7b8d34ffc2")]
 [assembly: System.Reflection.AssemblyProductAttribute("CityDistanceService")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CityDistanceService")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

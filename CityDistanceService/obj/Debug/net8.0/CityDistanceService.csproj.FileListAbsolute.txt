@@ -38,3 +38,4 @@ D:\mega\c#\CityDistanceService\obj\Debug\net8.0\refint\CityDistanceService.dll
 D:\mega\c#\CityDistanceService\obj\Debug\net8.0\CityDistanceService.pdb
 D:\mega\c#\CityDistanceService\obj\Debug\net8.0\CityDistanceService.genruntimeconfig.cache
 D:\mega\c#\CityDistanceService\obj\Debug\net8.0\ref\CityDistanceService.dll
+D:\mega\c#\CityDistanceService\obj\Debug\net8.0\CityDistanceService.sourcelink.json
