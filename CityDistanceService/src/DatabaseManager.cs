@@ -107,11 +107,11 @@ public class DatabaseManager
             {
                 await connection.OpenAsync();
 
-                var query = "SELECT * FROM cities WHERE CityName = @CityName;";
+                var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     // Use parameterized queries to prevent SQL injection
-                    command.Parameters.AddWithValue("@CityName", cityName);
+                    command.Parameters.AddWithValue("@CityName", cityName.ToLower());
 
                     using (var reader = await command.ExecuteReaderAsync())
                     {
@@ -155,11 +155,11 @@ public class DatabaseManager
             {
                 connection.OpenAsync();
 
-                var query = "SELECT * FROM cities WHERE CityName = @CityName;";
+                var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
                 using (var command = new MySqlCommand(query, connection))
                 {
                     // Use parameterized queries to prevent SQL injection
-                    command.Parameters.AddWithValue("@CityName", cityName);
+                    command.Parameters.AddWithValue("@CityName", cityName.ToLower());
 
                     using (var reader = await command.ExecuteReaderAsync())
                     {
@@ -199,10 +199,10 @@ public class DatabaseManager
         {
             await connection.OpenAsync();
 
-            var query = "SELECT * FROM Cities WHERE CityName = @CityName";
+            var query = "SELECT * FROM Cities WHERE LOWER(CityName) = @CityName";
             using (var command = new MySqlCommand(query, connection))
             {
-                command.Parameters.AddWithValue("@CityName", cityName);
+                command.Parameters.AddWithValue("@CityName", cityName.ToLower());
 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
