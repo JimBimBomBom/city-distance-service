@@ -32,50 +32,63 @@ app.MapMethods("/city", new[] { "GET", "POST", "PUT", "DELETE" }, async (HttpCon
 
 			if (query.ContainsKey("city1") && query.ContainsKey("city2")) // GET distance between cities
 			{
-				var city1 = query["city1"];
-				var city2 = query["city2"];
-				//TODO validate input
+				string city1 = query["city1"].ToString();
+				if (string.IsNullOrWhiteSpace(city1))
+					return Results.BadRequest("city1 parameter was not specified correctly.");
+				string city2 = query["city2"].ToString();
+				if (string.IsNullOrWhiteSpace(city2))
+					return Results.BadRequest("city2 parameter was not specified correctly.");
+
 				var distance = await DistanceCalculationService.CalculateDistanceAsync(city1, city2, dbManager);
-				//TODO validate distance
-				return Results.Ok("Distance between: " + city1 + " to " + city2 + " is: " + distance + ".");
+				if (distance == -1)
+					return Results.BadRequest("One or both cities could not be found within our database.");
+				else
+					return Results.Ok("Distance between: " + city1 + " to " + city2 + " is: " + distance + ".");
 			}
 			else if (query.ContainsKey("cityName") || query.ContainsKey("cityId")) // GET city coordinates
 			{
-				//TODO validate input
-
-				var cityInfo = new CityInfo { CityName = null };
 				if (int.TryParse(query["cityId"], out int cityId))
-					cityInfo = await dbManager.GetCityInfo(cityId);
+				{
+					var cityInfo = await dbManager.GetCityInfo(cityId);
+					if (cityInfo == null)
+						return Results.NotFound("No city with given name was found");
+					else
+						return Results.Ok(new ApiResponse<CityInfo>(cityInfo, "Here is the info for the requested City"));
+				}
 				else
 				{
-					var cityName = query["cityName"];
-					cityInfo = await dbManager.GetCityInfo(cityName);
-				}
+					var cityName = query["cityName"].ToString();
+					if (string.IsNullOrWhiteSpace(cityName))
+						return Results.BadRequest("cityName parameter was not specified correctly.");
 
-				//TODO validate data
-				return Results.Ok(cityInfo);
+					var cityInfo = await dbManager.GetCityInfo(cityName);
+					if (cityInfo == null)
+						return Results.NotFound("No city with given name was found");
+					else
+						return Results.Ok(new ApiResponse<CityInfo>(cityInfo, "Here is the info for the requested City"));
+				}
 			}
 			else if (query.ContainsKey("cityNameContains")) // GET cities that contain substring
 			{
 				//TODO validate input
-				var cityName = query["cityNameContains"];
-				var cities = await dbManager.GetCitiesByNameAsync(cityName);
-				//TODO validate cities
-				return Results.Ok(cities);
+				var cityNameContains = query["cityNameContains"];
+				var cities = await dbManager.GetCitiesByNameAsync(cityNameContains);
+				if (cities == null)
+					return Results.NotFound("No city with given name was found");
+				else
+					return Results.Ok(new ApiResponse<List<CityInfo>>(cities, "Here is the full list of requested cities"));
 			}
 			else
 				return Results.BadRequest("Invalid request parameters.\nValid request parameters are: 1) city1 && city2 => used for calculating distance between two cities.\n2) CityName || CityId => for latitude and longitude info about a city\n");
 		case "POST":
 			var cityDataForPost = await context.Request.ReadFromJsonAsync<CityInfo>();
-			//TODO validate input
+
 			var addedCity = await dbManager.AddCityAsync(cityDataForPost);
-			//TODO validate data
 			return Results.Ok(new ApiResponse<CityInfo>(addedCity, "Your city has successfully been added to our database."));
 		case "PUT":
 			var cityDataForPut = await context.Request.ReadFromJsonAsync<CityInfo>();
-			//TODO validate input
+
 			var updatedCity = await dbManager.ModifyItemAsync(cityDataForPut);
-			//TODO validate data
 			return Results.Ok(new ApiResponse<CityInfo>(updatedCity, "Item has been successfully updated."));
 		case "DELETE":
 			var queryForDelete = context.Request.Query;
@@ -87,14 +100,10 @@ app.MapMethods("/city", new[] { "GET", "POST", "PUT", "DELETE" }, async (HttpCon
 					return Results.Ok("Item has been successfully deleted.");
 				}
 				else
-				{
 					return Results.BadRequest("Invalid city ID.");
-				}
 			}
 			else
-			{
 				return Results.BadRequest("City ID is required for delete operation.");
-			}
 		default:
 			return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
 	}
