@@ -3,7 +3,6 @@ public class GeocodeApiResponse
 {
     public double Lat { get; set; }
     public double Lon { get; set; }
-    // Add other fields from the API response as needed
 }
 
 public class CitiesDistanceRequest
@@ -22,7 +21,6 @@ public class CityInfo
 {
     public int CityId { get; set; }
     public string CityName { get; set; }
-    // public string Country { get; set; }
     public double Latitude { get; set; }
     public double Longitude { get; set; }
 }
