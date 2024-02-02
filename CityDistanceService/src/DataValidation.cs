@@ -1,18 +1,65 @@
-// function that validates data for my CityInfo class in CityDistanceService/src/CitiesDistanceRequest.cs, we should check:
-// 1. CityName is string, and is not null or empty
-// 2. Latitude is double, and is within the range of -90 to 90
-// 3. Longitude is double, and is within the range of -180 to 180
+using FluentValidation;
 
-public class DataValidation
+public class CityInfoValidator : AbstractValidator<CityInfo>
 {
-    public static bool ValidateCityInfo(CityInfo cityInfo)
+    public CityInfoValidator()
     {
-        if (string.IsNullOrWhiteSpace(cityInfo.CityName))
-            return false;
-        if (cityInfo.Latitude < -90 || cityInfo.Latitude > 90)
-            return false;
-        if (cityInfo.Longitude < -180 || cityInfo.Longitude > 180)
-            return false;
-        return true;
+        RuleFor(x => x.CityId).GreaterThan(0);
+        RuleFor(x => x.CityName).NotEmpty();
+        RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
+        RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
+    }
+}
+
+public class NewCityInfoValidator : AbstractValidator<CityInfo>
+{
+    public NewCityInfoValidator()
+    {
+        RuleFor(x => x.CityName).NotEmpty();
+        RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
+        RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
+    }
+}
+
+public class CoordinatesValidator : AbstractValidator<Coordinates>
+{
+    public CoordinatesValidator()
+    {
+        RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
+        RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
+    }
+}
+
+public class CitiesDistanceRequestValidator : AbstractValidator<CitiesDistanceRequest>
+{
+    public CitiesDistanceRequestValidator()
+    {
+        RuleFor(x => x.City1).NotEmpty();
+        RuleFor(x => x.City2).NotEmpty();
+    }
+}
+
+public class GeocodeApiResponseValidator : AbstractValidator<GeocodeApiResponse>
+{
+    public GeocodeApiResponseValidator()
+    {
+        RuleFor(x => x.Lat).InclusiveBetween(-90, 90);
+        RuleFor(x => x.Lon).InclusiveBetween(-180, 180);
+    }
+}
+
+public class StringValidator : AbstractValidator<string>
+{
+    public StringValidator()
+    {
+        RuleFor(x => x).NotEmpty();
+    }
+}
+
+public class IdValidator : AbstractValidator<int>
+{
+    public IdValidator()
+    {
+        RuleFor(x => x).GreaterThan(0);
     }
 }
