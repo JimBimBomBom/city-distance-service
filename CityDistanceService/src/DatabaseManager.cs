@@ -4,18 +4,18 @@ using System;
 // TODO - refactor to allow operations on any table, with any parameters (with checks)
 public class DatabaseManager
 {
-    private readonly string _connectionString;
+    // private readonly string _connectionString;
 
-    public DatabaseManager()
-    {
-        _connectionString = "Server=localhost;Database=citydatabase;Uid=root;Pwd=Popkorn123;";
-    }
+    // public DatabaseManager()
+    // {
+    //     _connectionString = "Server=localhost;Database=citydatabase;Uid=root;Pwd=Popkorn123;";
+    // }
 
     public async Task<CityInfo> AddCityAsync(CityInfo city)
     {
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
             {
                 await connection.OpenAsync();
 
@@ -56,7 +56,7 @@ public class DatabaseManager
         CityInfo result = null;
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
             {
                 await connection.OpenAsync();
 
@@ -103,7 +103,7 @@ public class DatabaseManager
         CityInfo result = null;
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
             {
                 await connection.OpenAsync();
 
@@ -151,7 +151,7 @@ public class DatabaseManager
 
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
             {
                 connection.OpenAsync();
 
@@ -195,7 +195,7 @@ public class DatabaseManager
     {
         var cities = new List<CityInfo>();
 
-        using (var connection = new MySqlConnection(_connectionString))
+        using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
         {
             await connection.OpenAsync();
 
@@ -228,7 +228,7 @@ public class DatabaseManager
     {
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
             {
                 await connection.OpenAsync();
 
@@ -264,7 +264,7 @@ public class DatabaseManager
     {
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
             {
                 await connection.OpenAsync();
 
