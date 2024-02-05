@@ -16,7 +16,6 @@ public static class DistanceCalculationService
         var coordinates_city2 = await dbManager.GetCityCoordinates(city2);
         if (coordinates_city2 == null)
         {
-            // await Task.Delay(1000); // necessary if both cities had to be geocoded
             var newCity = await GeocodeCity(city2, API_KEY);
             await dbManager.AddCityAsync(newCity);
             coordinates_city2 = await dbManager.GetCityCoordinates(city2);
@@ -24,13 +23,12 @@ public static class DistanceCalculationService
 
         if (coordinates_city1 == null || coordinates_city2 == null)
         {
-            return -1; // negative numbers represent a fail
+            return -1;
         }
 
         var distance = CalculateGreatCircleDistance(coordinates_city1, coordinates_city2);
 
         return distance;
-        // return Results.Ok("Distance from: " + city1 + " to " + city2 + " is: " + distance);
     }
 
     private static readonly HttpClient httpClient = new HttpClient();
@@ -39,7 +37,7 @@ public static class DistanceCalculationService
     {
         if (string.IsNullOrWhiteSpace(cityName))
         {
-            return null; // Or handle the error as per your logic
+            return null;
         }
 
         string url = $"https://geocode.maps.co/search?q={Uri.EscapeDataString(cityName)}&api_key={apiKey}";
@@ -50,7 +48,6 @@ public static class DistanceCalculationService
 
             response.EnsureSuccessStatusCode();
 
-            // Assuming the response is in a JSON format that you need to deserialize
             var result = await response.Content.ReadFromJsonAsync<GeocodeApiResponse[]>();
 
             if (result != null && result.Length > 0)
@@ -58,7 +55,6 @@ public static class DistanceCalculationService
                 return new CityInfo
                 {
                     CityName = cityName,
-                    // Country = result[0].Country,
                     Latitude = result[0].Lat,
                     Longitude = result[0].Lon
                 };
@@ -66,16 +62,15 @@ public static class DistanceCalculationService
         }
         catch (HttpRequestException ex)
         {
-            // Handle any exceptions (network error, invalid response, etc.)
             Console.WriteLine($"Error fetching geocoding data: {ex.Message}");
         }
 
-        return null; // Or handle the error as per your logic
+        return null;
     }
 
     private static double CalculateGreatCircleDistance(Coordinates coord1, Coordinates coord2)
     {
-        const double EarthRadius = 6371.0; // Radius of the earth in kilometers
+        const double EarthRadius = 6371.0;
 
         double lat_distance = ToRadians(coord2.Latitude - coord1.Latitude);
         double lon_distance = ToRadians(coord2.Longitude - coord1.Longitude);
@@ -83,7 +78,7 @@ public static class DistanceCalculationService
                 Math.Cos(ToRadians(coord1.Latitude)) * Math.Cos(ToRadians(coord2.Latitude)) *
                 Math.Sin(lon_distance / 2) * Math.Sin(lon_distance / 2);
         double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        double distance = EarthRadius * c; // Distance in kilometers
+        double distance = EarthRadius * c;
 
         return distance;
     }
