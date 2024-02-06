@@ -1,21 +1,20 @@
 using MySql.Data.MySqlClient;
 using System;
 
-// TODO - refactor to allow operations on any table, with any parameters (with checks)
 public class DatabaseManager
 {
-    // private readonly string _connectionString;
+    private readonly string _connectionString;
 
-    // public DatabaseManager()
-    // {
-    //     _connectionString = "Server=localhost;Database=citydatabase;Uid=root;Pwd=Popkorn123;";
-    // }
+    public DatabaseManager()
+    {
+        _connectionString = Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb");
+    }
 
     public async Task<CityInfo> AddCityAsync(CityInfo city)
     {
         try
         {
-            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
+            using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
 
@@ -26,7 +25,6 @@ public class DatabaseManager
                     command.Parameters.AddWithValue("@Latitude", city.Latitude);
                     command.Parameters.AddWithValue("@Longitude", city.Longitude);
 
-                    // command.ExecuteNonQuery();
                     var cityId = await command.ExecuteScalarAsync();
                     if (cityId != null)
                     {
@@ -39,12 +37,10 @@ public class DatabaseManager
         }
         catch (MySqlException ex)
         {
-            // Handle any MySQL database related errors
             Console.WriteLine($"Error add1: {ex.Message}");
         }
         catch (Exception ex)
         {
-            // Handle all other types of errors
             Console.WriteLine($"Error add2: {ex.Message}");
         }
 
@@ -56,14 +52,13 @@ public class DatabaseManager
         CityInfo result = null;
         try
         {
-            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
+            using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
 
                 var query = "SELECT * FROM cities WHERE CityId = @CityId;";
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    // Use parameterized queries to prevent SQL injection
                     command.Parameters.AddWithValue("@CityId", cityId);
 
                     using (var reader = await command.ExecuteReaderAsync())
@@ -86,12 +81,10 @@ public class DatabaseManager
         }
         catch (MySqlException ex)
         {
-            // Handle any MySQL database related errors
             Console.WriteLine($"Error here: {ex.Message}");
         }
         catch (Exception ex)
         {
-            // Handle all other types of errors
             Console.WriteLine($"Error there: {ex.Message}");
         }
 
@@ -103,14 +96,13 @@ public class DatabaseManager
         CityInfo result = null;
         try
         {
-            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
+            using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
 
                 var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    // Use parameterized queries to prevent SQL injection
                     command.Parameters.AddWithValue("@CityName", cityName.ToLower());
 
                     using (var reader = await command.ExecuteReaderAsync())
@@ -133,12 +125,10 @@ public class DatabaseManager
         }
         catch (MySqlException ex)
         {
-            // Handle any MySQL database related errors
             Console.WriteLine($"Error here: {ex.Message}");
         }
         catch (Exception ex)
         {
-            // Handle all other types of errors
             Console.WriteLine($"Error there: {ex.Message}");
         }
 
@@ -151,14 +141,13 @@ public class DatabaseManager
 
         try
         {
-            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
+            using (var connection = new MySqlConnection(_connectionString))
             {
                 connection.OpenAsync();
 
                 var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    // Use parameterized queries to prevent SQL injection
                     command.Parameters.AddWithValue("@CityName", cityName.ToLower());
 
                     using (var reader = await command.ExecuteReaderAsync())
@@ -173,18 +162,16 @@ public class DatabaseManager
                         }
                     }
                 }
-            }
 
-            Console.WriteLine("Product fetched successfully.");
+                Console.WriteLine("Product fetched successfully.");
+            }
         }
         catch (MySqlException ex)
         {
-            // Handle any MySQL database related errors
             Console.WriteLine($"Error here: {ex.Message}");
         }
         catch (Exception ex)
         {
-            // Handle all other types of errors
             Console.WriteLine($"Error there: {ex.Message}");
         }
 
@@ -195,7 +182,7 @@ public class DatabaseManager
     {
         var cities = new List<CityInfo>();
 
-        using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
+        using (var connection = new MySqlConnection(_connectionString))
         {
             await connection.OpenAsync();
 
@@ -210,10 +197,10 @@ public class DatabaseManager
                     {
                         var city = new CityInfo
                         {
-                            CityId = reader.GetInt32(reader.GetOrdinal("CityId")), // Get integer value
-                            CityName = reader.GetString(reader.GetOrdinal("CityName")), // Get string value
-                            Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")), // Get decimal value and cast to double
-                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")) // Get decimal value and cast to double
+                            CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
+                            CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                            Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude"))
                         };
                         cities.Add(city);
                     }
@@ -228,7 +215,7 @@ public class DatabaseManager
     {
         try
         {
-            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
+            using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
 
@@ -248,12 +235,10 @@ public class DatabaseManager
         }
         catch (MySqlException ex)
         {
-            // Handle any MySQL database related errors
             Console.WriteLine($"Error: {ex.Message}");
         }
         catch (Exception ex)
         {
-            // Handle all other types of errors
             Console.WriteLine($"Error: {ex.Message}");
         }
 
@@ -264,14 +249,13 @@ public class DatabaseManager
     {
         try
         {
-            using (var connection = new MySqlConnection(Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb")))
+            using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
 
                 var query = "DELETE FROM cities WHERE CityId = @CityId";
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    // Use parameterized queries to prevent SQL injection
                     command.Parameters.AddWithValue("@CityId", cityId);
 
                     await command.ExecuteNonQueryAsync();
@@ -282,12 +266,10 @@ public class DatabaseManager
         }
         catch (MySqlException ex)
         {
-            // Handle any MySQL database related errors
             Console.WriteLine($"Error: {ex.Message}");
         }
         catch (Exception ex)
         {
-            // Handle all other types of errors
             Console.WriteLine($"Error: {ex.Message}");
         }
     }
