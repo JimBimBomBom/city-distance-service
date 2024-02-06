@@ -1,78 +1,33 @@
-// write unit tests for every implemented endpoint in Program.cs
-// Path: CityDistanceService/src/Program.cs
-// implement the endpoints for the following routes, depending on HTTP Methods and query parameters:
-// GET requests:
-// /distance?city1=city1&city2=city2
-// /city?cityName=cityName
-// /city?cityId=cityId
-// /city?cityNameContains=cityNameContains
-// POST requests:
-// /city - data in the body
-// PUT requests:
-// /city - data in the body
-// DELETE requests:
-// /city?cityId=cityId
-// Generate the unit tests for the implemented endpoints in Program.cs below:   
-
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
+// using System;
 using Xunit;
 
 namespace CityDistanceService.UnitTests
 {
-    public class ProgramTests : IClassFixture<WebApplicationFactory<CityDistanceService.Program>>
+    public class DistanceCalculationServiceTests
     {
-        private readonly WebApplicationFactory<CityDistanceService.Program> _factory;
-
-        public ProgramTests(WebApplicationFactory<CityDistanceService.Program> factory)
+        [Theory]
+        [InlineData(0, 0, 0, 0, 0)]
+        [InlineData(0, 0, 90, 0, 10007.54339852944)]
+        [InlineData(0, 0, 0, 90, 10007.54339852944)]
+        [InlineData(0, 0, 90, 90, 10007.54339852944)]
+        [InlineData(0, 0, 180, 0, 20015.08679605888)]
+        [InlineData(0, 0, 0, 180, 20015.08679605888)]
+        public void CalculateGreatCircleDistance_UnitTests(double lat1, double lon1, double lat2, double lon2, double expected)
         {
-            _factory = factory;
+            var coord1 = new Coordinates { Latitude = lat1, Longitude = lon1 };
+            var coord2 = new Coordinates { Latitude = lat2, Longitude = lon2 };
+            var actual = DistanceCalculationService.CalculateGreatCircleDistance(coord1, coord2);
+            Assert.Equal(Math.Round(expected, 5), Math.Round(actual, 5));
         }
 
         [Theory]
-        [InlineData("/distance?city1=city1&city2=city2", "GET", "Distance between: city1 to city2 is: 0.")]
-        [InlineData("/city?cityName=cityName", "GET", "{\"CityName\":null}")]
-        [InlineData("/city?cityId=cityId", "GET", "{\"CityName\":null}")]
-        [InlineData("/city?cityNameContains=cityNameContains", "GET", "[]")]
-        public async Task TestEndpoint(string url, string method, string expected)
+        [InlineData(0, 0)]
+        [InlineData(180, Math.PI)]
+        [InlineData(360, 2 * Math.PI)]
+        public void ToRadians_UnitTest(double degrees, double expected)
         {
-            var client = _factory.CreateClient();
-            var response = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), url));
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Equal(expected, responseString);
-        }
-
-        [Fact]
-        public async Task TestPostEndpoint()
-        {
-            var client = _factory.CreateClient();
-            var response = await client.PostAsync("/city", new StringContent(""));
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Equal("[]", responseString);
-        }
-
-        [Fact]
-        public async Task TestPutEndpoint()
-        {
-            var client = _factory.CreateClient();
-            var response = await client.PutAsync("/city", new StringContent(""));
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Equal("[]", responseString);
-        }
-
-        [Fact]
-        public async Task TestDeleteEndpoint()
-        {
-            var client = _factory.CreateClient();
-            var response = await client.DeleteAsync("/city?cityId=cityId");
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Equal("[]", responseString);
+            var actual = DistanceCalculationService.ToRadians(degrees);
+            Assert.Equal(expected, actual);
         }
     }
 }

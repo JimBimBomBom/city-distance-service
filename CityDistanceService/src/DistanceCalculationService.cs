@@ -73,7 +73,7 @@ public static class DistanceCalculationService
         return null; // Or handle the error as per your logic
     }
 
-    private static double CalculateGreatCircleDistance(Coordinates coord1, Coordinates coord2)
+    public static double CalculateGreatCircleDistance(Coordinates coord1, Coordinates coord2)
     {
         const double EarthRadius = 6371.0; // Radius of the earth in kilometers
 
@@ -88,7 +88,7 @@ public static class DistanceCalculationService
         return distance;
     }
 
-    private static double ToRadians(double angle)
+    public static double ToRadians(double angle)
     {
         return Math.PI * angle / 180.0;
     }
