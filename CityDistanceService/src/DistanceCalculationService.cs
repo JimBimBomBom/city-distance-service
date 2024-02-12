@@ -1,14 +1,12 @@
 using System.Text.Json;
 public static class DistanceCalculationService
 {
-    static string API_KEY = "65aa8e928d962502323182strd1e6f9";
-
     public static async Task<double> CalculateDistanceAsync(string city1, string city2, DatabaseManager dbManager)
     {
         var coordinates_city1 = await dbManager.GetCityCoordinates(city1);
         if (coordinates_city1 == null)
         {
-            var newCity = await GeocodeCity(city1, API_KEY);
+            var newCity = await GeocodeCity(city1);
             await dbManager.AddCityAsync(newCity);
             coordinates_city1 = await dbManager.GetCityCoordinates(city1);
         }
@@ -16,7 +14,8 @@ public static class DistanceCalculationService
         var coordinates_city2 = await dbManager.GetCityCoordinates(city2);
         if (coordinates_city2 == null)
         {
-            var newCity = await GeocodeCity(city2, API_KEY);
+            var newCity = await GeocodeCity(city2);
+
             await dbManager.AddCityAsync(newCity);
             coordinates_city2 = await dbManager.GetCityCoordinates(city2);
         }
@@ -33,12 +32,10 @@ public static class DistanceCalculationService
 
     private static readonly HttpClient httpClient = new HttpClient();
 
-    public static async Task<CityInfo> GeocodeCity(string cityName, string apiKey)
+    public static async Task<CityInfo> GeocodeCity(string cityName)
     {
-        if (string.IsNullOrWhiteSpace(cityName))
-        {
-            return null;
-        }
+
+        string apiKey = "65aa8e928d962502323182strd1e6f9";
 
         string url = $"https://geocode.maps.co/search?q={Uri.EscapeDataString(cityName)}&api_key={apiKey}";
 

@@ -5,9 +5,9 @@ public class DatabaseManager
 {
     private readonly string _connectionString;
 
-    public DatabaseManager()
+    public DatabaseManager(IConfiguration configuration)
     {
-        _connectionString = "Server=localhost;Database=citydatabase;Uid=root;Pwd=Popkorn123;";
+        _connectionString = configuration["ConnectionStrings:DefaultConnection"];
     }
 
     public async Task<CityInfo> AddCityAsync(CityInfo city)
@@ -162,9 +162,9 @@ public class DatabaseManager
                         }
                     }
                 }
-            }
 
-            Console.WriteLine("Product fetched successfully.");
+                Console.WriteLine("Product fetched successfully.");
+            }
         }
         catch (MySqlException ex)
         {
@@ -186,7 +186,7 @@ public class DatabaseManager
         {
             await connection.OpenAsync();
 
-            var query = "SELECT * FROM Cities WHERE LOWER(CityName) = @CityName";
+            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
             using (var command = new MySqlCommand(query, connection))
             {
                 command.Parameters.AddWithValue("@CityName", cityName.ToLower());
