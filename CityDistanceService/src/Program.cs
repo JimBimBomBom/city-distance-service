@@ -10,7 +10,7 @@ var configuration = builder.Configuration;
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<DatabaseManager>(); // TEST
+builder.Services.AddScoped<DatabaseManager>(_ => new DatabaseManager(configuration)); // TEST
 
 var app = builder.Build();
 

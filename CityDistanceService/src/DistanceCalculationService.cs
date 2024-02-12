@@ -34,7 +34,7 @@ public static class DistanceCalculationService
 
     public static async Task<CityInfo> GeocodeCity(string cityName)
     {
-        string apiKey = Environment.GetEnvironmentVariable("GEOCODE_API_KEY");
+        string apiKey = "65aa8e928d962502323182strd1e6f9";
         string url = $"https://geocode.maps.co/search?q={Uri.EscapeDataString(cityName)}&api_key={apiKey}";
 
         try

@@ -5,9 +5,9 @@ public class DatabaseManager
 {
     private readonly string _connectionString;
 
-    public DatabaseManager()
+    public DatabaseManager(IConfiguration configuration)
     {
-        _connectionString = Environment.GetEnvironmentVariable("MYSQLCONNSTR_localdb");
+        _connectionString = configuration["ConnectionStrings:DefaultConnection"];
     }
 
     public async Task<CityInfo> AddCityAsync(CityInfo city)
@@ -186,7 +186,7 @@ public class DatabaseManager
         {
             await connection.OpenAsync();
 
-            var query = "SELECT * FROM Cities WHERE LOWER(CityName) = @CityName";
+            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
             using (var command = new MySqlCommand(query, connection))
             {
                 command.Parameters.AddWithValue("@CityName", cityName.ToLower());
