@@ -16,8 +16,7 @@
       "launchUrl": "swagger",
       "applicationUrl": "http://localhost:5189",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "MYSQLCONNSTR_localdb": "Server=localhost;Database=citydatabase;Uid=root;Pwd=Popkorn123;"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "https": {
