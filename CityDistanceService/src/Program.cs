@@ -25,6 +25,11 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 
+app.MapMethods("/health_check", new[] { "GET" }, (HttpContext context) =>
+{
+	return Results.Ok();
+});
+
 app.MapMethods("/city", new[] { "GET", "POST", "PUT", "DELETE" }, async (HttpContext context, DatabaseManager dbManager) =>
 {
 	switch (context.Request.Method)
