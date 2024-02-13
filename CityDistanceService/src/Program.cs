@@ -12,7 +12,8 @@ var configuration = builder.Configuration;
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<DatabaseManager>(_ => new DatabaseManager(configuration)); // TEST
+// builder.Services.AddScoped<DatabaseManager>(_ => new DatabaseManager(configuration)); // TEST
+builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(configuration)); // TEST
 
 var app = builder.Build();
 
@@ -25,7 +26,7 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 
-app.MapMethods("/city", new[] { "GET", "POST", "PUT", "DELETE" }, async (HttpContext context, DatabaseManager dbManager) =>
+app.MapMethods("/city", new[] { "GET", "POST", "PUT", "DELETE" }, async (HttpContext context, IDatabaseManager dbManager) =>
 {
 	switch (context.Request.Method)
 	{

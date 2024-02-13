@@ -1,13 +1,13 @@
 using System.Text.Json;
 public static class DistanceCalculationService
 {
-    public static async Task<double> CalculateDistanceAsync(string city1, string city2, DatabaseManager dbManager)
+    public static async Task<double> CalculateDistanceAsync(string city1, string city2, IDatabaseManager dbManager)
     {
         var coordinates_city1 = await dbManager.GetCityCoordinates(city1);
         if (coordinates_city1 == null)
         {
             var newCity = await GeocodeCity(city1);
-            await dbManager.AddCityAsync(newCity);
+            await dbManager.AddCity(newCity);
             coordinates_city1 = await dbManager.GetCityCoordinates(city1);
         }
 
@@ -16,7 +16,7 @@ public static class DistanceCalculationService
         {
             var newCity = await GeocodeCity(city2);
 
-            await dbManager.AddCityAsync(newCity);
+            await dbManager.AddCity(newCity);
             coordinates_city2 = await dbManager.GetCityCoordinates(city2);
         }
 
