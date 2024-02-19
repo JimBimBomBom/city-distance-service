@@ -1,16 +1,16 @@
 using MySql.Data.MySqlClient;
 using System;
 
-public class DatabaseManager
+public class MySQLManager : IDatabaseManager
 {
     private readonly string _connectionString;
 
-    public DatabaseManager(IConfiguration configuration)
+    public MySQLManager(IConfiguration configuration)
     {
         _connectionString = configuration["ConnectionStrings:DefaultConnection"];
     }
 
-    public async Task<CityInfo> AddCityAsync(CityInfo city)
+    public async Task<CityInfo> AddCity(CityInfo city)
     {
         try
         {
@@ -47,7 +47,7 @@ public class DatabaseManager
         return city;
     }
 
-    public async Task<CityInfo> GetCityInfo(int cityId)
+    public async Task<CityInfo> GetCity(int cityId)
     {
         CityInfo result = null;
         try
@@ -91,7 +91,7 @@ public class DatabaseManager
         return result;
     }
 
-    public async Task<CityInfo> GetCityInfo(string cityName)
+    public async Task<CityInfo> GetCity(string cityName)
     {
         CityInfo result = null;
         try
@@ -178,7 +178,7 @@ public class DatabaseManager
         return result;
     }
 
-    public async Task<List<CityInfo>> GetCitiesByNameAsync(string cityName)
+    public async Task<List<CityInfo>> GetCities(string cityNameContains)
     {
         var cities = new List<CityInfo>();
 
@@ -189,7 +189,7 @@ public class DatabaseManager
             var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
             using (var command = new MySqlCommand(query, connection))
             {
-                command.Parameters.AddWithValue("@CityName", cityName.ToLower());
+                command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
@@ -211,7 +211,7 @@ public class DatabaseManager
         return cities;
     }
 
-    public async Task<CityInfo> ModifyItemAsync(CityInfo updatedCity)
+    public async Task<CityInfo> UpdateCity(CityInfo updatedCity)
     {
         try
         {
@@ -242,10 +242,10 @@ public class DatabaseManager
             Console.WriteLine($"Error: {ex.Message}");
         }
 
-        return await GetCityInfo(updatedCity.CityId);
+        return await GetCity(updatedCity.CityId);
     }
 
-    public async Task DeleteItem(int cityId)
+    public async Task DeleteCity(int cityId)
     {
         try
         {

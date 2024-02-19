@@ -12,7 +12,8 @@ var configuration = builder.Configuration;
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<DatabaseManager>(_ => new DatabaseManager(configuration)); // TEST
+// builder.Services.AddScoped<DatabaseManager>(_ => new DatabaseManager(configuration)); // TEST
+builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(configuration)); // TEST
 
 var app = builder.Build();
 
@@ -25,35 +26,36 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 
-app.MapMethods("/health_check", new[] { "GET" }, (HttpContext context) =>
+app.MapGet("/health_check", () =>
 {
 	return Results.Ok();
 });
 
-app.MapMethods("/city", new[] { "GET", "POST", "PUT", "DELETE" }, async (HttpContext context, DatabaseManager dbManager) =>
+app.MapGet("/city", async (HttpContext context, IDatabaseManager dbManager) =>
 {
-	switch (context.Request.Method)
-	{
-		case "GET":
-			var query = context.Request.Query;
+	return await RequestHandler.RequestHandlerClass.ValidateAndReturnCityInfoAsync(context, dbManager);
+});
+app.MapPost("/city", async (HttpContext context, IDatabaseManager dbManager) =>
+{
+	return await RequestHandler.RequestHandlerClass.ValidateAndPostCityInfoAsync(context, dbManager);
+});
+app.MapPut("/city", async (HttpContext context, IDatabaseManager dbManager) =>
+{
+	return await RequestHandler.RequestHandlerClass.ValidateAndUpdateCityInfoAsync(context, dbManager);
+});
+app.MapDelete("/city", async (HttpContext context, IDatabaseManager dbManager) =>
+{
+	return await RequestHandler.RequestHandlerClass.ValidateAndDeleteCityAsync(context, dbManager);
+});
 
-			if (query.ContainsKey("city1") && query.ContainsKey("city2")) // GET distance between cities
-				return await RequestHandler.RequestHandlerClass.ValidateAndProcessCityDistanceAsync(context, dbManager);
-			else if (query.ContainsKey("cityName") || query.ContainsKey("cityId")) // GET city coordinates
-				return await RequestHandler.RequestHandlerClass.ValidateAndReturnCityInfoAsync(context, dbManager);
-			else if (query.ContainsKey("cityNameContains")) // GET cities that contain substring
-				return await RequestHandler.RequestHandlerClass.ValidateAndReturnCitiesCloseMatchAsync(context, dbManager);
-			else
-				return Results.BadRequest("Invalid request parameters.\nValid request parameters are: 1) city1 && city2 => used for calculating distance between two cities.\n2) CityName || CityId => for latitude and longitude info about a city\n");
-		case "POST":
-			return await RequestHandler.RequestHandlerClass.ValidateAndPostCityInfoAsync(context, dbManager);
-		case "PUT":
-			return await RequestHandler.RequestHandlerClass.ValidateAndUpdateCityInfoAsync(context, dbManager);
-		case "DELETE":
-			return await RequestHandler.RequestHandlerClass.ValidateAndDeleteCityAsync(context, dbManager);
-		default:
-			return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
-	}
+app.MapGet("/distance", async (HttpContext context, IDatabaseManager dbManager) =>
+{
+	return await RequestHandler.RequestHandlerClass.ValidateAndProcessCityDistanceAsync(context, dbManager);
+});
+
+app.MapGet("/search", async (HttpContext context, IDatabaseManager dbManager) =>
+{
+	return await RequestHandler.RequestHandlerClass.ValidateAndReturnCitiesCloseMatchAsync(context, dbManager);
 });
 
 app.Run();
