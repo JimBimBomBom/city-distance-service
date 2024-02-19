@@ -2,7 +2,7 @@ namespace RequestHandler
 {
     public static class RequestHandlerClass
     {
-        public static async Task<IResult> ValidateAndProcessCityDistanceAsync(HttpContext context, DatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndProcessCityDistanceAsync(HttpContext context, IDatabaseManager dbManager)
         {
             var query = context.Request.Query;
             string city1 = query["city1"].ToString();
@@ -18,7 +18,7 @@ namespace RequestHandler
                 return Results.Ok("Distance between: " + city1 + " to " + city2 + " is: " + distance + ".");
         }
 
-        public static async Task<IResult> ValidateAndReturnCityInfoAsync(HttpContext context, DatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndReturnCityInfoAsync(HttpContext context, IDatabaseManager dbManager)
         {
             var query = context.Request.Query;
             if (int.TryParse(query["cityId"], out int cityId))
@@ -27,7 +27,7 @@ namespace RequestHandler
                 if (!validationResult.IsValid)
                     return Results.BadRequest("Invalid city ID.");
 
-                var cityInfo = await dbManager.GetCityInfo(cityId);
+                var cityInfo = await dbManager.GetCity(cityId);
                 if (cityInfo == null)
                     return Results.NotFound("No city with given name was found");
                 else
@@ -40,7 +40,7 @@ namespace RequestHandler
                 if (!validationResult.IsValid)
                     return Results.BadRequest("Invalid city name.");
 
-                var cityInfo = await dbManager.GetCityInfo(cityName);
+                var cityInfo = await dbManager.GetCity(cityName);
                 if (cityInfo == null)
                     return Results.NotFound("No city with given name was found");
                 else
@@ -48,7 +48,7 @@ namespace RequestHandler
             }
         }
 
-        public static async Task<IResult> ValidateAndReturnCitiesCloseMatchAsync(HttpContext context, DatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndReturnCitiesCloseMatchAsync(HttpContext context, IDatabaseManager dbManager)
         {
             var query = context.Request.Query;
             var cityNameContains = query["cityNameContains"];
@@ -56,36 +56,36 @@ namespace RequestHandler
             if (!validationResult.IsValid)
                 return Results.BadRequest("Invalid cityNameContains parameter.");
 
-            var cities = await dbManager.GetCitiesByNameAsync(cityNameContains);
+            var cities = await dbManager.GetCities(cityNameContains);
             if (cities == null)
                 return Results.NotFound("No city with given name was found");
             else
                 return Results.Ok(new ApiResponse<List<CityInfo>>(cities, "Here is the full list of requested cities"));
         }
 
-        public static async Task<IResult> ValidateAndPostCityInfoAsync(HttpContext context, DatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndPostCityInfoAsync(HttpContext context, IDatabaseManager dbManager)
         {
             var cityDataForPost = await context.Request.ReadFromJsonAsync<CityInfo>();
             var validationResult = await new NewCityInfoValidator().ValidateAsync(cityDataForPost);
             if (!validationResult.IsValid)
                 return Results.BadRequest(validationResult.Errors.Select(x => x.ErrorMessage).ToList());
 
-            var addedCity = await dbManager.AddCityAsync(cityDataForPost);
+            var addedCity = await dbManager.AddCity(cityDataForPost);
             return Results.Ok(new ApiResponse<CityInfo>(addedCity, "Your city has successfully been added to our database."));
         }
 
-        public static async Task<IResult> ValidateAndUpdateCityInfoAsync(HttpContext context, DatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndUpdateCityInfoAsync(HttpContext context, IDatabaseManager dbManager)
         {
             var cityDataForPut = await context.Request.ReadFromJsonAsync<CityInfo>();
             var validationResult = await new CityInfoValidator().ValidateAsync(cityDataForPut);
             if (!validationResult.IsValid)
                 return Results.BadRequest(validationResult.Errors.Select(x => x.ErrorMessage).ToList());
 
-            var updatedCity = await dbManager.ModifyItemAsync(cityDataForPut);
+            var updatedCity = await dbManager.UpdateCity(cityDataForPut);
             return Results.Ok(new ApiResponse<CityInfo>(updatedCity, "Item has been successfully updated."));
         }
 
-        public static async Task<IResult> ValidateAndDeleteCityAsync(HttpContext context, DatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndDeleteCityAsync(HttpContext context, IDatabaseManager dbManager)
         {
             var queryForDelete = context.Request.Query;
             if (int.TryParse(queryForDelete["cityId"], out int cityIdForDelete))
@@ -95,7 +95,7 @@ namespace RequestHandler
                     return Results.BadRequest("Invalid city ID -> ID must be a positive integer.");
                 else
                 {
-                    await dbManager.DeleteItem(cityIdForDelete);
+                    await dbManager.DeleteCity(cityIdForDelete);
                     return Results.Ok("Item has been successfully deleted.");
                 }
             }
