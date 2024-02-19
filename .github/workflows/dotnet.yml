@@ -26,5 +26,7 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
-    - name: Docker
+    - name: Docker build image
+      run: docker build -t myapp .
+    - name: Docker compose up
       run: docker compose up --build
