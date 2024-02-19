@@ -26,6 +26,11 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 
+app.MapGet("/health_check", () =>
+{
+	return Results.Ok();
+});
+
 app.MapGet("/city", async (HttpContext context, IDatabaseManager dbManager) =>
 {
 	return await RequestHandler.RequestHandlerClass.ValidateAndReturnCityInfoAsync(context, dbManager);
