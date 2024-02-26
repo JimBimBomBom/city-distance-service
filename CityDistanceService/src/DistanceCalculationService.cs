@@ -3,67 +3,17 @@ public static class DistanceCalculationService
 {
     public static async Task<double> CalculateDistanceAsync(string city1, string city2, IDatabaseManager dbManager)
     {
-        var coordinates_city1 = await dbManager.GetCityCoordinates(city1);
-        if (coordinates_city1 == null)
-        {
-            var newCity = await GeocodeCity(city1);
-            await dbManager.AddCity(newCity);
-            coordinates_city1 = await dbManager.GetCityCoordinates(city1);
-        }
-
-        var coordinates_city2 = await dbManager.GetCityCoordinates(city2);
-        if (coordinates_city2 == null)
-        {
-            var newCity = await GeocodeCity(city2);
-
-            await dbManager.AddCity(newCity);
-            coordinates_city2 = await dbManager.GetCityCoordinates(city2);
-        }
-
-        if (coordinates_city1 == null || coordinates_city2 == null)
-        {
+        var coordinatesCity1 = await dbManager.GetCityCoordinates(city1);
+        var coordinatesCity2 = await dbManager.GetCityCoordinates(city2);
+        if (coordinatesCity1 == null || coordinatesCity2 == null)
             return -1;
-        }
 
-        var distance = CalculateGreatCircleDistance(coordinates_city1, coordinates_city2);
+        var distance = CalculateGreatCircleDistance(coordinatesCity1, coordinatesCity2);
 
         return distance;
     }
 
     private static readonly HttpClient httpClient = new HttpClient();
-
-    public static async Task<CityInfo> GeocodeCity(string cityName)
-    {
-
-        string apiKey = "65aa8e928d962502323182strd1e6f9";
-
-        string url = $"https://geocode.maps.co/search?q={Uri.EscapeDataString(cityName)}&api_key={apiKey}";
-
-        try
-        {
-            var response = await httpClient.GetAsync(url);
-
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadFromJsonAsync<GeocodeApiResponse[]>();
-
-            if (result != null && result.Length > 0)
-            {
-                return new CityInfo
-                {
-                    CityName = cityName,
-                    Latitude = result[0].Lat,
-                    Longitude = result[0].Lon
-                };
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            Console.WriteLine($"Error fetching geocoding data: {ex.Message}");
-        }
-
-        return null;
-    }
 
     public static double CalculateGreatCircleDistance(Coordinates coord1, Coordinates coord2)
     {

@@ -1,9 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-public class GeocodeApiResponse
-{
-    public double Lat { get; set; }
-    public double Lon { get; set; }
-}
 
 public class CitiesDistanceRequest
 {
@@ -25,6 +20,15 @@ public class CityInfo
     public double Longitude { get; set; }
 }
 
+public class CityId
+{
+    public int id { get; set; }
+}
+
+public class CityName
+{
+    public string name { get; set; }
+}
 public class ApiResponse<T>
 {
     public T Data { get; set; }
