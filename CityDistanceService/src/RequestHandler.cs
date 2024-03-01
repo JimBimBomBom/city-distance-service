@@ -11,22 +11,8 @@ namespace RequestHandler
                 return Results.Ok("Distance between: " + cities.City1 + " to " + cities.City2 + " is: " + distance + ".");
         }
 
-        // public static async Task<IResult> ValidateAndReturnCityInfoAsync(CityId cityId, IDatabaseManager dbManager)
-        // {
-        //     var cityInfo = await dbManager.GetCity(cityId.id);
-        //     if (cityInfo == null)
-        //         return Results.NotFound("No city with given name was found");
-        //     else
-        //         return Results.Ok(new ApiResponse<CityInfo>(cityInfo, "Here is the info for the requested City"));
-        // }
-        public static async Task<IResult> ValidateAndReturnCityInfoAsync(HttpContext context, IDatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndReturnCityInfoAsync(int cityId, IDatabaseManager dbManager)
         {
-            var query = context.Request.Query;
-            var cityId = Int32.Parse(query["cityId"]);
-            var validationResult = await new IdValidator().ValidateAsync(cityId);
-            if (!validationResult.IsValid)
-                return Results.BadRequest("Invalid city ID.");
-
             var cityInfo = await dbManager.GetCity(cityId);
             if (cityInfo == null)
                 return Results.NotFound("No city with given name was found");
@@ -34,23 +20,13 @@ namespace RequestHandler
                 return Results.Ok(new ApiResponse<CityInfo>(cityInfo, "Here is the info for the requested City"));
         }
 
-        // public static async Task<IResult> ValidateAndReturnCitiesCloseMatchAsync(CityName cityName, IDatabaseManager dbManager)
-        // {
-        //     var cities = await dbManager.GetCities(cityName.name);
-        //     if (cities == null)
-        //         return Results.NotFound("No city with given name was found");
-        //     else
-        //         return Results.Ok(new ApiResponse<List<CityInfo>>(cities, "Here is the full list of requested cities"));
-        // }
-        public static async Task<IResult> ValidateAndReturnCitiesCloseMatchAsync(HttpContext context, IDatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndReturnCitiesCloseMatchAsync(string cityName, IDatabaseManager dbManager)
         {
-            var query = context.Request.Query;
-            var cityNameContains = query["cityNameContains"];
-            var validationResult = await new StringValidator().ValidateAsync(cityNameContains);
+            var validationResult = await new StringValidator().ValidateAsync(cityName);
             if (!validationResult.IsValid)
                 return Results.BadRequest("Invalid cityNameContains parameter.");
 
-            var cities = await dbManager.GetCities(cityNameContains);
+            var cities = await dbManager.GetCities(cityName);
             if (cities == null)
                 return Results.NotFound("No city with given name was found");
             else
@@ -69,21 +45,14 @@ namespace RequestHandler
             return Results.Ok(new ApiResponse<CityInfo>(updatedCity, "Item has been successfully updated."));
         }
 
-        // public static async Task<IResult> ValidateAndDeleteCityAsync(CityId cityId, IDatabaseManager dbManager)
-        // {
-        //     await dbManager.DeleteCity(cityId.id);
-        //     return Results.Ok("Item has been successfully deleted.");
-        // }
-        public static async Task<IResult> ValidateAndDeleteCityAsync(HttpContext context, IDatabaseManager dbManager)
+        public static async Task<IResult> ValidateAndDeleteCityAsync(int cityId, IDatabaseManager dbManager)
         {
-            var queryForDelete = context.Request.Query;
-            var cityIdForDelete = Int32.Parse(queryForDelete["cityId"]);
-            var validationResult = await new IdValidator().ValidateAsync(cityIdForDelete);
-            if (!validationResult.IsValid)
-                return Results.BadRequest("Invalid city ID -> ID must be a positive integer.");
+            var cityInfo = await dbManager.GetCity(cityId);
+            if (cityInfo == null)
+                return Results.NotFound("No city with given name was found");
             else
             {
-                await dbManager.DeleteCity(cityIdForDelete);
+                await dbManager.DeleteCity(cityId);
                 return Results.Ok("Item has been successfully deleted.");
             }
         }
