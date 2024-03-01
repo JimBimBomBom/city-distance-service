@@ -64,7 +64,7 @@ app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager d
 	return await RequestHandler.RequestHandlerClass.ValidateAndProcessCityDistanceAsync(cities, dbManager);
 }).AddFluentValidationAutoValidation();
 
-app.MapGet("/search/{name}", async (string name, IDatabaseManager dbManager) =>
+app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
 {
 	return await RequestHandler.RequestHandlerClass.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
 });
