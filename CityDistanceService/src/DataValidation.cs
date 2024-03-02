@@ -39,20 +39,19 @@ public class CitiesDistanceRequestValidator : AbstractValidator<CitiesDistanceRe
     }
 }
 
-public class GeocodeApiResponseValidator : AbstractValidator<GeocodeApiResponse>
-{
-    public GeocodeApiResponseValidator()
-    {
-        RuleFor(x => x.Lat).InclusiveBetween(-90, 90);
-        RuleFor(x => x.Lon).InclusiveBetween(-180, 180);
-    }
-}
-
 public class StringValidator : AbstractValidator<string>
 {
     public StringValidator()
     {
         RuleFor(x => x).NotEmpty();
+    }
+}
+
+public class CityIdValidator : AbstractValidator<CityId>
+{
+    public CityIdValidator()
+    {
+        RuleFor(x => x.id).GreaterThan(0);
     }
 }
 
