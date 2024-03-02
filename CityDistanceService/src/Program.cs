@@ -46,10 +46,6 @@ app.MapGet("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManager) 
 {
 	return await RequestHandler.RequestHandlerClass.ValidateAndReturnCityInfoAsync(id, dbManager);
 });
-// app.MapGet("/city", async (HttpContext context, IDatabaseManager dbManager) =>
-// {
-// 	return await RequestHandler.RequestHandlerClass.ValidateAndReturnCityInfoAsync(context, dbManager);
-// });
 app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
 	return await RequestHandler.RequestHandlerClass.ValidateAndPostCityInfoAsync(city, dbManager);
@@ -62,21 +58,13 @@ app.MapDelete("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManage
 {
 	return await RequestHandler.RequestHandlerClass.ValidateAndDeleteCityAsync(id, dbManager);
 });
-// app.MapDelete("/city", async (HttpContext context, IDatabaseManager dbManager) =>
-// {
-// 	return await RequestHandler.RequestHandlerClass.ValidateAndDeleteCityAsync(context, dbManager);
-// });
 
 app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
 	return await RequestHandler.RequestHandlerClass.ValidateAndProcessCityDistanceAsync(cities, dbManager);
 }).AddFluentValidationAutoValidation();
 
-// app.MapGet("/search", async (CityName cityName, IDatabaseManager dbManager) =>
-// {
-// 	return await RequestHandler.RequestHandlerClass.ValidateAndReturnCitiesCloseMatchAsync(cityName, dbManager);
-// }).AddFluentValidationAutoValidation();
-app.MapGet("/search/{name}", async (string name, IDatabaseManager dbManager) =>
+app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
 {
 	return await RequestHandler.RequestHandlerClass.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
 });
