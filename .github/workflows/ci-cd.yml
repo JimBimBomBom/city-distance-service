@@ -8,8 +8,8 @@ on:
   
 
 env:
-  TEST_TAG: user/app:test
-  LATEST_TAG: user/app:latest
+  TEST_TAG: jimbimdocker/app:test
+  LATEST_TAG: jimbimdocker/app:latest
 
 jobs:
   docker:
