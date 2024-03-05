@@ -26,12 +26,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-    #   - name: Build and export to Docker
-    #     uses: docker/build-push-action@v5
-    #     with:
-    #       context: ./CityDistanceService/
-    #       load: true
-    #       tags: ${{ env.TEST_TAG }}
+      - name: Build and export to Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: ./CityDistanceService/
+          load: true
+          tags: ${{ env.TEST_TAG }}
     #   - name: Test
     #     run: |
     #       docker run --rm ${{ env.TEST_TAG }}
@@ -39,6 +39,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./CityDistanceService/
-          platforms: linux/amd64,linux/arm64
+        #   platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.LATEST_TAG }}
