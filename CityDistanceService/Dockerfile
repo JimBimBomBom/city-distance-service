@@ -2,7 +2,6 @@
 # FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-env
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 
-ENV ASPNET_HTTP_PORT=5189
 # Set the working directory.
 WORKDIR /app
 
