@@ -18,10 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
     
-      - name: List files in current directory
-        run: ls -la
-        working-directory: ./CityDistanceService/
-    
       - name: Build Docker images
         run: docker compose -f compose.yaml build
         working-directory: ./CityDistanceService/
