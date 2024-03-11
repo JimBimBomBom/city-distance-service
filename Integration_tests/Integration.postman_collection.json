@@ -138,12 +138,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/city/2",
+					"raw": "http://localhost:5189/city/2",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "5189",
 					"path": [
 						"city",
 						"2"
@@ -196,6 +196,26 @@
 			"response": []
 		},
 		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5189/search/Cairo",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5189",
+					"path": [
+						"search",
+						"Cairo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Delete data",
 			"event": [
 				{
@@ -224,7 +244,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5189/city/2",
+					"raw": "http://localhost:5189/city/1",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -232,30 +252,10 @@
 					"port": "5189",
 					"path": [
 						"city",
-						"2"
+						"1"
 					]
 				},
 				"description": "This is a DELETE request, and it is used to delete data that was previously created via a POST request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).\n\nA successful DELETE request typically returns a `200 OK`, `202 Accepted`, or `204 No Content` response code."
-			},
-			"response": []
-		},
-		{
-			"name": "New Request",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:5189/search/Cairo",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "5189",
-					"path": [
-						"search",
-						"Cairo"
-					]
-				}
 			},
 			"response": []
 		}
