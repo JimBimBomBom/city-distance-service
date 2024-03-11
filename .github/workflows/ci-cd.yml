@@ -26,9 +26,15 @@ jobs:
         run: docker compose -f compose.yaml up --detach --wait --wait-timeout 30
         working-directory: ./CityDistanceService/
 
-      - name: Run tests
-        run: docker-compose -f compose.yaml run --rm app dotnet test
-        working-directory: ./CityDistanceService/
+    #   - name: Run tests
+    #     run: docker-compose -f compose.yaml run --rm app dotnet test
+    #     working-directory: ./CityDistanceService/
+
+      - name: Install Newman
+        run: npm install -g newman
+    
+      - name: Run Postman tests
+        run: newman run ./Integration tests/Integration testing.postman_collection.json
 
       - name: Stop services
         run: docker-compose down
