@@ -18,11 +18,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
     
-    #   - name: Build Docker images
-    #     run: docker-compose build
+      - name: Build Docker images
+        run: docker compose build
 
       - name: Start services
-        run: docker compose up -d --wait --wait-timeout 30
+        run: docker compose up --detach --wait --wait-timeout 30
 
       - name: Run tests
         run: docker-compose run --rm app dotnet test
