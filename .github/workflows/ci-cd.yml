@@ -20,16 +20,21 @@ jobs:
     
       - name: List files in current directory
         run: ls -la
+        working-directory: ./CityDistanceService/
     
       - name: Build Docker images
         run: docker compose -f compose.yaml build
+        working-directory: ./CityDistanceService/
 
       - name: Start services
         run: docker compose -f compose.yaml up --detach --wait --wait-timeout 30
+        working-directory: ./CityDistanceService/
 
       - name: Run tests
         run: docker-compose -f compose.yaml run --rm app dotnet test
+        working-directory: ./CityDistanceService/
 
       - name: Stop services
         run: docker-compose down
+        working-directory: ./CityDistanceService/
       
