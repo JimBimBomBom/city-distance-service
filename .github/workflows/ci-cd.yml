@@ -19,13 +19,13 @@ jobs:
         uses: actions/checkout@v4
     
       - name: Build Docker images
-        run: docker compose build
+        run: docker compose -f compose.yaml build
 
       - name: Start services
-        run: docker compose up --detach --wait --wait-timeout 30
+        run: docker compose -f compose.yaml up --detach --wait --wait-timeout 30
 
       - name: Run tests
-        run: docker-compose run --rm app dotnet test
+        run: docker-compose -f compose.yaml run --rm app dotnet test
 
       - name: Stop services
         run: docker-compose down
