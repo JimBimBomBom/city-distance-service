@@ -15,7 +15,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     env:
-        MYSQLCONNECTIONSTRING: ${{ secrets.MYSQLCONNECTIONSTRING }}
+        database-connection-string: ${{ secrets.MYSQLCONNECTIONSTRING }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

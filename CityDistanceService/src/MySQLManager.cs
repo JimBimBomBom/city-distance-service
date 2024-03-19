@@ -7,7 +7,7 @@ public class MySQLManager : IDatabaseManager
 
     public MySQLManager(IConfiguration configuration)
     {
-        _connectionString = configuration["MYSQLCONNECTIONSTRING"];
+        _connectionString = configuration["database-connection-string"];
     }
 
     public async Task<CityInfo> AddCity(CityInfo city)
