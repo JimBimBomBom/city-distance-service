@@ -18,7 +18,7 @@ jobs:
         database-connection-string: ${{ secrets.MYSQLCONNECTIONSTRING }}
     steps:
       - name: Test secret
-        if: env.database-connection-string == 'Server=db;Port=3306;Database=CityDistanceService;User=root;Password=changeme;'
+        if: env.database-connection-string == 'Sieerver=db;Port=3306;Database=CityDistanceService;User=root;Password=changeme;'
         run: echo "Secret is correct"
 
       - name: Checkout
