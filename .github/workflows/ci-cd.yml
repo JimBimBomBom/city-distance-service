@@ -18,7 +18,7 @@ jobs:
         MYSQLCONNECTIONSTRING: ${{ secrets.MYSQLCONNECTIONSTRING }}
     steps:
       - name: Print secret
-        run: echo "${{ secrets.MYSQLCONNECTIONSTRING }}""
+        run: echo "${{ secrets.MYSQLCONNECTIONSTRING }}"
 
       - name: Checkout
         uses: actions/checkout@v4
