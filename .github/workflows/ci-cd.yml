@@ -15,7 +15,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     env:
-        MYSQLCONNECTIONSTRING: ${{ secrets.MYSQLCONNECTIONSTRING }}
+        MYSQLCONNECTIONSTRING: "${{ secrets.MYSQLCONNECTIONSTRING }}"
     steps:
       - name: Print secret
         run: echo ${{ secrets.MYSQLCONNECTIONSTRING }}
