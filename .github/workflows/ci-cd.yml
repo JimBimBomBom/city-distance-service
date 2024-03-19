@@ -38,6 +38,8 @@ jobs:
 
       - name: Run Postman tests
         run: newman run ./Integration_tests/Integration.postman_collection.json
+        env:
+          MySQLConnectionString: ${{ secrets.MySQLConnectionString }}
 
       - name: Stop services
         run: docker-compose down
