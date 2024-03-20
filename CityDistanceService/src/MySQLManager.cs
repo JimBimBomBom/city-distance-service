@@ -8,11 +8,7 @@ public class MySQLManager : IDatabaseManager
     public MySQLManager(IConfiguration configuration)
     {
         // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
-        _connectionString = configuration["database-connection-string"];
-        if (_connectionString == "Server=db;Port=3306;Database=CityDistanceService;User=root;Password=changeme;")
-            Console.WriteLine("Connection string is set.");
-        else
-            Console.WriteLine("Connection string is not set.");
+        _connectionString = configuration["env:database-connection-string"];
     }
 
     public async Task<CityInfo> AddCity(CityInfo city)
