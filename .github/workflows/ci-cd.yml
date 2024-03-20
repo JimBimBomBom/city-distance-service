@@ -17,12 +17,12 @@ jobs:
     env:
         database-connection-string: ${{ secrets.MYSQLCONNECTIONSTRING }}
     steps:
+      - name: Set environment variable
+        run: echo "database-connection-string=${{ secrets.MYSQLCONNECTIONSTRING }}" >> $GITHUB_ENV
       - name: Test secret
         if: env.database-connection-string == 'Server=db;Port=3306;Database=CityDistanceService;User=root;Password=changeme;'
         run: echo "Secret is correct"
 
-      - name: Set environment variable
-        run: echo "database-connection-string=${{ secrets.MYSQLCONNECTIONSTRING }}" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v4
