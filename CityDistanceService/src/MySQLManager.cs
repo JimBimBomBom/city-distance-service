@@ -5,10 +5,15 @@ public class MySQLManager : IDatabaseManager
 {
     private readonly string _connectionString;
 
-    public MySQLManager(IConfiguration configuration)
+    // public MySQLManager(IConfiguration configuration)
+    // {
+    //     // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
+    //     _connectionString = configuration["env:database-connection-string"];
+    // }
+    public MySQLManager(string connectionString)
     {
         // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
-        _connectionString = configuration["env:database-connection-string"];
+        _connectionString = connectionString;
     }
 
     public async Task<CityInfo> AddCity(CityInfo city)
