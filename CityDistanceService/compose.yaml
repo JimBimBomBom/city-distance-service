@@ -9,7 +9,6 @@ services:
       - db
     environment:
       - ASPNETCORE_URLS=http://+:5189
-      - DatabaseConnectionString=${database-connection-string}
     networks:
       - cdsNetwork
 
