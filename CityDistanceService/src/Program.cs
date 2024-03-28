@@ -16,7 +16,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // builder.Services.AddScoped<DatabaseManager>(_ => new DatabaseManager(configuration)); // TEST
+
+configuration.AddEnvironmentVariables();
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(configuration)); // TEST
+
+// var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
+// builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString)); // TEST
 
 // builder.Services
 // .AddControllers()

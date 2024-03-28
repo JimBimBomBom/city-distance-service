@@ -1,0 +1,48 @@
+name: Docker Image CI/CD
+
+on:
+    push:
+      branches: [ "main" ]
+    pull_request:
+      branches: [ "main" ]
+  
+
+env:
+  TEST_TAG: jimbimdocker/app:test
+  LATEST_TAG: jimbimdocker/app:latest
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set environment variable
+        run: echo "DATABASE_CONNECTION_STRING=${{ secrets.MYSQLCONNECTIONSTRING }}" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v4
+    
+      - name: Build Docker images
+        run: docker compose -f compose.yaml build
+        working-directory: ./CityDistanceService/
+
+      - name: Start services
+        run: docker compose -f compose.yaml up --wait --wait-timeout 30
+        working-directory: ./CityDistanceService/
+
+    #   - name: Run tests
+    #     run: docker-compose -f compose.yaml run --rm app dotnet test
+    #     working-directory: ./CityDistanceService/
+
+      - name: Install Newman
+        run: npm install -g newman
+        
+      - name: Wait for services to initialize
+        run: sleep 20    
+
+      - name: Run Postman tests
+        run: newman run ./Integration_tests/Integration.postman_collection.json
+
+      - name: Stop services
+        run: docker-compose down
+        working-directory: ./CityDistanceService/
+      

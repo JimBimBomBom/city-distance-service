@@ -1,0 +1,10 @@
+CREATE DATABASE IF NOT EXISTS CityDistanceService;
+
+USE CityDistanceService;
+
+CREATE TABLE IF NOT EXISTS cities (
+  CityId INT AUTO_INCREMENT PRIMARY KEY,
+  CityName VARCHAR(100) NOT NULL,
+  Latitude DECIMAL(10, 8) NOT NULL,
+  Longitude DECIMAL(11, 8) NOT NULL
+);

@@ -7,8 +7,15 @@ public class MySQLManager : IDatabaseManager
 
     public MySQLManager(IConfiguration configuration)
     {
-        _connectionString = configuration["ConnectionStrings:DefaultConnection"];
+        // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
+        _connectionString = configuration["DATABASE_CONNECTION_STRING"];
+        Console.WriteLine(_connectionString);
     }
+    // public MySQLManager(string connectionString)
+    // {
+    //     // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
+    //     _connectionString = connectionString;
+    // }
 
     public async Task<CityInfo> AddCity(CityInfo city)
     {
