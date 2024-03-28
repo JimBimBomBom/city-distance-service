@@ -22,14 +22,18 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
-    
-      - name: Build Docker images
-        run: docker compose -f compose.yaml build
-        working-directory: ./CityDistanceService/
+      - name: Build and Run Docker images
+        run: |
+          docker compose -f compose.yaml build
+          docker compose -f compose.yaml up --detach --env DATABASE_CONNECTION_STRING="${{ secrets.MYSQLCONNECTIONSTRING }}"
+        working-directory: ./CityDistanceService/ 
+    #   - name: Build Docker images
+    #     run: docker compose -f compose.yaml build
+    #     working-directory: ./CityDistanceService/
 
-      - name: Start services
-        run: docker compose -f compose.yaml up --detach --env DATABASE_CONNECTION_STRING="${{ secrets.MYSQLCONNECTIONSTRING }}"
-        working-directory: ./CityDistanceService/
+    #   - name: Start services
+    #     run: docker compose -f compose.yaml up --detach --env DATABASE_CONNECTION_STRING="${{ secrets.MYSQLCONNECTIONSTRING }}"
+    #     working-directory: ./CityDistanceService/
 
     #   - name: Run tests
     #     run: docker-compose -f compose.yaml run --rm app dotnet test
