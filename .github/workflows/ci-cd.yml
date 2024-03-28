@@ -26,7 +26,7 @@ jobs:
         working-directory: ./CityDistanceService/
 
       - name: Start services
-        run: docker compose -f compose.yaml up --detach --wait --wait-timeout 30
+        run: docker compose -f compose.yaml up --wait --wait-timeout 30
         working-directory: ./CityDistanceService/
 
     #   - name: Run tests

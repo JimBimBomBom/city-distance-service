@@ -9,6 +9,7 @@ public class MySQLManager : IDatabaseManager
     {
         // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
         _connectionString = configuration["env:database-connection-string"];
+        Console.WriteLine(_connectionString);
     }
     // public MySQLManager(string connectionString)
     // {
