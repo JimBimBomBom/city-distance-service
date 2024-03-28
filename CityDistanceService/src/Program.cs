@@ -18,7 +18,7 @@ builder.Services.AddSwaggerGen();
 // builder.Services.AddScoped<DatabaseManager>(_ => new DatabaseManager(configuration)); // TEST
 // builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(configuration)); // TEST
 // var connectionString = configuration.GetConnectionString("database-connection-string");
-var connectionString = Environment.GetEnvironmentVariable("database-connection-string");
+var connectionString = Environment.GetEnvironmentVariable("DatabaseConnectionString");
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString)); // TEST
 
 // builder.Services
