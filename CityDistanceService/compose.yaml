@@ -1,33 +1,33 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "5189:5189"
-    depends_on:
-      - db
-    environment:
-      - ASPNETCORE_URLS=http://+:5189
-      - DATABASE_CONNECTION_STRING=${DATABASE_CONNECTION_STRING}
-    networks:
-      - cdsNetwork
+    app:
+        env_file:
+            - app_variables.env
+        build:
+            context: .
+            dockerfile: Dockerfile
+        ports:
+            - "5189:5189"
+        depends_on:
+            - db
+        environment:
+            - ASPNETCORE_URLS=http://+:5189
+        networks:
+            - cdsNetwork
 
-  db:
-    image: mysql:latest
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: changeme
-      MYSQL_DATABASE: CityDistanceService
-    volumes:
-      - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
-      # - db_data:/var/lib/mysql
-    networks:
-      - cdsNetwork
+    db:
+        env_file:
+            - database_variables.env
+        image: mysql:latest
+        ports:
+            - "3306:3306"
+        volumes:
+            - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
+            # - db_data:/var/lib/mysql
+        networks:
+            - cdsNetwork
 
 networks:
-  cdsNetwork: {}
+    cdsNetwork: {}
 
 volumes:
-  db_data: {}
+    db_data: {}
