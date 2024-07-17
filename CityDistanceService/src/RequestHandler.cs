@@ -2,6 +2,11 @@ namespace RequestHandler
 {
     public static class RequestHandlerClass
     {
+        public static async Task<IResult> TestConnection(IDatabaseManager dbManager)
+        {
+            return Results.Ok(await dbManager.TestConnection());
+        }
+
         public static async Task<IResult> ValidateAndProcessCityDistanceAsync(CitiesDistanceRequest cities, IDatabaseManager dbManager)
         {
             var distance = await DistanceCalculationService.CalculateDistanceAsync(cities.City1, cities.City2, dbManager);

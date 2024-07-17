@@ -1,5 +1,6 @@
 public interface IDatabaseManager
 {
+    Task<string> TestConnection();
     Task<CityInfo> AddCity(CityInfo newCity);
     Task<CityInfo> GetCity(int cityId);
     Task<CityInfo> GetCity(string cityName);
