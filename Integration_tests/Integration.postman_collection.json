@@ -8,25 +8,6 @@
 	},
 	"item": [
 		{
-			"name": "New Request",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:5189/health_check",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "5189",
-					"path": [
-						"health_check"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Post data",
 			"event": [
 				{
@@ -38,7 +19,8 @@
 							"});",
 							""
 						],
-						"type": "text/javascript"
+						"type": "text/javascript",
+						"packages": {}
 					}
 				}
 			],
@@ -81,7 +63,8 @@
 							"});",
 							""
 						],
-						"type": "text/javascript"
+						"type": "text/javascript",
+						"packages": {}
 					}
 				}
 			],
@@ -98,12 +81,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5189/city",
+					"raw": "http://localhost:8080/city",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5189",
+					"port": "8080",
 					"path": [
 						"city"
 					]
@@ -118,12 +101,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5189/city/1",
+					"raw": "http://localhost:8080/city/1",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5189",
+					"port": "8080",
 					"path": [
 						"city",
 						"1"
@@ -138,12 +121,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5189/city/2",
+					"raw": "http://localhost:8080/city/2",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5189",
+					"port": "8080",
 					"path": [
 						"city",
 						"2"
@@ -164,7 +147,8 @@
 							"});",
 							""
 						],
-						"type": "text/javascript"
+						"type": "text/javascript",
+						"packages": {}
 					}
 				}
 			],
@@ -181,12 +165,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5189/city",
+					"raw": "http://localhost:8080/city",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5189",
+					"port": "8080",
 					"path": [
 						"city"
 					]
@@ -201,12 +185,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5189/search/Cairo",
+					"raw": "http://localhost:8080/search/Cairo",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5189",
+					"port": "8080",
 					"path": [
 						"search",
 						"Cairo"
@@ -256,6 +240,41 @@
 					]
 				},
 				"description": "This is a DELETE request, and it is used to delete data that was previously created via a POST request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).\n\nA successful DELETE request typically returns a `200 OK`, `202 Accepted`, or `204 No Content` response code."
+			},
+			"response": []
+		},
+		{
+			"name": "db_health_check",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "health_check",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "version",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/version",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"version"
+					]
+				}
 			},
 			"response": []
 		}
