@@ -15,11 +15,6 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Set environment variables
-        run: echo "DATABASE_CONNECTION_STRING=${{ secrets.MYSQLCONNECTIONSTRING }}" >> $GITHUB_ENV &&
-            echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQLROOTPASSWORD }}" >> $GITHUB_ENV &&
-            echo "MYSQL_DATABASE=${{ secrets.MYSQLDATABASE }}" >> $GITHUB_ENV
-
       - name: Checkout
         uses: actions/checkout@v4
     
