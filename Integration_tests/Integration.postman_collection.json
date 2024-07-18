@@ -180,7 +180,7 @@
 			"response": []
 		},
 		{
-			"name": "New Request",
+			"name": "search",
 			"request": {
 				"method": "GET",
 				"header": [],
