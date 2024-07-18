@@ -37,12 +37,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5189/city",
+					"raw": "http://localhost:8080/city",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5189",
+					"port": "8080",
 					"path": [
 						"city"
 					]
@@ -211,7 +211,8 @@
 							"});",
 							""
 						],
-						"type": "text/javascript"
+						"type": "text/javascript",
+						"packages": {}
 					}
 				}
 			],
@@ -228,26 +229,18 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5189/city/1",
+					"raw": "http://localhost:8080/city/1",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5189",
+					"port": "8080",
 					"path": [
 						"city",
 						"1"
 					]
 				},
 				"description": "This is a DELETE request, and it is used to delete data that was previously created via a POST request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).\n\nA successful DELETE request typically returns a `200 OK`, `202 Accepted`, or `204 No Content` response code."
-			},
-			"response": []
-		},
-		{
-			"name": "db_health_check",
-			"request": {
-				"method": "GET",
-				"header": []
 			},
 			"response": []
 		},
@@ -260,21 +253,10 @@
 			"response": []
 		},
 		{
-			"name": "version",
+			"name": "db_health_check",
 			"request": {
 				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080/version",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"version"
-					]
-				}
+				"header": []
 			},
 			"response": []
 		}
