@@ -21,7 +21,7 @@ configuration.AddEnvironmentVariables();
 if (configuration["DATABASE_TYPE"] == "MYSQL-CLOUD_SQL")
 {
     Console.WriteLine(configuration["DB_CONNECTION"]);
-    var connectionString = configuration["DATABASE_CONNECTION_STRING"]
+    var connectionString = configuration["DATABASE_CONNECTION_STRING"];
     if (string.IsNullOrEmpty(connectionString))
     {
         Console.WriteLine("No connection string found.");
