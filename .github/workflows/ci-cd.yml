@@ -8,7 +8,7 @@ on:
   
 
 env:
-  TEST_TAG: jimbimdocker/app:test
+#   APP_VERSION: jimbimdocker/app:test
   LATEST_TAG: jimbimdocker/app:latest
 
 jobs:
@@ -55,5 +55,13 @@ jobs:
 
       - name: Stop services
         run: docker-compose down
+        working-directory: ./CityDistanceService/
+    
+      - name: Push Docker images
+        run: |
+            docker tag cds-app ${{ env.LATEST_TAG }} cds-app ${{ env.APP_VERSION }}
+            echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+            docker push ${{ env.LATEST_TAG }}
+            docker push ${{ env.APP_VERSION }}
         working-directory: ./CityDistanceService/
       
