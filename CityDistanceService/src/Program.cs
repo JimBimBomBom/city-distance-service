@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
+using System.IO;
 
 using RequestHandler;
+using System.Drawing.Printing;
+using System.Runtime.InteropServices;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -20,7 +23,7 @@ configuration.AddEnvironmentVariables();
 if (configuration["DATABASE_TYPE"] == "MYSQL-CLOUD_SQL")
 {
     Console.WriteLine(configuration["DB_CONNECTION"]);
-    var connectionString = configuration["DATABASE_CONNECTION_STRING"]
+    var connectionString = configuration["DATABASE_CONNECTION_STRING"];
     if (string.IsNullOrEmpty(connectionString))
     {
         Console.WriteLine("No connection string found.");
@@ -53,6 +56,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
 var app = builder.Build();
 
+app.UseMiddleware<ApplicationVersionMiddleware>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -62,6 +67,21 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
+
+var version = configuration["APP_VERSION"];
+Console.WriteLine("App version: " + version);
+
+
+if (string.IsNullOrEmpty(version))
+{
+    Console.WriteLine("No version found error.");
+    return;
+}
+
+app.MapGet("/version", () =>
+{
+    return Results.Ok(configuration["APP_VERSION"]);
+});
 
 app.MapGet("/health_check", () =>
 {

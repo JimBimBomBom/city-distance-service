@@ -31,9 +31,23 @@ jobs:
         run: docker compose -f compose.yaml up --wait --wait-timeout 30
         working-directory: ./CityDistanceService/
 
-    #   - name: Run tests
-    #     run: docker-compose -f compose.yaml run --rm app dotnet test
-    #     working-directory: ./CityDistanceService/
+      - name: Check /version endpoint
+        run: |
+            # Give the server time to start
+            sleep 10
+            
+            # Make a request to the /version endpoint
+            VERSION_ENDPOINT_RESPONSE=$(curl -s http://localhost:8080/version)
+            
+            echo "Endpoint version: $VERSION_ENDPOINT_RESPONSE"
+            
+            # Assuming $APP_VERSION is set in GitHub secrets or environment variables
+            if [ "$VERSION_ENDPOINT_RESPONSE" != "${{ env.APP_VERSION }}" ]; then
+            echo "Version mismatch. Endpoint version: $VERSION_ENDPOINT_RESPONSE, Expected: ${{ env.APP_VERSION }}"
+            exit 1
+            else
+            echo "Version match."
+
 
       - name: Install Newman
         run: npm install -g newman

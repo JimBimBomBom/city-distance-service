@@ -1,10 +1,12 @@
 services:
     app:
         env_file:
-            - app_variables.env
+            - env/app_variables.env
+            - env/version.env
         build:
             context: .
             dockerfile: Dockerfile
+        image: cds-app
         ports:
             - "8080:5189"
         depends_on:
@@ -16,7 +18,7 @@ services:
 
     db:
         env_file:
-            - database_variables.env
+            - env/database_variables.env
         image: mysql:latest
         ports:
             - "3306:3306"
