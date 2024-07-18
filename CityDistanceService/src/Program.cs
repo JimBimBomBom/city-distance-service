@@ -16,6 +16,7 @@ builder.Services.AddSwaggerGen();
 
 // builder.Services.AddScoped<DatabaseManager>(_ => new DatabaseManager(configuration)); // TEST
 
+Console.WriteLine("DATABASE_TYPE: " + configuration["DATABASE_TYPE"]);
 configuration.AddEnvironmentVariables();
 if (configuration["DATABASE_TYPE"] == "MYSQL-CLOUD_SQL")
 {
