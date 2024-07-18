@@ -80,7 +80,7 @@ if (string.IsNullOrEmpty(version))
 
 app.MapGet("/version", () =>
 {
-    return Results.Ok(configuration["APP_VERSION"]);
+    return Results.Ok(version);
 });
 
 app.MapGet("/health_check", () =>
