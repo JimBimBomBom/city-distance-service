@@ -60,9 +60,10 @@ jobs:
     
       - name: Push Docker images
         run: |
+          echo "Pwd: $DOCKER_PASSWORD, Username: $DOCKER_USERNAME"
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
           
-          docker tag cds-app:latest cds-app:$APP_VERSION
+          docker tag cds-app cds-app:$APP_VERSION
           docker push cds-app --all-tags  
         working-directory: ./CityDistanceService/
       
