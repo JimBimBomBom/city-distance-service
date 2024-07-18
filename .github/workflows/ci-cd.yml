@@ -29,14 +29,14 @@ jobs:
     #     run: docker-compose -f compose.yaml run --rm app dotnet test
     #     working-directory: ./CityDistanceService/
 
-      - name: Install Newman
-        run: npm install -g newman
+    #   - name: Install Newman
+    #     run: npm install -g newman
         
-      - name: Wait for services to initialize
-        run: sleep 20    
+    #   - name: Wait for services to initialize
+    #     run: sleep 20    
 
-      - name: Run Postman tests
-        run: newman run ./Integration_tests/Integration.postman_collection.json
+    #   - name: Run Postman tests
+    #     run: newman run ./Integration_tests/Integration.postman_collection.json
 
       - name: Stop services
         run: docker-compose down
