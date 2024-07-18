@@ -41,7 +41,6 @@ jobs:
             else
             echo "Version match."
 
-
       - name: Install Newman
         run: npm install -g newman
         

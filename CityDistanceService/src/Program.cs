@@ -47,6 +47,9 @@ else
 // var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
 // builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString)); // TEST
 
+// var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
+// builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString)); // TEST
+
 // builder.Services
 // .AddControllers()
 // .AddFluentValidation(fv=>fv.RegisterValidatorsFromAssemblyContaining<CityInfo>());

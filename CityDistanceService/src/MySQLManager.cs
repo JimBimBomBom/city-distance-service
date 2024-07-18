@@ -31,6 +31,11 @@ public class MySQLManager : IDatabaseManager
 
         return _connectionString;
     }
+    // public MySQLManager(string connectionString)
+    // {
+    //     // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
+    //     _connectionString = connectionString;
+    // }
 
     public async Task<CityInfo> AddCity(CityInfo city)
     {
