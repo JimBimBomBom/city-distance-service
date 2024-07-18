@@ -20,6 +20,8 @@ jobs:
         working-directory: ./CityDistanceService/
 
       - name: Start services
+        env:
+            DATABASE_TYPE: LOCALHOST
         run: docker compose -f compose.yaml up --wait --wait-timeout 30
         working-directory: ./CityDistanceService/
 
