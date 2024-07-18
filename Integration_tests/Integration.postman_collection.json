@@ -37,7 +37,9 @@
 					}
 				},
 				"url": {
+
 					"raw": "http://localhost:8080/city",
+
 					"protocol": "http",
 					"host": [
 						"localhost"
