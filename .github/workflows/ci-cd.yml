@@ -35,7 +35,9 @@ jobs:
             echo "Expected version: $APP_VERSION"
             
             # Assuming $APP_VERSION is set in GitHub secrets or environment variables
-            if [ "$VERSION_ENDPOINT_RESPONSE" != "$APP_VERSION" ]; then
+            # Remove quotes from the endpoint version
+            CLEANED_VERSION_ENDPOINT_RESPONSE=$(echo $VERSION_ENDPOINT_RESPONSE | tr -d '"')
+            if [ "$CLEANED_VERSION_ENDPOINT_RESPONSE" != "$APP_VERSION" ]; then
             echo "Version mismatch. Endpoint version: $VERSION_ENDPOINT_RESPONSE, Expected: $APP_VERSION"
             exit 1
             else
