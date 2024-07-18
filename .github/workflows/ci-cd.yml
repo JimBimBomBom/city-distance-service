@@ -40,6 +40,7 @@ jobs:
             exit 1
             else
             echo "Version match."
+        working-directory: ./CityDistanceService/
 
       - name: Install Newman
         run: npm install -g newman
