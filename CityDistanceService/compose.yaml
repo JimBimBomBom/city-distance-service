@@ -6,7 +6,7 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        image: cds-app
+        image: app
         ports:
             - "8080:5189"
         depends_on:

@@ -69,7 +69,7 @@ jobs:
           echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
           APP_VERSION=$(grep 'APP_VERSION' env/version.env | cut -d '=' -f2) 
-          docker tag cds-app cds-app:$APP_VERSION
-          docker push cds-app --all-tags  
+          docker tag app app:$APP_VERSION
+          docker push app --all-tags  
         working-directory: ./CityDistanceService/
       
