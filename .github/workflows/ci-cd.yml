@@ -65,7 +65,8 @@ jobs:
         run: |
           echo "Pwd: ${{ secrets.DOCKER_USERNAME }}, Username: ${{ secrets.DOCKER_TOKEN }}"
           echo "Pwd: $DOCKER_USERNAME, Username: $DOCKER_TOKEN"
-          echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+          echo "$DOCKER_TOKEN" | "docker login registry-1.docker.io -u $DOCKER_USERNAME"
           
           APP_VERSION=$(grep 'APP_VERSION' env/version.env | cut -d '=' -f2) 
           docker tag cds-app cds-app:$APP_VERSION
