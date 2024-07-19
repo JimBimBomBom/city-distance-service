@@ -63,13 +63,10 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          echo Pwd: "${{ secrets.DOCKERHUB_USERNAME }}", Username: "${{ secrets.DOCKERHUB_TOKEN }}"
-          echo Pwd: "$DOCKER_USERNAME", Username: "$DOCKER_TOKEN"
-
           echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
           APP_VERSION=$(grep 'APP_VERSION' env/version.env | cut -d '=' -f2) 
-          docker tag app app:$APP_VERSION
+          docker tag app $DOCKER_USERNAME/app:$APP_VERSION
           docker push app --all-tags  
         working-directory: ./CityDistanceService/
       
