@@ -59,9 +59,12 @@ jobs:
         working-directory: ./CityDistanceService/
     
       - name: Push Docker images
+        env:
+          USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          echo "Pwd: $DOCKER_PASSWORD, Username: $DOCKER_USERNAME"
-          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+          echo "Pwd: $USERNAME, Username: $PASSWORD"
+          echo $PASSWORD | docker login -u $USERNAME --password-stdin
           
           docker tag cds-app cds-app:$APP_VERSION
           docker push cds-app --all-tags  
