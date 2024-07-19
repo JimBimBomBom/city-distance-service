@@ -60,10 +60,10 @@ jobs:
     
       - name: Push Docker images
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          echo Pwd: "${{ secrets.DOCKER_USERNAME }}", Username: "${{ secrets.DOCKER_TOKEN }}"
+          echo Pwd: "${{ secrets.DOCKERHUB_USERNAME }}", Username: "${{ secrets.DOCKERHUB_TOKEN }}"
           echo Pwd: "$DOCKER_USERNAME", Username: "$DOCKER_TOKEN"
 
           echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
