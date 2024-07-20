@@ -253,7 +253,7 @@ public class MySQLManager : IDatabaseManager
                 }
             }
 
-            Console.WriteLine("Product modified successfully.");
+            Console.WriteLine(updatedCity.CityName + "modified successfully.");
         }
         catch (MySqlException ex)
         {

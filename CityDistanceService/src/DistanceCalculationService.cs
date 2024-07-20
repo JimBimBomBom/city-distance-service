@@ -21,12 +21,11 @@ public static class DistanceCalculationService
     public static double CalculateGreatCircleDistance(Coordinates coord1, Coordinates coord2)
     {
         const double EarthRadius = 6371.0;
-
         double lat_distance = ToRadians(coord2.Latitude - coord1.Latitude);
         double lon_distance = ToRadians(coord2.Longitude - coord1.Longitude);
-        double a = Math.Sin(lat_distance / 2) * Math.Sin(lat_distance / 2) +
-                Math.Cos(ToRadians(coord1.Latitude)) * Math.Cos(ToRadians(coord2.Latitude)) *
-                Math.Sin(lon_distance / 2) * Math.Sin(lon_distance / 2);
+        double a = (Math.Sin(lat_distance / 2) * Math.Sin(lat_distance / 2)) +
+                (Math.Cos(ToRadians(coord1.Latitude)) * Math.Cos(ToRadians(coord2.Latitude)) *
+                Math.Sin(lon_distance / 2) * Math.Sin(lon_distance / 2));
         double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         double distance = EarthRadius * c;
 

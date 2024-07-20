@@ -18,7 +18,6 @@ builder.Services.AddSwaggerGen();
 configuration.AddEnvironmentVariables();
 if (configuration["DATABASE_TYPE"] == "MYSQL-CLOUD_SQL")
 {
-    Console.WriteLine(configuration["DB_CONNECTION"]);
     var connectionString = configuration["DATABASE_CONNECTION_STRING"];
     if (string.IsNullOrEmpty(connectionString))
     {
@@ -26,7 +25,6 @@ if (configuration["DATABASE_TYPE"] == "MYSQL-CLOUD_SQL")
         return;
     }
 
-    Console.WriteLine("Connection string: " + connectionString);
     builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 }
 else
@@ -38,7 +36,6 @@ else
         return;
     }
 
-    Console.WriteLine("Connection string: " + connectionString);
     builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 }
 
@@ -74,12 +71,10 @@ app.MapGet("/version", () =>
 });
 app.MapGet("/health_check", () =>
 {
-    Console.WriteLine("Health check endpoint called.");
     return Results.Ok();
 });
 app.MapGet("/db_health_check", async (IDatabaseManager dbManager) =>
 {
-    Console.WriteLine("DB Health check endpoint called.");
     return await RequestHandler.RequestHandler.TestConnection(dbManager);
 });
 app.MapGet("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManager) =>
