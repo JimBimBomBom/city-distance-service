@@ -6,7 +6,10 @@ public static class DistanceCalculationService
         var coordinatesCity1 = await dbManager.GetCityCoordinates(city1);
         var coordinatesCity2 = await dbManager.GetCityCoordinates(city2);
         if (coordinatesCity1 == null || coordinatesCity2 == null)
+        {
+            Console.WriteLine("One or both cities could not be found within our database.");
             return -1;
+        }
 
         var distance = CalculateGreatCircleDistance(coordinatesCity1, coordinatesCity2);
 
