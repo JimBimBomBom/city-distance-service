@@ -23,6 +23,10 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
+      env:
+        DATABASE_TYPE: LOCALHOST
       run: dotnet build --no-restore
     - name: Test
+      env:
+        DATABASE_TYPE: LOCALHOST
       run: dotnet test --no-build --verbosity normal

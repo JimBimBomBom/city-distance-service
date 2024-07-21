@@ -5,11 +5,32 @@ public class MySQLManager : IDatabaseManager
 {
     private readonly string _connectionString;
 
-    public MySQLManager(IConfiguration configuration)
+    public MySQLManager(string connectionString)
     {
-        // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
-        _connectionString = configuration["DATABASE_CONNECTION_STRING"];
-        Console.WriteLine(_connectionString);
+        _connectionString = connectionString;
+    }
+
+    public async Task<string> TestConnection()
+    {
+        try
+        {
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                Console.WriteLine("Connection successful.");
+            }
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        return _connectionString;
+
     }
     // public MySQLManager(string connectionString)
     // {
