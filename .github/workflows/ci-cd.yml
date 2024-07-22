@@ -22,7 +22,7 @@ jobs:
 
       - name: Get Latest Git Tag
         run: |
-          echo "GIT_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo "GIT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           echo "Latest Git Tag: $GIT_TAG"
 
       - name: Compare App Version and Git Tag
