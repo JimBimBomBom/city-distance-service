@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 public static class DistanceCalculationService
 {
     public static async Task<double> CalculateDistanceAsync(string city1, string city2, IDatabaseManager dbManager)

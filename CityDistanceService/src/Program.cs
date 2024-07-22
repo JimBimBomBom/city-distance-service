@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
@@ -24,7 +22,6 @@ builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -36,12 +33,10 @@ var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
 
 app.MapGet("/health_check", () =>
 {
-    Console.WriteLine("Health check endpoint called.");
     return Results.Ok();
 });
 app.MapGet("/db_health_check", async (IDatabaseManager dbManager) =>
 {
-    Console.WriteLine("DB Health check endpoint called.");
     return await RequestHandler.TestConnection(dbManager);
 });
 
@@ -49,27 +44,28 @@ app.MapGet("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManager) 
 {
     return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
 });
+app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
+{
+    return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
+});
+
 app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
 });
-app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
-{
-    return await RequestHandler.ValidateAndUpdateCityInfoAsync(city, dbManager);
-});
-app.MapDelete("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManager) =>
-{
-    return await RequestHandler.ValidateAndDeleteCityAsync(id, dbManager);
-});
-
 app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
 }).AddFluentValidationAutoValidation();
 
-app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
+app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
+    return await RequestHandler.ValidateAndUpdateCityInfoAsync(city, dbManager);
+});
+
+app.MapDelete("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManager) =>
+{
+    return await RequestHandler.ValidateAndDeleteCityAsync(id, dbManager);
 });
 
 app.Run();

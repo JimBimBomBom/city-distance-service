@@ -1,5 +1,4 @@
 using MySql.Data.MySqlClient;
-using System;
 
 public class MySQLManager : IDatabaseManager
 {

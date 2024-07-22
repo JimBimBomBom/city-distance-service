@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 public class CitiesDistanceRequest
 {
     public string? City1 { get; set; }
