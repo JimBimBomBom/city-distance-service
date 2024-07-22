@@ -2,7 +2,6 @@ services:
     app:
         env_file:
             - env/app_variables.env
-            - env/version.env
         build:
             context: .
             dockerfile: Dockerfile
