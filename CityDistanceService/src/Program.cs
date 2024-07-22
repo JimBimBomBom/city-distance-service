@@ -15,6 +15,7 @@ if (string.IsNullOrEmpty(connectionString))
     Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set.");
     return;
 }
+
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 
 builder.Services.AddFluentValidationAutoValidation();
