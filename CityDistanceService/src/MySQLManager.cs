@@ -1,5 +1,4 @@
 using MySql.Data.MySqlClient;
-using System;
 
 public class MySQLManager : IDatabaseManager
 {
@@ -30,13 +29,7 @@ public class MySQLManager : IDatabaseManager
         }
 
         return _connectionString;
-
     }
-    // public MySQLManager(string connectionString)
-    // {
-    //     // _connectionString = configuration["ConnectionStrings:DefaultConnection"];
-    //     _connectionString = connectionString;
-    // }
 
     public async Task<CityInfo> AddCity(CityInfo city)
     {
@@ -58,6 +51,10 @@ public class MySQLManager : IDatabaseManager
                     {
                         city.CityId = Convert.ToInt32(cityId);
                     }
+                    else
+                    {
+                        throw new Exception("Failed to add city.");
+                    }
                 }
             }
 
@@ -75,7 +72,7 @@ public class MySQLManager : IDatabaseManager
         return city;
     }
 
-    public async Task<CityInfo> GetCity(int cityId)
+    public async Task<CityInfo?> GetCity(int cityId)
     {
         CityInfo result = null;
         try
@@ -98,7 +95,7 @@ public class MySQLManager : IDatabaseManager
                                 CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
                                 CityName = reader.GetString(reader.GetOrdinal("CityName")),
                                 Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude"))
+                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
                             };
                         }
                     }
@@ -119,7 +116,7 @@ public class MySQLManager : IDatabaseManager
         return result;
     }
 
-    public async Task<CityInfo> GetCity(string cityName)
+    public async Task<CityInfo?> GetCity(string cityName)
     {
         CityInfo result = null;
         try
@@ -142,7 +139,7 @@ public class MySQLManager : IDatabaseManager
                                 CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
                                 CityName = reader.GetString(reader.GetOrdinal("CityName")),
                                 Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude"))
+                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
                             };
                         }
                     }
@@ -163,15 +160,14 @@ public class MySQLManager : IDatabaseManager
         return result;
     }
 
-    public async Task<Coordinates> GetCityCoordinates(string cityName)
+    public async Task<Coordinates?> GetCityCoordinates(string cityName)
     {
         Coordinates result = null;
-
         try
         {
             using (var connection = new MySqlConnection(_connectionString))
             {
-                connection.OpenAsync();
+                await connection.OpenAsync();
 
                 var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
                 using (var command = new MySqlCommand(query, connection))
@@ -185,7 +181,7 @@ public class MySQLManager : IDatabaseManager
                             result = new Coordinates
                             {
                                 Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude"))
+                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
                             };
                         }
                     }
@@ -228,7 +224,7 @@ public class MySQLManager : IDatabaseManager
                             CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
                             CityName = reader.GetString(reader.GetOrdinal("CityName")),
                             Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude"))
+                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
                         };
                         cities.Add(city);
                     }
