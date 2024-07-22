@@ -15,7 +15,7 @@ jobs:
 
       - name: Extract App Version
         run: |
-          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' Constants.cs)
+          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
           echo "Extracted App Version: $APP_VERSION"
           echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
         working-directory: ./CityDistanceService/
