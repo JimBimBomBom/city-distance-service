@@ -7,7 +7,7 @@ class ApplicationVersionMiddleware
     public ApplicationVersionMiddleware(RequestDelegate next, IConfiguration configuration)
     {
         _next = next;
-        _appVersion = configuration["APP_VERSION"];
+        _appVersion = Constants.Version;
     }
 
     public async Task InvokeAsync(HttpContext context)
