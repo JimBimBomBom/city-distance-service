@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 public static class DistanceCalculationService
 {
     public static async Task<double> CalculateDistanceAsync(string city1, string city2, IDatabaseManager dbManager)
@@ -6,7 +7,9 @@ public static class DistanceCalculationService
         var coordinatesCity1 = await dbManager.GetCityCoordinates(city1);
         var coordinatesCity2 = await dbManager.GetCityCoordinates(city2);
         if (coordinatesCity1 == null || coordinatesCity2 == null)
+        {
             return -1;
+        }
 
         var distance = CalculateGreatCircleDistance(coordinatesCity1, coordinatesCity2);
 
@@ -21,9 +24,9 @@ public static class DistanceCalculationService
 
         double lat_distance = ToRadians(coord2.Latitude - coord1.Latitude);
         double lon_distance = ToRadians(coord2.Longitude - coord1.Longitude);
-        double a = Math.Sin(lat_distance / 2) * Math.Sin(lat_distance / 2) +
-                Math.Cos(ToRadians(coord1.Latitude)) * Math.Cos(ToRadians(coord2.Latitude)) *
-                Math.Sin(lon_distance / 2) * Math.Sin(lon_distance / 2);
+        double a = (Math.Sin(lat_distance / 2) * Math.Sin(lat_distance / 2)) +
+                (Math.Cos(ToRadians(coord1.Latitude)) * Math.Cos(ToRadians(coord2.Latitude)) *
+                Math.Sin(lon_distance / 2) * Math.Sin(lon_distance / 2));
         double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         double distance = EarthRadius * c;
 
