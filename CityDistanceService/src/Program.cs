@@ -71,11 +71,9 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
 
-var version = configuration["APP_VERSION"];
-Console.WriteLine("App version: " + version);
+Console.WriteLine("App version: " + Constants.Version);
 
-
-if (string.IsNullOrEmpty(version))
+if (string.IsNullOrEmpty(Constants.Version))
 {
     Console.WriteLine("No version found error.");
     return;
@@ -83,7 +81,7 @@ if (string.IsNullOrEmpty(version))
 
 app.MapGet("/version", () =>
 {
-    return Results.Ok(version);
+    return Results.Ok(Constants.Version);
 });
 
 app.MapGet("/health_check", () =>

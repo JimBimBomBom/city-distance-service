@@ -12,37 +12,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-    
+
+      - name: Extract App Version
+        id: app_version
+        run: |
+          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' Constants.cs)
+          echo "Extracted App Version: $APP_VERSION"
+          echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
+        working-directory: ./CityDistanceService/
+
+      - name: Get Latest Git Tag
+        id: git_tag
+        run: |
+          GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "Latest Git Tag: $GIT_TAG"
+          echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_ENV
+
+      - name: Compare App Version and Git Tag
+        run: |
+          if [ "$APP_VERSION" != "$GIT_TAG" ]; then
+            echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
+            exit 1
+          else
+            echo "App version matches the latest git tag. Proceeding with the pipeline."
+          fi 
+
       - name: Build Docker images
         run: docker compose -f compose.yaml build
         working-directory: ./CityDistanceService/
 
       - name: Start services
         run: docker compose -f compose.yaml up --wait --wait-timeout 30
-        working-directory: ./CityDistanceService/
-
-      - name: Check /version endpoint
-        run: |
-            # Give the server time to start
-            sleep 10
-            
-            # Make a request to the /version endpoint
-            VERSION_ENDPOINT_RESPONSE=$(curl -s http://localhost:8080/version)
-            APP_VERSION=$(grep 'APP_VERSION' env/version.env | cut -d '=' -f2) 
-            echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
-
-            echo "Endpoint version: $VERSION_ENDPOINT_RESPONSE"
-            echo "Expected version: $APP_VERSION"
-            
-            # Assuming $APP_VERSION is set in GitHub secrets or environment variables
-            # Remove quotes from the endpoint version
-            CLEANED_VERSION_ENDPOINT_RESPONSE=$(echo $VERSION_ENDPOINT_RESPONSE | tr -d '"')
-            if [ "$CLEANED_VERSION_ENDPOINT_RESPONSE" != "$APP_VERSION" ]; then
-            echo "Version mismatch. Endpoint version: $VERSION_ENDPOINT_RESPONSE, Expected: $APP_VERSION"
-            exit 1
-            else
-            echo "Version match."
-            fi
         working-directory: ./CityDistanceService/
 
       - name: Install Newman
@@ -65,7 +65,6 @@ jobs:
         run: |
           echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
-          APP_VERSION=$(grep 'APP_VERSION' env/version.env | cut -d '=' -f2) 
           IMAGE_NAME="$DOCKER_USERNAME/app"
           docker tag app $IMAGE_NAME:$APP_VERSION
           docker tag app $IMAGE_NAME:latest
