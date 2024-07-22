@@ -22,7 +22,7 @@ jobs:
 
       - name: Get Latest Git Tag
         run: |
-          GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null || echo "0.0.0")
           echo "Latest Git Tag: $GIT_TAG"
           echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_ENV
 
