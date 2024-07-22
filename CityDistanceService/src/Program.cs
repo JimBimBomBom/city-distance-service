@@ -22,6 +22,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
 var app = builder.Build();
 
+app.UseMiddleware<ApplicationVersionMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -30,6 +32,14 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
+
+Console.WriteLine("App version: " + Constants.Version);
+
+if (string.IsNullOrEmpty(Constants.Version))
+{
+    Console.WriteLine("No version found error.");
+    return;
+}
 
 app.MapGet("/health_check", () =>
 {

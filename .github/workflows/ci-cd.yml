@@ -5,27 +5,67 @@ on:
       branches: [ "main" ]
     pull_request:
       branches: [ "main" ]
-  
+
 jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-    
+
+      - name: Extract App Version
+        run: |
+          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' Constants.cs)
+          echo "Extracted App Version: $APP_VERSION"
+          echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
+        working-directory: ./CityDistanceService/
+
+      - name: Get Latest Git Tag
+        run: |
+          GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "Latest Git Tag: $GIT_TAG"
+          echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_ENV
+
+      - name: Compare App Version and Git Tag
+        run: |
+          if [ "$APP_VERSION" != "$GIT_TAG" ]; then
+            echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
+            exit 1
+          else
+            echo "App version matches the latest git tag. Proceeding with the pipeline."
+          fi 
+
       - name: Build Docker images
-        env:
-            DATABASE_TYPE: LOCALHOST
         run: docker compose -f compose.yaml build
         working-directory: ./CityDistanceService/
 
       - name: Start services
-        env:
-            DATABASE_TYPE: LOCALHOST
         run: docker compose -f compose.yaml up --wait --wait-timeout 30
         working-directory: ./CityDistanceService/
 
+      - name: Install Newman
+        run: npm install -g newman
+        
+      - name: Wait for services to initialize
+        run: sleep 20    
+
+      - name: Run Postman tests
+        run: newman run ./Integration_tests/Integration.postman_collection.json
+
       - name: Stop services
         run: docker-compose down
+        working-directory: ./CityDistanceService/
+    
+      - name: Push Docker images
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+
+          IMAGE_NAME="$DOCKER_USERNAME/app"
+          docker tag app $IMAGE_NAME:$APP_VERSION
+          docker tag app $IMAGE_NAME:latest
+          docker push $IMAGE_NAME --all-tags  
         working-directory: ./CityDistanceService/
       
