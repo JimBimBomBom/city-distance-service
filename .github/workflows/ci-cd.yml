@@ -1,18 +1,37 @@
 name: Docker Image CI/CD
 
 on:
-    push:
-      branches: [ "main" ]
-    pull_request:
-      branches: [ "main" ]
+  push:
+    tags:
+      - '*'
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  docker:
+  check-tag-exists:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Check if PR HEAD commit has a tag
+        id: check-tag
+        run: |
+          TAG=$(git describe --tags --exact-match $(git rev-parse HEAD) 2> /dev/null || echo "")
+          if [[ -z "$TAG" ]]; then
+            echo "No tag found on the PR's HEAD commit."
+            exit 1
+          else
+            echo "Found tag: $TAG"
+          fi
 
+  docker:
+    needs: check-tag-exists
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && success())
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Extract App Version
         run: |
           APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
@@ -68,4 +87,77 @@ jobs:
           docker tag app $IMAGE_NAME:latest
           docker push $IMAGE_NAME --all-tags  
         working-directory: ./CityDistanceService/
+
+# name: Docker Image CI/CD
+
+# on:
+#     push:
+#       branches: [ "main" ]
+#       tags:
+#         - '*'
+#     pull_request:
+#       branches: [ "main" ]
+
+# jobs:
+#   docker:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       - name: Extract App Version
+#         run: |
+#           APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
+#           echo "Extracted App Version: $APP_VERSION"
+#           echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
+#         working-directory: ./CityDistanceService/
+
+#       - name: Get Latest Git Tag
+#         run: |
+#           echo "GIT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+#           echo "Latest Git Tag: $GIT_TAG"
+
+#       - name: Compare App Version and Git Tag
+#         run: |
+#           if [ "$APP_VERSION" != "$GIT_TAG" ]; then
+#             echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
+#             exit 1
+#           else
+#             echo "App version matches the latest git tag. Proceeding with the pipeline."
+#           fi 
+
+#       - name: Build Docker images
+#         run: docker compose -f compose.yaml build
+#         working-directory: ./CityDistanceService/
+
+#       - name: Start services
+#         run: docker compose -f compose.yaml up --wait --wait-timeout 30
+#         working-directory: ./CityDistanceService/
+
+#       - name: Install Newman
+#         run: npm install -g newman
+        
+#       - name: Wait for services to initialize
+#         run: sleep 20    
+
+#       - name: Run Postman tests
+#         run: newman run ./Integration_tests/Integration.postman_collection.json
+
+#       - name: Stop services
+#         run: docker-compose down
+#         working-directory: ./CityDistanceService/
+    
+
+#       - name: Push Docker images
+#         env:
+#           DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+#           DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+#         run: |
+#           echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+
+#           IMAGE_NAME="$DOCKER_USERNAME/app"
+#           docker tag app $IMAGE_NAME:$APP_VERSION
+#           docker tag app $IMAGE_NAME:latest
+#           docker push $IMAGE_NAME --all-tags  
+#         working-directory: ./CityDistanceService/
       
