@@ -1,11 +1,32 @@
 name: Docker Image CI/CD
 
 on:
+  push:
+    tags:
+      - '*.*.*'
   pull_request:
     branches: [ "main" ]
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+        tag: ${{ steps.image_tag.outputs.tag }}
+    steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        
+        - name: Get the latest tag
+          id: image_tag
+          run: |
+           echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
+           echo "${{ github.ref_name }}"
+          
+    
+
   pull_req:
+    needs: build
+    if : github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,7 +55,7 @@ jobs:
 
       - name: Compare App Version and Git Tag
         run: |
-          GIT_TAG=${{ github.ref_name }}
+          GIT_TAG=${{ needs.build.outputs.tag }}
           APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
 
           if [ "$APP_VERSION" != "$GIT_TAG" ]; then
