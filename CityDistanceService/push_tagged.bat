@@ -43,4 +43,5 @@ git commit -m "%MESSAGE%"
 git tag -d %VERSION%
 git tag %VERSION%
 git push origin :refs/tags/%VERSION%
+git push origin ":refs/tags/%VERSION%"
 git push origin %VERSION%
