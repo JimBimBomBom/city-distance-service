@@ -43,6 +43,7 @@ jobs:
           else
             echo "App version matches the latest git tag. Proceeding with the pipeline."
           fi   
+        working-directory: ./CityDistanceService/
 
       - name: Push Docker images
         env:
