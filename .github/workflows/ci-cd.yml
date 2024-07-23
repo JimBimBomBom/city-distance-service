@@ -29,7 +29,7 @@ jobs:
             echo "::set-output name=git_tag::$TAG"
       - name: Set output
         id: tag_output
-        run: echo "::set-output name=git_tag::$GIT_TAG"
+        run: echo "::set-output name=git_tag::${{ env.GIT_TAG }}"
 
   docker:
     needs: check-tag-exists
@@ -45,9 +45,13 @@ jobs:
           echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
         working-directory: ./CityDistanceService/
 
+      - name: Get Git Tag
+        run: |
+          echo "GIT_TAG=${{ needs.check-tag-exists.outputs.git_tag }}" >> $GITHUB_ENV
+          echo "Latest Git Tag: ${{ needs.check-tag-exists.outputs.git_tag }}"
+
       - name: Compare App Version and Git Tag
         run: |
-          GIT_TAG=${{ needs.check-tag-exists.outputs.git_tag }}
           if [ "$APP_VERSION" != "$GIT_TAG" ]; then
             echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
             exit 1
