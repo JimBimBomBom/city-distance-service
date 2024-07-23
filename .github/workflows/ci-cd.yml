@@ -13,12 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Fail for pull_requests
-        if: github.event_name == 'pull_request'
-        run: |
-            echo "Merging is only allowed with tagged commits."
-            exit 1
       - name: Check if PR HEAD commit has a tag
+        if: github.event_name == 'push'
         run: |
           TAG=$(git describe --tags --exact-match $(git rev-parse HEAD) 2> /dev/null || echo "")
           if [[ -z "$TAG" ]]; then
@@ -26,9 +22,11 @@ jobs:
             exit 1
           else
             echo "Found tag: $TAG"
+            echo "GIT_TAG=$TAG" >> $GITHUB_ENV
           fi
 
   docker:
+    needs: check-tag-exists
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && success())
     runs-on: ubuntu-latest
     steps:
@@ -41,10 +39,10 @@ jobs:
           echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
         working-directory: ./CityDistanceService/
 
-      - name: Get Latest Git Tag
-        run: |
-          echo "GIT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "Latest Git Tag: $GIT_TAG"
+    #   - name: Get Latest Git Tag
+    #     run: |
+    #       echo "GIT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+    #       echo "Latest Git Tag: $GIT_TAG"
 
       - name: Compare App Version and Git Tag
         run: |
