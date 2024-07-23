@@ -12,7 +12,7 @@ jobs:
         run: echo "ls -la"
       - name: Checkout nested dir
         run: echo "ls -la"
-        working-directory: ./CityDistanceService/
+        working-directory: CityDistanceService/
 
       - name: Build Docker images
         run: docker compose -f compose.yaml build

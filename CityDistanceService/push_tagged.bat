@@ -29,7 +29,7 @@ for /f "tokens=*" %%i in ('findstr /R /C:"Version = " ".\src\Constants.cs"') do 
     )
 )
 :: Remove quotes
-set VERSION=%VERSION:"=%
+set VERSION=%VERSION:;=%
 
 :: Check if version is empty
 if "%VERSION%"=="" (
