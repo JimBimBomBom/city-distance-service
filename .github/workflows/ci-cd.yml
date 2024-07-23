@@ -29,7 +29,6 @@ jobs:
           fi
 
   docker:
-    needs: check-tag-exists
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && success())
     runs-on: ubuntu-latest
     steps:
