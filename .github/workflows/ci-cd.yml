@@ -9,9 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout dir
-        run: ls -la
+        run: echo "ls -la"
       - name: Checkout nested dir
-        run: ls -la
+        run: echo "ls -la"
         working-directory: ./CityDistanceService/
 
       - name: Build Docker images
