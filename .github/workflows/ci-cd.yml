@@ -59,7 +59,7 @@ jobs:
           name: tag-file
     
       - name: Set Tag
-        run: echo "GIT_TAG=$(cat tag-file/tag.txt)" >> $GITHUB_ENV
+        run: echo "GIT_TAG=$(cat tag.txt)" >> $GITHUB_ENV
     
       - name: Compare App Version and Git Tag
         run: |
