@@ -34,7 +34,7 @@ jobs:
 
       - name: Compare App Version and Git Tag
         run: |
-          GIT_TAG=$(git describe --tags --abbrev=0)
+          GIT_TAG=${{ github.ref_name }}
           APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
 
           if [ "$APP_VERSION" != "$GIT_TAG" ]; then
