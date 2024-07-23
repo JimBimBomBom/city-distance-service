@@ -9,22 +9,18 @@ on:
 
 jobs:
   build:
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    outputs:
-        tag: ${{ steps.image_tag.outputs.tag }}
-    steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-        
-        - name: Get the latest tag
-          id: image_tag
-          run: |
-           echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
-           echo "${{ github.ref_name }}"
+      if : github.event_name != 'pull_request'
+      runs-on: ubuntu-latest
+      steps:
+      - name: Determine Tag
+        id: tag
+        run: echo "TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+      - name: Upload Tag as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: tag-file
+          path: tag.txt
           
-    
-
   pull_req:
     needs: build
     if : github.event_name == 'pull_request'
@@ -54,11 +50,22 @@ jobs:
         run: docker-compose down
         working-directory: ./CityDistanceService/
 
+      - name: Set app version
+        run: echo "APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)" >> $GITHUB_ENV
+        working-directory: ./CityDistanceService/
+    
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: tag-file
+    
+      - name: Set Tag
+        run: echo "GIT_TAG=$(cat tag-file/tag.txt)" >> $GITHUB_ENV
+    
       - name: Compare App Version and Git Tag
         run: |
-          GIT_TAG=${{ needs.build.outputs.tag }}
-          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
-
+          echo "App version: $APP_VERSION"
+          echo "Git tag: $GIT_TAG"
           if [ "$APP_VERSION" != "$GIT_TAG" ]; then
             echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
             exit 1
