@@ -34,7 +34,7 @@ jobs:
 
       - name: Compare App Version and Git Tag
         run: |
-          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          GIT_TAG=$(git describe --tags --abbrev=0)
           APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
 
           if [ "$APP_VERSION" != "$GIT_TAG" ]; then
