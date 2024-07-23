@@ -84,6 +84,7 @@ jobs:
           echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
           docker build -t app .
+          
           IMAGE_NAME="$DOCKER_USERNAME/app"
           docker tag app $IMAGE_NAME:$APP_VERSION
           docker tag app $IMAGE_NAME:latest
