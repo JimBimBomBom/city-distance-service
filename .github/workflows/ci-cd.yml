@@ -10,10 +10,13 @@ on:
 jobs:
   check-tag-exists:
     runs-on: ubuntu-latest
+    outputs:
+      git_tag: ${{ steps.tag_output.outputs.git_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Check if PR HEAD commit has a tag
+        id: tag_check
         if: github.event_name == 'push'
         run: |
           TAG=$(git describe --tags --exact-match $(git rev-parse HEAD) 2> /dev/null || echo "")
@@ -23,7 +26,10 @@ jobs:
           else
             echo "Found tag: $TAG"
             echo "GIT_TAG=$TAG" >> $GITHUB_ENV
-          fi
+            echo "::set-output name=git_tag::$TAG"
+      - name: Set output
+        id: tag_output
+        run: echo "::set-output name=git_tag::$GIT_TAG"
 
   docker:
     needs: check-tag-exists
@@ -39,19 +45,14 @@ jobs:
           echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
         working-directory: ./CityDistanceService/
 
-    #   - name: Get Latest Git Tag
-    #     run: |
-    #       echo "GIT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-    #       echo "Latest Git Tag: $GIT_TAG"
-
       - name: Compare App Version and Git Tag
         run: |
+          GIT_TAG=${{ needs.check-tag-exists.outputs.git_tag }}
           if [ "$APP_VERSION" != "$GIT_TAG" ]; then
             echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
             exit 1
           else
             echo "App version matches the latest git tag. Proceeding with the pipeline."
-          fi 
 
       - name: Build Docker images
         run: docker compose -f compose.yaml build

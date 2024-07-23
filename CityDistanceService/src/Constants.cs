@@ -1,4 +1,4 @@
 class Constants
 {
-    public const string Version = "0.1.8";
+    public const string Version = "0.1.9";
 }
