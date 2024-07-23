@@ -8,12 +8,19 @@ jobs:
   pull_req:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout dir
+        run: ls -la
+      - name: Checkout nested dir
+        run: ls -la
+        working-directory: ./CityDistanceService/
+
       - name: Build Docker images
         run: docker compose -f compose.yaml build
+        working-directory: ./CityDistanceService/
 
       - name: Start services
         run: docker compose -f compose.yaml up --wait --wait-timeout 30
-        # working-directory: ./CityDistanceService/
+        working-directory: ./CityDistanceService/
 
       - name: Install Newman
         run: npm install -g newman
