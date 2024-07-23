@@ -22,7 +22,6 @@ jobs:
           path: tag.txt
           
   pull_req:
-    needs: build
     if : github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
