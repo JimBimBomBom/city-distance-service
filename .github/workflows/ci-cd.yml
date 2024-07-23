@@ -27,6 +27,7 @@ jobs:
             echo "Found tag: $TAG"
             echo "GIT_TAG=$TAG" >> $GITHUB_ENV
             echo "::set-output name=git_tag::$TAG"
+          fi
       - name: Set output
         id: tag_output
         run: echo "::set-output name=git_tag::${{ env.GIT_TAG }}"
@@ -57,6 +58,7 @@ jobs:
             exit 1
           else
             echo "App version matches the latest git tag. Proceeding with the pipeline."
+          fi
 
       - name: Build Docker images
         run: docker compose -f compose.yaml build
