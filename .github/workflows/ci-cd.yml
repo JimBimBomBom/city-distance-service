@@ -15,6 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Fail for pull_requests
+        if: github.event_name == 'pull_request'
         run: |
             echo "Merging is only allowed with tagged commits."
             exit 1
