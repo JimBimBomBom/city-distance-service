@@ -1,68 +1,11 @@
 name: Docker Image CI/CD
 
 on:
-  push:
-    tags:
-      - '*.*.*'
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  check-tag-exists:
-    runs-on: ubuntu-latest
-    outputs:
-      git_tag: ${{ steps.tag_output.outputs.git_tag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Check if PR HEAD commit has a tag
-        id: tag_check
-        if: github.event_name == 'push'
-        run: |
-          TAG=$(git describe --tags --exact-match $(git rev-parse HEAD) 2> /dev/null || echo "")
-          if [[ -z "$TAG" ]]; then
-            echo "No tag found on the PR's HEAD commit."
-            exit 1
-          else
-            echo "Found tag: $TAG"
-            echo "GIT_TAG=$TAG" >> $GITHUB_ENV
-            echo "::set-output name=git_tag::$TAG"
-          fi
-      - name: Set output
-        id: tag_output
-        run: echo "::set-output name=git_tag::${{ env.GIT_TAG }}"
-
-  docker:
-    needs: check-tag-exists
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Extract App Version
-        run: |
-          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
-          echo "Extracted App Version: $APP_VERSION"
-          echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
-        working-directory: ./CityDistanceService/
-
-      - name: Get Git Tag
-        run: |
-          echo "GIT_TAG=${{ needs.check-tag-exists.outputs.git_tag }}" >> $GITHUB_ENV
-          echo "Latest Git Tag: ${{ needs.check-tag-exists.outputs.git_tag }}"
-
-      - name: Compare App Version and Git Tag
-        run: |
-          if [ "$APP_VERSION" != "$GIT_TAG" ]; then
-            echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
-            exit 1
-          else
-            echo "App version matches the latest git tag. Proceeding with the pipeline."
-          fi
-  
   pull_req:
-    needs: [check-tag-exists]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -86,7 +29,18 @@ jobs:
       - name: Stop services
         run: docker-compose down
         working-directory: ./CityDistanceService/
-    
+
+      - name: Compare App Version and Git Tag
+        run: |
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
+
+          if [ "$APP_VERSION" != "$GIT_TAG" ]; then
+            echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
+            exit 1
+          else
+            echo "App version matches the latest git tag. Proceeding with the pipeline."
+          fi   
 
       - name: Push Docker images
         env:
