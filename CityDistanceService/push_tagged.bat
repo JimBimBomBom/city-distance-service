@@ -31,6 +31,12 @@ for /f "tokens=*" %%i in ('findstr /R /C:"Version = " ".\src\Constants.cs"') do 
 :: Remove quotes
 set VERSION=%VERSION:;=%
 
+:: Now, remove all spaces from VERSION
+setlocal enabledelayedexpansion
+set "CLEANED_VERSION="
+for %%a in (%VERSION%) do set "CLEANED_VERSION=!CLEANED_VERSION!%%a"
+endlocal & set "VERSION=%CLEANED_VERSION%"
+
 :: Check if version is empty
 if "%VERSION%"=="" (
     echo Version could not be extracted from .\src\Constants.cs
