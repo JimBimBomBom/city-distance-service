@@ -16,7 +16,10 @@ jobs:
             
             - name: Fetch tag
               run: |
-                echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+                echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+                echo "${TAG}"
+                echo "$GITHHUB_REF_NAME"
+            
             
             - name: Fetch app version
               run: |
