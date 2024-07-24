@@ -37,7 +37,7 @@ jobs:
             
             - name: Build Docker images
               run: |
-                docker restore
+                dotnet restore
                 docker build -t app .
 
                 echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
