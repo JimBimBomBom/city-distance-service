@@ -1,31 +1,34 @@
 name: Docker Image CI/CD
 
 on:
-    push:
-      branches: [ "main" ]
     pull_request:
-      branches: [ "main" ]
-  
+        branches: [ "main" ]
+
 jobs:
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-    
-      - name: Build Docker images
-        env:
-            DATABASE_TYPE: LOCALHOST
-        run: docker compose -f compose.yaml build
-        working-directory: ./CityDistanceService/
+    test-app:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Start services
-        env:
-            DATABASE_TYPE: LOCALHOST
-        run: docker compose -f compose.yaml up --wait --wait-timeout 30
-        working-directory: ./CityDistanceService/
+            - name: Build Docker images
+              run: docker compose -f compose.yaml build
+              working-directory: ./CityDistanceService/
 
-      - name: Stop services
-        run: docker-compose down
-        working-directory: ./CityDistanceService/
-      
+            - name: Start services
+              run: docker compose -f compose.yaml up --wait --wait-timeout 30
+              working-directory: ./CityDistanceService/
+
+            - name: Install Newman
+              run: npm install -g newman
+                
+            - name: Wait for services to initialize
+              run: sleep 20    
+
+            # - name: Run Postman tests
+            #   run: newman run ./Integration_tests/Integration.postman_collection.json
+
+            - name: Stop services
+              run: docker-compose down
+              working-directory: ./CityDistanceService/
+            

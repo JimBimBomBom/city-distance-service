@@ -15,12 +15,15 @@ if (string.IsNullOrEmpty(connectionString))
     Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set.");
     return;
 }
+
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
 var app = builder.Build();
+
+app.UseMiddleware<ApplicationVersionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -30,6 +33,14 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
+
+Console.WriteLine("App version: " + Constants.Version);
+
+if (string.IsNullOrEmpty(Constants.Version))
+{
+    Console.WriteLine("No version found error.");
+    return;
+}
 
 app.MapGet("/health_check", () =>
 {

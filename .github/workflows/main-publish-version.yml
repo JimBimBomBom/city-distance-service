@@ -1,0 +1,42 @@
+name: Main publish new version
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+    branches:
+      - main
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+            
+            - name: Fetch tag
+              run: |
+                echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            
+            - name: Fetch app version
+              run: |
+                echo "APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)" >> $GITHUB_ENV
+            
+            - name: Compare tag and version
+              run: |
+                if [ "${TAG}" != "${APP_VERSION}" ]; then
+                  echo "Tag and version do not match"
+                  exit 1
+                fi
+            
+            - name: Build Docker images
+              run: |
+                docker restore
+                docker build -t app .
+
+                echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+
+                IMAGE_NAME="$DOCKER_USERNAME/app"
+                docker tag app $IMAGE_NAME:$APP_VERSION
+                docker tag app $IMAGE_NAME:latest
+                docker push $IMAGE_NAME --all-tags  
