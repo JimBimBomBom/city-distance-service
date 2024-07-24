@@ -17,13 +17,16 @@ jobs:
             - name: Fetch tag
               run: |
                 echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+                echo "TAG_MESSAGE=$(git tag -l --format='%(contents:subject)'${GITHUB_REF#refs/*/})" >> $GITHUB_ENV
                 echo "${TAG}"
                 echo "$GITHHUB_REF_NAME"
-            
+                echo "${{ github.ref }}"
+                echo "${{ github.ref_name }}"
             
             - name: Fetch app version
               run: |
                 echo "APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)" >> $GITHUB_ENV
+              working-directory: ./CityDistanceService/
             
             - name: Compare tag and version
               run: |
@@ -43,3 +46,4 @@ jobs:
                 docker tag app $IMAGE_NAME:$APP_VERSION
                 docker tag app $IMAGE_NAME:latest
                 docker push $IMAGE_NAME --all-tags  
+              working-directory: ./CityDistanceService/
