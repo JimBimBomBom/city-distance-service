@@ -16,12 +16,7 @@ jobs:
             
             - name: Fetch tag
               run: |
-                echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-                echo "TAG_MESSAGE=$(git tag -l --format='%(contents:subject)'${GITHUB_REF#refs/*/})" >> $GITHUB_ENV
-                echo "${TAG}"
-                echo "$GITHHUB_REF_NAME"
-                echo "${{ github.ref }}"
-                echo "${{ github.ref_name }}"
+                echo "TAG=${{ github.ref_name }}" >> $GITHUB_ENV
             
             - name: Fetch app version
               run: |
@@ -36,6 +31,9 @@ jobs:
                 fi
             
             - name: Build Docker images
+              env:
+                DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+                DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
               run: |
                 dotnet restore
                 docker build -t app .
