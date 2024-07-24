@@ -1,92 +1,34 @@
 name: Docker Image CI/CD
 
 on:
-  push:
-    tags:
-      - '*.*.*'
-  pull_request:
-    branches: [ "main" ]
+    pull_request:
+        branches: [ "main" ]
 
 jobs:
-  build:
-      if : github.event_name != 'pull_request'
-      runs-on: ubuntu-latest
-      steps:
-      - name: Determine Tag
-        id: tag
-        run: echo "TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-      - name: Upload Tag as Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: tag-file
-          path: tag.txt
-          
-  pull_req:
-    if : github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    test-app:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Build Docker images
-        run: docker compose -f compose.yaml build
-        working-directory: ./CityDistanceService/
+            - name: Build Docker images
+              run: docker compose -f compose.yaml build
+              working-directory: ./CityDistanceService/
 
-      - name: Start services
-        run: docker compose -f compose.yaml up --wait --wait-timeout 30
-        working-directory: ./CityDistanceService/
+            - name: Start services
+              run: docker compose -f compose.yaml up --wait --wait-timeout 30
+              working-directory: ./CityDistanceService/
 
-      - name: Install Newman
-        run: npm install -g newman
-        
-      - name: Wait for services to initialize
-        run: sleep 20    
+            - name: Install Newman
+              run: npm install -g newman
+                
+            - name: Wait for services to initialize
+              run: sleep 20    
 
-    #   - name: Run Postman tests
-    #     run: newman run ./Integration_tests/Integration.postman_collection.json
+            # - name: Run Postman tests
+            #   run: newman run ./Integration_tests/Integration.postman_collection.json
 
-      - name: Stop services
-        run: docker-compose down
-        working-directory: ./CityDistanceService/
-
-      - name: Set app version
-        run: echo "APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)" >> $GITHUB_ENV
-        working-directory: ./CityDistanceService/
-    
-      - name: Download Artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: tag-file
-    
-      - name: Set Tag
-        run: echo "GIT_TAG=$(cat tag.txt)" >> $GITHUB_ENV
-    
-      - name: Compare App Version and Git Tag
-        run: |
-          echo "App version: $APP_VERSION"
-          echo "Git tag: $GIT_TAG"
-          if [ "$APP_VERSION" != "$GIT_TAG" ]; then
-            echo "Error: App version ($APP_VERSION) does not match the latest git tag ($GIT_TAG)."
-            exit 1
-          else
-            echo "App version matches the latest git tag. Proceeding with the pipeline."
-          fi   
-        working-directory: ./CityDistanceService/
-
-      - name: Push Docker images
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-
-          echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
-
-          IMAGE_NAME="$DOCKER_USERNAME/app"
-          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
-
-          docker build -t app .
-
-          docker tag app $IMAGE_NAME:$APP_VERSION
-          docker tag app $IMAGE_NAME:latest
-          docker push $IMAGE_NAME --all-tags  
-        working-directory: ./CityDistanceService/
+            - name: Stop services
+              run: docker-compose down
+              working-directory: ./CityDistanceService/
+            
