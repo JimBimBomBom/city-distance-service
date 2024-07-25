@@ -50,6 +50,10 @@ app.MapGet("/db_health_check", async (IDatabaseManager dbManager) =>
 {
     return await RequestHandler.TestConnection(dbManager);
 });
+app.MapGet("/version", () =>
+{
+    return Results.Ok(Constants.Version);
+});
 
 app.MapGet("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManager) =>
 {
