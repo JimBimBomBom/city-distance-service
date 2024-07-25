@@ -136,6 +136,34 @@
 			"response": []
 		},
 		{
+			"name": "Distance",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"City1\": \"NY City\",\r\n    \"City2\": \"Cairo\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/distance",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"distance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Update data",
 			"event": [
 				{
@@ -181,6 +209,26 @@
 		},
 		{
 			"name": "search",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/search/Cairo",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"search",
+						"Cairo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "search Copy",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -248,7 +296,18 @@
 			"name": "health_check",
 			"request": {
 				"method": "GET",
-				"header": []
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/health_check",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"health_check"
+					]
+				}
 			},
 			"response": []
 		},
@@ -256,7 +315,37 @@
 			"name": "db_health_check",
 			"request": {
 				"method": "GET",
-				"header": []
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/db_health_check",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"db_health_check"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "version",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/version",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"version"
+					]
+				}
 			},
 			"response": []
 		}
