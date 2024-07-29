@@ -14,7 +14,7 @@ public static class RequestHandler
         }
         else
         {
-            return Results.Ok("Distance between: " + cities.City1 + " to " + cities.City2 + " is: " + distance + ".");
+            return Results.Ok(distance);
         }
     }
 
