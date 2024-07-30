@@ -7,6 +7,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CICD_Build)' == 'true'">true</RestoreLockedMode>
   </PropertyGroup>
 
   <ItemGroup>

@@ -12,9 +12,10 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
-
+            
             - name: Restore dependencies
-              run: dotnet restore --locked-mode
+              run: dotnet restore
+              working-directory: ./CityDistanceService/
 
             - name: Build Docker images
               run: docker compose -f compose.yaml build
