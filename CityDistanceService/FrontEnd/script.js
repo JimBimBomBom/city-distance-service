@@ -16,10 +16,10 @@ document.getElementById('searchBtn').addEventListener('click', function() {
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
-        return response.text();
+        return response.json();
     })
     .then(data => {
-        document.getElementById('result').innerText = data;
+        document.getElementById('result').innerText = `Distance between '${city1}' and '${city2}' is: ${data}`;
     })
     .catch(error => {
         console.error('Error:', error);
