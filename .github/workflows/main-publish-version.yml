@@ -35,7 +35,7 @@ jobs:
                 DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
                 DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
               run: |
-                dotnet restore
+                dotnet restore --locked-mode
                 docker build -t app .
 
                 echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
