@@ -8,6 +8,14 @@ var configuration = builder.Configuration;
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+    });
+});
+
 configuration.AddEnvironmentVariables();
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 if (string.IsNullOrEmpty(connectionString))
@@ -32,6 +40,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
 
 Console.WriteLine("App version: " + Constants.Version);
