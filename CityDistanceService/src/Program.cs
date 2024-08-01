@@ -1,6 +1,9 @@
+using FluentMigrator.Runner;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -26,10 +29,29 @@ if (string.IsNullOrEmpty(connectionString))
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 
+// Configure FluentMigrator
+builder.Services.AddFluentMigratorCore()
+    .ConfigureRunner(rb => rb
+        .AddMySql5()
+        .WithGlobalConnectionString(connectionString)
+        .ScanIn(typeof(Program).Assembly).For.Migrations())
+    .AddLogging(lb => lb.AddFluentMigratorConsole());
+
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
 var app = builder.Build();
+
+// Run migrations with retry logic at startup
+RetryHelper.RetryOnException(10, TimeSpan.FromSeconds(10), () =>
+{
+    // Run migrations at startup
+    using (var scope = app.Services.CreateScope())
+    {
+        var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+        runner.MigrateUp();
+    }
+});
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
 
