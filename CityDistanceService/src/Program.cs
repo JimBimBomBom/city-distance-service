@@ -86,7 +86,7 @@ app.MapGet("/version", () =>
     return Results.Ok(Constants.Version);
 });
 
-app.MapGet("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManager) =>
+app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
 });
@@ -109,7 +109,7 @@ app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
     return await RequestHandler.ValidateAndUpdateCityInfoAsync(city, dbManager);
 });
 
-app.MapDelete("/city/{id}", async ([FromRoute] int id, IDatabaseManager dbManager) =>
+app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndDeleteCityAsync(id, dbManager);
 });

@@ -1,18 +1,15 @@
 using FluentMigrator;
 
-[Migration(202408011500)]
-public class InitialCreate : Migration
+[Migration(1)]
+public class Create : Migration
 {
     public override void Up()
     {
-        if (!Schema.Table("cities").Exists())
-        {
-            Create.Table("cities")
-                .WithColumn("CityId").AsInt32().PrimaryKey()
-                .WithColumn("CityName").AsString(100).NotNullable()
-                .WithColumn("Latitude").AsDecimal(10, 8).NotNullable()
-                .WithColumn("Longitude").AsDecimal(10, 8).NotNullable();
-        }
+        Create.Table("cities")
+            .WithColumn("CityId").AsGuid().PrimaryKey()
+            .WithColumn("CityName").AsString(100).NotNullable()
+            .WithColumn("Latitude").AsDecimal(10, 8).NotNullable()
+            .WithColumn("Longitude").AsDecimal(10, 8).NotNullable();
     }
 
     public override void Down()
@@ -21,23 +18,17 @@ public class InitialCreate : Migration
     }
 }
 
-[Migration(202408011542)]
-public class ChangeCityIdToGuid : Migration
+[Migration(2)]
+public class AddDefaultId : Migration
 {
     public override void Up()
     {
-        Alter.Table("cities").AddColumn("TempCityId").AsGuid().WithDefaultValue(Guid.NewGuid());
-
-        Execute.Sql("UPDATE cities SET TempCityId = UUID()");
-
-        Delete.Column("CityId").FromTable("cities");
-        Rename.Column("TempCityId").OnTable("cities").To("CityId");
-
-        Alter.Column("Latitude").OnTable("cities").AsDecimal(10, 8).NotNullable();
-        Alter.Column("Longitude").OnTable("cities").AsDecimal(10, 8).NotNullable();
+        Alter.Table("cities")
+            .AlterColumn("CityId").AsGuid().NotNullable();
     }
 
     public override void Down()
     {
+        Delete.Column("DefaultId").FromTable("cities");
     }
 }

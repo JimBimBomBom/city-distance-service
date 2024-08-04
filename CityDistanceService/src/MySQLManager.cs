@@ -1,4 +1,5 @@
-using MySql.Data.MySqlClient;
+using Microsoft.Data.SqlClient;
+using MySqlConnector;
 
 public class MySQLManager : IDatabaseManager
 {
@@ -13,13 +14,13 @@ public class MySQLManager : IDatabaseManager
     {
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                Console.WriteLine("Connection successful.");
-            }
+            using var connection = new MySqlConnection(_connectionString);
+
+            await connection.OpenAsync();
+
+            Console.WriteLine("Connection successful.");
         }
-        catch (MySqlException ex)
+        catch (SqlException ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
         }
@@ -35,27 +36,30 @@ public class MySQLManager : IDatabaseManager
     {
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            if (await GetCity(city.CityName) != null)
             {
-                await connection.OpenAsync();
+                throw new Exception("City already exists.");
+            }
+            if (city.CityId == Guid.Empty)
+            {
+                city.CityId = Guid.NewGuid();
+            }
 
-                var query = "INSERT INTO cities (CityName, Longitude, Latitude) VALUES (@CityName, @Longitude, @Latitude);  SELECT LAST_INSERT_ID();";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@CityName", city.CityName);
-                    command.Parameters.AddWithValue("@Latitude", city.Latitude);
-                    command.Parameters.AddWithValue("@Longitude", city.Longitude);
+            var query = "INSERT INTO cities (CityId, CityName, Longitude, Latitude) VALUES (@CityId, @CityName, @Longitude, @Latitude);";
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityId", city.CityId);
+            command.Parameters.AddWithValue("@CityName", city.CityName);
+            command.Parameters.AddWithValue("@Latitude", city.Latitude);
+            command.Parameters.AddWithValue("@Longitude", city.Longitude);
+            await command.ExecuteScalarAsync();
 
-                    var cityId = await command.ExecuteScalarAsync();
-                    if (cityId != null)
-                    {
-                        city.CityId = Convert.ToInt32(cityId);
-                    }
-                    else
-                    {
-                        throw new Exception("Failed to add city.");
-                    }
-                }
+            city = await GetCity(city.CityName);
+            if (city == null)
+            {
+                throw new Exception("Internal error: City not found after adding.");
             }
 
             Console.WriteLine("Product added successfully.");
@@ -72,7 +76,7 @@ public class MySQLManager : IDatabaseManager
         return city;
     }
 
-    public async Task<CityInfo?> GetCity(int cityId)
+    public async Task<CityInfo?> GetCity(Guid cityId)
     {
         CityInfo result = null;
         try
@@ -86,18 +90,16 @@ public class MySQLManager : IDatabaseManager
                 {
                     command.Parameters.AddWithValue("@CityId", cityId);
 
-                    using (var reader = await command.ExecuteReaderAsync())
+                    using var reader = await command.ExecuteReaderAsync();
+                    if (reader.Read())
                     {
-                        if (reader.Read())
+                        result = new CityInfo
                         {
-                            result = new CityInfo
-                            {
-                                CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
-                                CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                            };
-                        }
+                            CityId = reader.GetGuid(reader.GetOrdinal("CityId")),
+                            CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                            Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                        };
                     }
                 }
             }
@@ -121,29 +123,23 @@ public class MySQLManager : IDatabaseManager
         CityInfo result = null;
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
+
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityName", cityName.ToLower());
+            using var reader = await command.ExecuteReaderAsync();
+            if (reader.Read())
             {
-                await connection.OpenAsync();
-
-                var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
-                using (var command = new MySqlCommand(query, connection))
+                result = new CityInfo
                 {
-                    command.Parameters.AddWithValue("@CityName", cityName.ToLower());
-
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        if (reader.Read())
-                        {
-                            result = new CityInfo
-                            {
-                                CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
-                                CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                            };
-                        }
-                    }
-                }
+                    CityId = reader.GetGuid(reader.GetOrdinal("CityId")),
+                    CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                };
             }
 
             Console.WriteLine("Product fetched successfully.");
@@ -165,30 +161,24 @@ public class MySQLManager : IDatabaseManager
         Coordinates result = null;
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityName", cityName.ToLower());
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (reader.Read())
             {
-                await connection.OpenAsync();
-
-                var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
-                using (var command = new MySqlCommand(query, connection))
+                result = new Coordinates
                 {
-                    command.Parameters.AddWithValue("@CityName", cityName.ToLower());
-
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        if (reader.Read())
-                        {
-                            result = new Coordinates
-                            {
-                                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                            };
-                        }
-                    }
-                }
-
-                Console.WriteLine("Product fetched successfully.");
+                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                };
             }
+
+            Console.WriteLine("Product fetched successfully.");
         }
         catch (MySqlException ex)
         {
@@ -206,30 +196,24 @@ public class MySQLManager : IDatabaseManager
     {
         var cities = new List<CityInfo>();
 
-        using (var connection = new MySqlConnection(_connectionString))
+        using var connection = new MySqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
+        using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
+
+        using var reader = await command.ExecuteReaderAsync();
+        while (reader.Read())
         {
-            await connection.OpenAsync();
-
-            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
-            using (var command = new MySqlCommand(query, connection))
+            var city = new CityInfo
             {
-                command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
-
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (reader.Read())
-                    {
-                        var city = new CityInfo
-                        {
-                            CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
-                            CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                            Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                        };
-                        cities.Add(city);
-                    }
-                }
-            }
+                CityId = reader.GetGuid(reader.GetOrdinal("CityId")),
+                CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+            };
+            cities.Add(city);
         }
 
         return cities;
@@ -239,21 +223,17 @@ public class MySQLManager : IDatabaseManager
     {
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
 
-                var query = "UPDATE cities SET CityName = @CityName, Latitude = @Latitude, Longitude = @Longitude WHERE CityId = @CityId;";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@CityId", updatedCity.CityId);
-                    command.Parameters.AddWithValue("@CityName", updatedCity.CityName);
-                    command.Parameters.AddWithValue("@Latitude", updatedCity.Latitude);
-                    command.Parameters.AddWithValue("@Longitude", updatedCity.Longitude);
+            var query = "UPDATE cities SET CityName = @CityName, Latitude = @Latitude, Longitude = @Longitude WHERE CityId = @CityId;";
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityId", updatedCity.CityId);
+            command.Parameters.AddWithValue("@CityName", updatedCity.CityName);
+            command.Parameters.AddWithValue("@Latitude", updatedCity.Latitude);
+            command.Parameters.AddWithValue("@Longitude", updatedCity.Longitude);
 
-                    await command.ExecuteNonQueryAsync();
-                }
-            }
+            await command.ExecuteNonQueryAsync();
 
             Console.WriteLine("Product modified successfully.");
         }
@@ -269,22 +249,18 @@ public class MySQLManager : IDatabaseManager
         return await GetCity(updatedCity.CityId);
     }
 
-    public async Task DeleteCity(int cityId)
+    public async Task DeleteCity(Guid cityId)
     {
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
 
-                var query = "DELETE FROM cities WHERE CityId = @CityId";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@CityId", cityId);
+            var query = "DELETE FROM cities WHERE CityId = @CityId";
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityId", cityId);
 
-                    await command.ExecuteNonQueryAsync();
-                }
-            }
+            await command.ExecuteNonQueryAsync();
 
             Console.WriteLine("Product deleted successfully.");
         }

@@ -4,7 +4,7 @@ public class CityInfoValidator : AbstractValidator<CityInfo>
 {
     public CityInfoValidator()
     {
-        RuleFor(x => x.CityId).GreaterThan(0);
+        RuleFor(x => x.CityId).NotEmpty();
         RuleFor(x => x.CityName).NotEmpty();
         RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
         RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
@@ -51,7 +51,7 @@ public class CityIdValidator : AbstractValidator<CityId>
 {
     public CityIdValidator()
     {
-        RuleFor(x => x.Id).GreaterThan(0);
+        RuleFor(x => x.Id).NotEmpty();
     }
 }
 
