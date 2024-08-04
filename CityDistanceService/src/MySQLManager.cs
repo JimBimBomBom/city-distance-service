@@ -213,7 +213,7 @@ public class MySQLManager : IDatabaseManager
                         {
                             var city = new CityInfo
                             {
-                                CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
+                                CityId = reader.GetGuid(reader.GetOrdinal("CityId")),
                                 CityName = reader.GetString(reader.GetOrdinal("CityName")),
                                 Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
                                 Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
