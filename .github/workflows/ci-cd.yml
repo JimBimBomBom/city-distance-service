@@ -14,10 +14,14 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Build Docker images
+              env:
+                DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
               run: docker compose build
               working-directory: ./CityDistanceService/
 
             - name: Start services
+              env:
+                DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
               run: docker compose up -d 
               working-directory: ./CityDistanceService/
 
