@@ -96,46 +96,6 @@
 			"response": []
 		},
 		{
-			"name": "City from CityId",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080/city/1",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"city",
-						"1"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "City from CityId Copy",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080/city/2",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"city",
-						"2"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Distance",
 			"request": {
 				"method": "POST",
@@ -160,50 +120,6 @@
 						"distance"
 					]
 				}
-			},
-			"response": []
-		},
-		{
-			"name": "Update data",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Successful PUT request\", function () {",
-							"    pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);",
-							"});",
-							""
-						],
-						"type": "text/javascript",
-						"packages": {}
-					}
-				}
-			],
-			"request": {
-				"method": "PUT",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"CityId\":2,\n\t\"CityName\":\"NVm\",\n    \"Latitude\":10,\n    \"Longitude\":-12\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:8080/city",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"city"
-					]
-				},
-				"description": "This is a PUT request and it is used to overwrite an existing piece of data. For instance, after you create an entity with a POST request, you may want to modify that later. You can do that using a PUT request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).\n\nA successful PUT request typically returns a `200 OK`, `201 Created`, or `204 No Content` response code."
 			},
 			"response": []
 		},
@@ -244,51 +160,6 @@
 						"Cairo"
 					]
 				}
-			},
-			"response": []
-		},
-		{
-			"name": "Delete data",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Successful DELETE request\", function () {",
-							"    pm.expect(pm.response.code).to.be.oneOf([200, 202, 204]);",
-							"});",
-							""
-						],
-						"type": "text/javascript",
-						"packages": {}
-					}
-				}
-			],
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://localhost:8080/city/1",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"city",
-						"1"
-					]
-				},
-				"description": "This is a DELETE request, and it is used to delete data that was previously created via a POST request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).\n\nA successful DELETE request typically returns a `200 OK`, `202 Accepted`, or `204 No Content` response code."
 			},
 			"response": []
 		},
