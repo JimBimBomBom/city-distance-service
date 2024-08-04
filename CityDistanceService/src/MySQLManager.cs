@@ -206,30 +206,41 @@ public class MySQLManager : IDatabaseManager
     {
         var cities = new List<CityInfo>();
 
-        using (var connection = new MySqlConnection(_connectionString))
+        try
         {
-            await connection.OpenAsync();
-
-            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
-            using (var command = new MySqlCommand(query, connection))
+            using (var connection = new MySqlConnection(_connectionString))
             {
-                command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
+                await connection.OpenAsync();
 
-                using (var reader = await command.ExecuteReaderAsync())
+                var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
+                using (var command = new MySqlCommand(query, connection))
                 {
-                    while (reader.Read())
+                    command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
+
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
-                        var city = new CityInfo
+                        while (reader.Read())
                         {
-                            CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
-                            CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                            Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                        };
-                        cities.Add(city);
+                            var city = new CityInfo
+                            {
+                                CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
+                                CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                            };
+                            cities.Add(city);
+                        }
                     }
                 }
             }
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
         }
 
         return cities;
