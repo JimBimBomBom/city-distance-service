@@ -34,6 +34,7 @@ jobs:
               env:
                 DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
                 DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+                DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
               run: |
                 dotnet restore
                 docker build -t app .

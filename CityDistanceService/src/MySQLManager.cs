@@ -196,24 +196,41 @@ public class MySQLManager : IDatabaseManager
     {
         var cities = new List<CityInfo>();
 
-        using var connection = new MySqlConnection(_connectionString);
-        await connection.OpenAsync();
-
-        var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
-        using var command = new MySqlCommand(query, connection);
-        command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
-
-        using var reader = await command.ExecuteReaderAsync();
-        while (reader.Read())
+        try
         {
-            var city = new CityInfo
+            using (var connection = new MySqlConnection(_connectionString))
             {
-                CityId = reader.GetGuid(reader.GetOrdinal("CityId")),
-                CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-            };
-            cities.Add(city);
+                await connection.OpenAsync();
+
+                var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (reader.Read())
+                        {
+                            var city = new CityInfo
+                            {
+                                CityId = reader.GetInt32(reader.GetOrdinal("CityId")),
+                                CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                            };
+                            cities.Add(city);
+                        }
+                    }
+                }
+            }
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
         }
 
         return cities;

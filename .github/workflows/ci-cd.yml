@@ -12,13 +12,21 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+            
+            - name: Restore dependencies
+              run: dotnet restore
+              working-directory: ./CityDistanceService/
 
             - name: Build Docker images
-              run: docker compose -f compose.yaml build
+              env:
+                DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
+              run: docker compose build
               working-directory: ./CityDistanceService/
 
             - name: Start services
-              run: docker compose -f compose.yaml up --wait --wait-timeout 30
+              env:
+                DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
+              run: docker compose up -d 
               working-directory: ./CityDistanceService/
 
             - name: Install Newman
