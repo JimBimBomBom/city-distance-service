@@ -18,7 +18,7 @@ public static class RequestHandler
         }
     }
 
-    public static async Task<IResult> ValidateAndReturnCityInfoAsync(int cityId, IDatabaseManager dbManager)
+    public static async Task<IResult> ValidateAndReturnCityInfoAsync(Guid cityId, IDatabaseManager dbManager)
     {
         var cityInfo = await dbManager.GetCity(cityId);
         if (cityInfo == null)
@@ -62,7 +62,7 @@ public static class RequestHandler
         return Results.Ok(new ApiResponse<CityInfo>(updatedCity, "Item has been successfully updated."));
     }
 
-    public static async Task<IResult> ValidateAndDeleteCityAsync(int cityId, IDatabaseManager dbManager)
+    public static async Task<IResult> ValidateAndDeleteCityAsync(Guid cityId, IDatabaseManager dbManager)
     {
         var cityInfo = await dbManager.GetCity(cityId);
         if (cityInfo == null)

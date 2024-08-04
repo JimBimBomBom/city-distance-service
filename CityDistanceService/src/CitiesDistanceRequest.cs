@@ -14,7 +14,7 @@ public class Coordinates
 
 public class CityInfo
 {
-    public int CityId { get; set; }
+    public Guid CityId { get; set; }
 
     public string CityName { get; set; }
 
@@ -25,7 +25,7 @@ public class CityInfo
 
 public class CityId
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 }
 
 public class CityName
