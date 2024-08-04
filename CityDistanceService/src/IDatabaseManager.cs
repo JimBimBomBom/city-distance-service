@@ -4,7 +4,7 @@ public interface IDatabaseManager
 
     Task<CityInfo> AddCity(CityInfo newCity);
 
-    Task<CityInfo?> GetCity(int cityId);
+    Task<CityInfo?> GetCity(Guid cityId);
 
     Task<CityInfo?> GetCity(string cityName);
 
@@ -14,5 +14,5 @@ public interface IDatabaseManager
 
     Task<CityInfo> UpdateCity(CityInfo updatedCity);
 
-    Task DeleteCity(int cityId);
+    Task DeleteCity(Guid cityId);
 }

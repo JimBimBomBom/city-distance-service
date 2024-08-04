@@ -1,0 +1,196 @@
+{
+	"info": {
+		"_postman_id": "173d25d4-0486-4435-a680-15ef2a2c3f87",
+		"name": "New Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32471593"
+	},
+	"item": [
+		{
+			"name": "Post Cairo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Successful POST request\", function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"CityName\":\"Cairo\",\n    \"Latitude\":30.0444,\n    \"Longitude\":30.2357\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://app-v6cgvtuw4a-lm.a.run.app/city",
+					"protocol": "https",
+					"host": [
+						"app-v6cgvtuw4a-lm",
+						"a",
+						"run",
+						"app"
+					],
+					"path": [
+						"city"
+					]
+				},
+				"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+			},
+			"response": []
+		},
+		{
+			"name": "Post NY-City",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Successful POST request\", function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"CityName\":\"NY City\",\n    \"Latitude\":10,\n    \"Longitude\":-10\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://citydistanceservice-app-v6cgvtuw4a-uc.a.run.app/city",
+					"protocol": "https",
+					"host": [
+						"citydistanceservice-app-v6cgvtuw4a-uc",
+						"a",
+						"run",
+						"app"
+					],
+					"path": [
+						"city"
+					]
+				},
+				"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+			},
+			"response": []
+		},
+		{
+			"name": "Distance",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"City1\": \"NY City\",\r\n    \"City2\": \"Cairo\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://citydistanceservice-app-v6cgvtuw4a-uc.a.run.app/distance",
+					"protocol": "https",
+					"host": [
+						"citydistanceservice-app-v6cgvtuw4a-uc",
+						"a",
+						"run",
+						"app"
+					],
+					"path": [
+						"distance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Search from CityName",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://citydistanceservice-app-v6cgvtuw4a-uc.a.run.app/search/Cairo",
+					"protocol": "https",
+					"host": [
+						"citydistanceservice-app-v6cgvtuw4a-uc",
+						"a",
+						"run",
+						"app"
+					],
+					"path": [
+						"search",
+						"Cairo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://citydistanceservice-app-v6cgvtuw4a-uc.a.run.app/health_check",
+					"protocol": "https",
+					"host": [
+						"citydistanceservice-app-v6cgvtuw4a-uc",
+						"a",
+						"run",
+						"app"
+					],
+					"path": [
+						"health_check"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "dbconnectiontest",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://app-v6cgvtuw4a-lm.a.run.app/health_check",
+					"protocol": "https",
+					"host": [
+						"app-v6cgvtuw4a-lm",
+						"a",
+						"run",
+						"app"
+					],
+					"path": [
+						"health_check"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
