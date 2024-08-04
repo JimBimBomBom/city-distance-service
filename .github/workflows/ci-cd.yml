@@ -39,6 +39,6 @@ jobs:
             #   run: newman run ./Integration_tests/Integration.postman_collection.json
 
             - name: Stop services
-              run: docker-compose down
+              run: docker compose down
               working-directory: ./CityDistanceService/
             
