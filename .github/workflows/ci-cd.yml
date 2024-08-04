@@ -20,7 +20,7 @@ jobs:
               working-directory: ./CityDistanceService/
 
             - name: Start services
-              run: docker run app
+              run: docker run app -d -e DATABASE_CONNECTION_STRING=$DATABASE_CONNECTION_STRING
               working-directory: ./CityDistanceService/
 
             - name: Install Newman
