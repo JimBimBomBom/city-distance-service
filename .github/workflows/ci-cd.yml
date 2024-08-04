@@ -16,11 +16,11 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Build Docker images
-              run: docker build --build-arg="DATABASE_CONNECTION_STRING=$DATABASE_CONNECTION_STRING" -t app .
+              run: docker build -t app .
               working-directory: ./CityDistanceService/
 
             - name: Start services
-              run: docker run app -d -e DATABASE_CONNECTION_STRING=$DATABASE_CONNECTION_STRING
+              run: docker run app -e DATABASE_CONNECTION_STRING=$DATABASE_CONNECTION_STRING --detach
               working-directory: ./CityDistanceService/
 
             - name: Install Newman
