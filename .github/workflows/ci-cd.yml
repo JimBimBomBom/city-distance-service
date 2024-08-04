@@ -20,7 +20,7 @@ jobs:
               working-directory: ./CityDistanceService/
 
             - name: Start services
-              run: docker start app
+              run: docker run app
               working-directory: ./CityDistanceService/
 
             - name: Install Newman
