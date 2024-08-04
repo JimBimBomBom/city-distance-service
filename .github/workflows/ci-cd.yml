@@ -9,20 +9,18 @@ on:
 jobs:
     test-app:
         runs-on: ubuntu-latest
-        env:
-            DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
 
             - name: Build Docker images
             #   run: docker build -t app .
-              run: docker-compose build
+              run: docker compose build
               working-directory: ./CityDistanceService/
 
             - name: Start services
             #   run: docker run -d app -e DATABASE_CONNECTION_STRING=$DATABASE_CONNECTION_STRING 
-              run: docker-compose up -d 
+              run: docker compose up -d 
               working-directory: ./CityDistanceService/
 
             - name: Install Newman
