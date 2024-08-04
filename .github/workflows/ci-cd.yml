@@ -17,11 +17,10 @@ jobs:
 
             - name: Build Docker images
               run: docker build --build-arg="DATABASE_CONNECTION_STRING=$DATABASE_CONNECTION_STRING" -t app .
-
               working-directory: ./CityDistanceService/
 
             - name: Start services
-              run: docker compose -f compose.yaml up --wait --wait-timeout 30
+              run: docker start app
               working-directory: ./CityDistanceService/
 
             - name: Install Newman
