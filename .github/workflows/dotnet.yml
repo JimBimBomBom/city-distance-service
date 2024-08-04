@@ -11,6 +11,8 @@ on:
 jobs:
     unit-test-app:
         runs-on: ubuntu-latest
+        env:
+            DATABASE_CONNECTION_STRING: "Server=127.0.0.0;User=root;Password=changeme;Database=citydistanceservice" 
         steps:
             - uses: actions/checkout@v3
             - name: Setup .NET

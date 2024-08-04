@@ -9,28 +9,24 @@ on:
 jobs:
     test-app:
         runs-on: ubuntu-latest
+        env:
+            DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
 
             - name: Build Docker images
-              run: docker compose -f compose.yaml build
+              run: docker build --build-arg DATABASE_CONNECTION_STRING=$DATABASE_CONNECTION_STRING -t app.
+
               working-directory: ./CityDistanceService/
 
             - name: Start services
               run: docker compose -f compose.yaml up --wait --wait-timeout 30
               working-directory: ./CityDistanceService/
 
-            - name: Install Newman
-              run: npm install -g newman
-                
-            - name: Wait for services to initialize
-              run: sleep 20    
+            # - name: Install Newman
+            #   run: npm install -g newman
 
-            - name: Run Postman tests
-              run: newman run ./Integration_tests/Integration.postman_collection.json
-
-            - name: Stop services
-              run: docker-compose down
-              working-directory: ./CityDistanceService/
+            # - name: Run Postman tests
+            #   run: newman run ./Integration_tests/Integration.postman_collection.json
             

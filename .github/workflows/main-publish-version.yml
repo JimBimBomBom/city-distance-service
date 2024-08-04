@@ -34,9 +34,10 @@ jobs:
               env:
                 DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
                 DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+                DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
               run: |
                 dotnet restore
-                docker build -t app .
+                docker build --build-arg DATABASE_CONNECTION_STRING=$DATABASE_CONNECTION_STRING -t app .
 
                 echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
