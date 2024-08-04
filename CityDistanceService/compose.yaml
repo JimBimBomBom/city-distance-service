@@ -1,7 +1,5 @@
 services:
     app:
-        env_file:
-            - env/app_variables.env
         build:
             context: .
             dockerfile: Dockerfile
@@ -13,8 +11,6 @@ services:
             - cdsNetwork
 
     db:
-        env_file:
-            - env/database_variables.env
         image: mysql:latest
         ports:
             - "3306:3306"
