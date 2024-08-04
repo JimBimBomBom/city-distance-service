@@ -20,7 +20,6 @@ configuration.AddEnvironmentVariables();
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 if (string.IsNullOrEmpty(connectionString))
 {
-    // configuration["DATABASE_CONNECTION_STRING"] = "Server=db;Database=city_distance;Uid=root;Pwd=changeme";
     Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=city_distance;Uid=root;Pwd=changeme");
     Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set.");
 }
