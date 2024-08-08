@@ -4,12 +4,23 @@ using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddControllers();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc($"{Constants.Version}", new OpenApiInfo
+    {
+        Version = $"{Constants.Version}",
+        Title = "City Distance Service",
+        Description = "A simple service to manage city information and calculate distances between cities.",
+    });
+});
 
 builder.Services.AddCors(options =>
 {
@@ -37,10 +48,22 @@ builder.Services.AddFluentMigratorCore()
         .ScanIn(typeof(Program).Assembly).For.Migrations())
     .AddLogging(lb => lb.AddFluentMigratorConsole());
 
+// Configure FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
 var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", $"Documentation for City Distance Service version {Constants.Version}");
+});
+
+app.UseRouting();
+
+app.UseStaticFiles();
+app.MapControllers();
 
 // Run migrations with retry logic at startup
 try
@@ -62,12 +85,6 @@ catch (Exception ex)
 }
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 // app.UseHttpsRedirection();
 app.UseCors("AllowAll");

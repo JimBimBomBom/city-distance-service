@@ -1,0 +1,58 @@
+name: Generate and publish Swagger docs
+
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v3
+              with:
+                   dotnet-version: 8.0.x
+            
+            - name: Restore dependencies
+              run: dotnet restore
+            
+            - name: Run services
+              run: docker compose up --build
+            
+            - name: Get app version
+              id: get_version
+              run: |
+                curl -X GET http://localhost:8080/version -o version.txt
+                VERSION=$(cat version.txt)
+                echo "::set-output name=version::$VERSION"
+            
+            - name: Publish Swagger JSON
+              env:
+                APP_VERSION: ${{ steps.get_version.outputs.version }}
+              run: curl -X GET http://localhost:8080/swagger/${APP_VERSION}/swagger.json -o swagger-${APP_VERSION}.json
+
+            - name: Checkout target repository
+              uses: actions/checkout@v4
+              with:
+                repository: JimBimBomBom/CDS-web
+                token: ${{ secrets.GITHUB_TOKEN }}
+                path: ./docs/
+            
+            - name: Copy Swagger JSON to target repository
+              run: cp swagger.json target-repo/
+            
+            - name: Commit and push changes
+              env:
+                APP_VERSION: ${{ steps.get_version.outputs.version }}
+              run: |
+                cd CDS-web
+                git config --global user.name 'github-actions[bot]'
+                git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+                git add swagger.json
+                git commit -m "Update Swagger JSON for version ${APP_VERSION}"
+                git push
