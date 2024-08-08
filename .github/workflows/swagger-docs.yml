@@ -48,7 +48,7 @@ jobs:
                 path: ./docs/
             
             - name: Copy Swagger JSON to target repository
-              run: cp swagger.json target-repo/
+              run: cp swagger-${APP_VERSION}.json docs/
             
             - name: Commit and push changes
               env:
