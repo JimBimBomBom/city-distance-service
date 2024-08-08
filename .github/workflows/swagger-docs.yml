@@ -48,6 +48,8 @@ jobs:
                 path: ./docs/
             
             - name: Copy Swagger JSON to target repository
+              env:
+                APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: cp swagger-${APP_VERSION}.json docs/
             
             - name: Commit and push changes
