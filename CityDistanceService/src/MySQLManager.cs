@@ -10,7 +10,7 @@ public class MySQLManager : IDatabaseManager
         _connectionString = connectionString;
     }
 
-    public async Task<string> TestConnection()
+    public async Task<IResult> TestConnection()
     {
         try
         {
@@ -23,13 +23,15 @@ public class MySQLManager : IDatabaseManager
         catch (SqlException ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+            return Results.BadRequest($"Error: {ex.Message}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+            return Results.BadRequest($"Error: {ex.Message}");
         }
 
-        return _connectionString;
+        return Results.Ok(_connectionString);
     }
 
     public async Task<CityInfo> AddCity(CityInfo city)

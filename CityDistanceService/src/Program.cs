@@ -23,7 +23,7 @@ configuration.AddEnvironmentVariables();
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 if (string.IsNullOrEmpty(connectionString))
 {
-    Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=city_distance;Uid=root;Pwd=changeme");
+    connectionString = "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme";
     Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set.");
 }
 
@@ -43,15 +43,23 @@ builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 var app = builder.Build();
 
 // Run migrations with retry logic at startup
-RetryHelper.RetryOnException(10, TimeSpan.FromSeconds(10), () =>
+try
 {
-    // Run migrations at startup
-    using (var scope = app.Services.CreateScope())
+    RetryHelper.RetryOnException(10, TimeSpan.FromSeconds(10), () =>
     {
-        var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
-        runner.MigrateUp();
-    }
-});
+        // Run migrations at startup
+        using (var scope = app.Services.CreateScope())
+        {
+            var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+            runner.MigrateUp();
+        }
+    });
+}
+catch (Exception ex)
+{
+    Console.WriteLine("Error running migrations: " + ex.Message);
+    return;
+}
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
 
