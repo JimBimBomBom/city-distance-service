@@ -52,7 +52,6 @@ jobs:
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-               mkdir -p ./docs/
                cp swagger-${APP_VERSION}.json ./docs/
             
             - name: Commit and push changes
