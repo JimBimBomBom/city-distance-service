@@ -22,7 +22,7 @@ jobs:
               run: dotnet restore
             
             - name: Run services
-              run: docker compose up --build
+              run: docker compose up --build -d
               working-directory: ./CityDistanceService/
             
             - name: Get app version
