@@ -60,7 +60,7 @@ jobs:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
                mkdir -p ./CDS-web/docs/
-               cp swagger-${APP_VERSION}.json ./CDS-web/docs/
+               cp ${APP_VERSION}.json ./CDS-web/docs/
             
             - name: Generate versions.json
               run: |
