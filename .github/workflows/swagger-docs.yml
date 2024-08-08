@@ -62,6 +62,6 @@ jobs:
                 cd ./docs/
                 git config --global user.name 'github-actions[bot]'
                 git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-                git add swagger-$APP_VERSION.json
+                git add ./docs/swagger-$APP_VERSION.json
                 git commit -m "Update Swagger JSON for version ${APP_VERSION}"
                 git push
