@@ -43,7 +43,7 @@ jobs:
 
             - name: Verify Swagger JSON exists
               run: |
-                    if [ ! -f "swagger-${{ steps.get_version.outputs.version }}.json" ]; then
+                    if [ ! -f "${{ steps.get_version.outputs.version }}.json" ]; then
                     echo "Swagger JSON file not found!"
                     exit 1
                     fi
