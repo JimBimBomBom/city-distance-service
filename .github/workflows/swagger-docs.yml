@@ -41,6 +41,13 @@ jobs:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: curl -X GET http://localhost:8080/swagger/${APP_VERSION}/swagger.json -o swagger-${APP_VERSION}.json
 
+            - name: Verify Swagger JSON exists
+              run: |
+                    if [ ! -f "swagger-${{ steps.get_version.outputs.version }}.json" ]; then
+                    echo "Swagger JSON file not found!"
+                    exit 1
+                    fi
+
             - name: Checkout target repository
               uses: actions/checkout@v4
               with:
@@ -58,7 +65,7 @@ jobs:
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-                cd docs/
+                cd ./docs/
                 git config --global user.name 'github-actions[bot]'
                 git config --global user.email 'github-actions[bot]@users.noreply.github.com'
                 git add -A
