@@ -23,6 +23,7 @@ jobs:
             
             - name: Run services
               run: docker compose up --build
+              working-directory: ./CityDistanceService/
             
             - name: Get app version
               id: get_version
