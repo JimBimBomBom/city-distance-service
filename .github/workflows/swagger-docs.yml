@@ -44,7 +44,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                 repository: JimBimBomBom/CDS-web
-                token: ${{ secrets.GITHUB_TOKEN }}
+                token: ${{ secrets.TOKEN }}
                 path: ./docs/
             
             - name: Copy Swagger JSON to target repository
@@ -59,6 +59,6 @@ jobs:
                 cd docs/
                 git config --global user.name 'github-actions[bot]'
                 git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-                git add swagger-${APP_VERSION}.json
+                git add swagger-$APP_VERSION.json
                 git commit -m "Update Swagger JSON for version ${APP_VERSION}"
                 git push
