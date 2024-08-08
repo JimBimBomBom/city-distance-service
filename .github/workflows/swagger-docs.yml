@@ -39,7 +39,7 @@ jobs:
             - name: Publish Swagger JSON
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
-              run: curl -X GET http://localhost:8080/swagger/${APP_VERSION}/swagger.json -o swagger-${APP_VERSION}.json
+              run: curl -X GET http://localhost:8080/swagger/${APP_VERSION}/swagger.json -o ${APP_VERSION}.json
 
             - name: Verify Swagger JSON exists
               run: |
