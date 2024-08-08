@@ -33,6 +33,7 @@ jobs:
               run: |
                 curl -X GET http://localhost:8080/version -o version.txt
                 VERSION=$(cat version.txt)
+                VERSION=$(echo $VERSION | tr -d '"')
                 echo "::set-output name=version::$VERSION"
             
             - name: Publish Swagger JSON
