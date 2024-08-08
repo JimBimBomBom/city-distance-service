@@ -25,6 +25,9 @@ jobs:
               run: docker compose up --build -d
               working-directory: ./CityDistanceService/
             
+            - name: Wait for services to initialize
+              run: sleep 20
+            
             - name: Get app version
               id: get_version
               run: |
