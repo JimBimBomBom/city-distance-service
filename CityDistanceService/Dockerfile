@@ -1,9 +1,6 @@
 # Use the official image as a parent image.
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 
-ARG DATABASE_CONNECTION_STRING
-ENV DATABASE_CONNECTION_STRING=${DATABASE_CONNECTION_STRING}
-
 # Set the working directory.
 WORKDIR /app
 
