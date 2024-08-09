@@ -39,11 +39,11 @@ jobs:
             - name: Publish Swagger JSON
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
-              run: curl -X GET http://localhost:8080/swagger/${APP_VERSION}/swagger.json -o swagger-${APP_VERSION}.json
+              run: curl -X GET http://localhost:8080/swagger/${APP_VERSION}/swagger.json -o ${APP_VERSION}.json
 
             - name: Verify Swagger JSON exists
               run: |
-                    if [ ! -f "swagger-${{ steps.get_version.outputs.version }}.json" ]; then
+                    if [ ! -f "${{ steps.get_version.outputs.version }}.json" ]; then
                     echo "Swagger JSON file not found!"
                     exit 1
                     fi
@@ -51,24 +51,33 @@ jobs:
             - name: Checkout target repository
               uses: actions/checkout@v4
               with:
-                repository: JimBimBomBom/CDS-web
+                repository: JimBimBomBom/CDS-docs
                 token: ${{ secrets.TOKEN }}
-                path: ./CDS-web/
+                path: CDS-docs
+            
+            - name: Make sure docs folder exists
+              run: mkdir -p docs
+              working-directory: CDS-docs
+
             
             - name: Copy Swagger JSON to target repository
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-               mkdir -p ./CDS-web/docs/
-               cp swagger-${APP_VERSION}.json ./CDS-web/docs/
+               cp ${APP_VERSION}.json CDS-docs/docs
+            
+            - name: Generate versions.json
+              run: |
+                node generate-versions.js
+              working-directory: CDS-docs
             
             - name: Commit and push changes
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-                cd ./CDS-web/
                 git config --global user.name 'github-actions[bot]'
                 git config --global user.email 'github-actions[bot]@users.noreply.github.com'
                 git add -A
-                git commit -m "Update Swagger JSON for version ${APP_VERSION}"
+                git commit -m "Update Swagger JSON for version ${APP_VERSION}" || echo "No changes to commit"
                 git push
+              working-directory: CDS-docs
