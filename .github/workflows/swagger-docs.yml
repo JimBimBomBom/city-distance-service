@@ -59,21 +59,22 @@ jobs:
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-               mkdir -p ./CDS-docs/docs/
-               cp ${APP_VERSION}.json ./CDS-docs/docs/
+               mkdir -p /docs/
+               cp ${APP_VERSION}.json /docs/
+              working-directory: ./CDS-docs/
             
             - name: Generate versions.json
               run: |
-                cd ./CDS-docs/
                 node generate-versions.js
+              working-directory: ./CDS-docs/
             
             - name: Commit and push changes
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-                cd ./CDS-docs/
                 git config --global user.name 'github-actions[bot]'
                 git config --global user.email 'github-actions[bot]@users.noreply.github.com'
                 git add -A
                 git commit -m "Update Swagger JSON for version ${APP_VERSION}"
                 git push
+              working-directory: ./CDS-docs/
