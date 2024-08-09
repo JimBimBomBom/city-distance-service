@@ -4,6 +4,7 @@ using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Drawing.Printing;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -24,10 +25,21 @@ var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 if (string.IsNullOrEmpty(connectionString))
 {
     Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=city_distance;Uid=root;Pwd=changeme");
+    connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
+    Console.WriteLine(connectionString);
+
     Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set.");
 }
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
+
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AUTH_USERNAME")) || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AUTH_PASSWORD")))
+{
+    Environment.SetEnvironmentVariable("AUTH_USERNAME", "admin");
+    Environment.SetEnvironmentVariable("AUTH_PASSWORD", "password");
+
+    Console.WriteLine("AUTH_USERNAME or AUTH_PASSWORD environment variable not set.");
+}
 
 // Configure FluentMigrator
 builder.Services.AddFluentMigratorCore()
@@ -54,6 +66,7 @@ RetryHelper.RetryOnException(10, TimeSpan.FromSeconds(10), () =>
 });
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
+app.UseMiddleware<BasicAuthMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
