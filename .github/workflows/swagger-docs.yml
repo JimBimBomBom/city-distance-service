@@ -53,20 +53,20 @@ jobs:
               with:
                 repository: JimBimBomBom/CDS-docs
                 token: ${{ secrets.TOKEN }}
-                path: ./CDS-docs/
+                path: CDS-docs
             
             - name: Copy Swagger JSON to target repository
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-               mkdir -p /docs/
-               cp ${APP_VERSION}.json /docs/
-              working-directory: ./CDS-docs/
+               mkdir -p docs
+               cp ${APP_VERSION}.json docs
+              working-directory: CDS-docs
             
             - name: Generate versions.json
               run: |
                 node generate-versions.js
-              working-directory: ./CDS-docs/
+              working-directory: CDS-docs
             
             - name: Commit and push changes
               env:
@@ -77,4 +77,4 @@ jobs:
                 git add -A
                 git commit -m "Update Swagger JSON for version ${APP_VERSION}"
                 git push
-              working-directory: ./CDS-docs/
+              working-directory: CDS-docs
