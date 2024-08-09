@@ -59,9 +59,8 @@ jobs:
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-               mkdir -p docs
-               cp ${APP_VERSION}.json docs
-              working-directory: CDS-docs
+               mkdir -p /CDS-docs/docs
+               cp ${APP_VERSION}.json /CDS-docs/docs
             
             - name: Generate versions.json
               run: |
