@@ -2,9 +2,6 @@ using FluentMigrator.Runner;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using System.Drawing.Printing;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
