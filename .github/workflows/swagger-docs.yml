@@ -55,12 +55,16 @@ jobs:
                 token: ${{ secrets.TOKEN }}
                 path: CDS-docs
             
+            - name: Make sure docs folder exists
+              run: mkdir -p docs
+              working-directory: CDS-docs
+
+            
             - name: Copy Swagger JSON to target repository
               env:
                 APP_VERSION: ${{ steps.get_version.outputs.version }}
               run: |
-               mkdir -p /CDS-docs/docs
-               cp ${APP_VERSION}.json /CDS-docs/docs
+               cp ${APP_VERSION}.json CDS-docs/docs
             
             - name: Generate versions.json
               run: |
