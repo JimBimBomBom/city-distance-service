@@ -12,6 +12,7 @@ services:
 
     db:
         image: mysql:latest
+        env_file: "DatabaseEnv.env"
         ports:
             - "3306:3306"
         volumes:

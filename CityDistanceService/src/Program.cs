@@ -2,12 +2,25 @@ using FluentMigrator.Runner;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddControllers();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc($"{Constants.Version}", new OpenApiInfo
+    {
+        Version = $"{Constants.Version}",
+        Title = "City Distance Service",
+        Description = "A simple service to manage city information and calculate distances between cities.",
+    });
+});
 
 builder.Services.AddCors(options =>
 {
@@ -25,6 +38,7 @@ if (string.IsNullOrEmpty(connectionString))
     connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
     Console.WriteLine(connectionString);
 
+    connectionString = "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme";
     Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set.");
 }
 
@@ -46,30 +60,45 @@ builder.Services.AddFluentMigratorCore()
         .ScanIn(typeof(Program).Assembly).For.Migrations())
     .AddLogging(lb => lb.AddFluentMigratorConsole());
 
+// Configure FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
 var app = builder.Build();
 
-// Run migrations with retry logic at startup
-RetryHelper.RetryOnException(10, TimeSpan.FromSeconds(10), () =>
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    // Run migrations at startup
-    using (var scope = app.Services.CreateScope())
-    {
-        var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
-        runner.MigrateUp();
-    }
+    c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", $"Documentation for City Distance Service version {Constants.Version}");
 });
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
 app.UseMiddleware<BasicAuthMiddleware>();
+app.UseRouting();
 
-if (app.Environment.IsDevelopment())
+app.UseStaticFiles();
+app.MapControllers();
+
+// Run migrations with retry logic at startup
+try
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    RetryHelper.RetryOnException(10, TimeSpan.FromSeconds(10), () =>
+    {
+        // Run migrations at startup
+        using (var scope = app.Services.CreateScope())
+        {
+            var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+            runner.MigrateUp();
+        }
+    });
 }
+catch (Exception ex)
+{
+    Console.WriteLine("Error running migrations: " + ex.Message);
+    return;
+}
+
+app.UseMiddleware<ApplicationVersionMiddleware>();
 
 // app.UseHttpsRedirection();
 app.UseCors("AllowAll");
