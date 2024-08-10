@@ -1,7 +1,9 @@
 name: Generate and publish Swagger docs
 
 on:
-    pull_request:
+    push:
+        tags:
+            - '*.*.*'
         branches:
             - main
 
