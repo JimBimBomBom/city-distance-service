@@ -11,6 +11,7 @@ var configuration = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
+builder.Services.AddAuthorization();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -72,14 +73,18 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", $"Documentation for City Distance Service version {Constants.Version}");
 });
 
-app.UseMiddleware<ApplicationVersionMiddleware>();
-app.UseMiddleware<BasicAuthMiddleware>();
 
 app.UseRouting();
+
+app.UseCors("AllowAll");
+app.UseStaticFiles();
+
+app.UseMiddleware<ApplicationVersionMiddleware>();
+
+var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version" };
+app.UseMiddleware<BasicAuthMiddleware>(exemptedPaths);
 app.UseAuthorization();
 
-app.UseStaticFiles();
-app.MapControllers();
 
 // Run migrations with retry logic at startup
 try
@@ -100,10 +105,7 @@ catch (Exception ex)
     return;
 }
 
-app.UseMiddleware<ApplicationVersionMiddleware>();
-
-// app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+// Add validation to endpoints in the /city group
 var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
 
 Console.WriteLine("App version: " + Constants.Version);
@@ -113,6 +115,8 @@ if (string.IsNullOrEmpty(Constants.Version))
     Console.WriteLine("No version found error.");
     return;
 }
+
+app.MapControllers();
 
 app.MapGet("/health_check", () =>
 {
@@ -127,6 +131,7 @@ app.MapGet("/version", () =>
     return Results.Ok(Constants.Version);
 });
 
+
 app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
@@ -139,7 +144,7 @@ app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager db
 app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
-}).RequireAuthorization();
+});
 app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
@@ -148,11 +153,11 @@ app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager d
 app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndUpdateCityInfoAsync(city, dbManager);
-}).RequireAuthorization();
+});
 
 app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndDeleteCityAsync(id, dbManager);
-}).RequireAuthorization();
+});
 
 app.Run();
