@@ -85,12 +85,6 @@ var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/ve
 app.UseMiddleware<BasicAuthMiddleware>(exemptedPaths);
 app.UseAuthorization();
 
-<<<<<<< HEAD
-app.UseStaticFiles();
-app.MapControllers();
-=======
->>>>>>> 34837f1be0cb7c3cf827734c08ee3b413eae3e62
-
 // Run migrations with retry logic at startup
 try
 {
