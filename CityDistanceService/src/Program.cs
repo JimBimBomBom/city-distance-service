@@ -74,10 +74,12 @@ app.UseSwaggerUI(c =>
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
 app.UseMiddleware<BasicAuthMiddleware>();
+
 app.UseRouting();
+app.UseAuthorization();
 
 app.UseStaticFiles();
-app.MapControllers();
+app.MapControllers().RequireAuthorization();
 
 // Run migrations with retry logic at startup
 try
