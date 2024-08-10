@@ -77,7 +77,6 @@ app.UseSwaggerUI(c =>
 app.UseRouting();
 
 app.UseCors("AllowAll");
-app.UseStaticFiles();
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
 
