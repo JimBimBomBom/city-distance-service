@@ -3,14 +3,22 @@ using System.Text;
 public class BasicAuthMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly List<string> _exemptedPaths;
 
-    public BasicAuthMiddleware(RequestDelegate next)
+    public BasicAuthMiddleware(RequestDelegate next, List<string> exemptedPaths)
     {
         _next = next;
+        _exemptedPaths = exemptedPaths;
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
+        if (_exemptedPaths.Contains(context.Request.Path))
+        {
+            await _next(context);
+            return;
+        }
+
         if (!context.Request.Headers.ContainsKey("Authorization"))
         {
             context.Response.StatusCode = 401;
