@@ -79,7 +79,7 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.UseStaticFiles();
-app.MapControllers().RequireAuthorization();
+app.MapControllers();
 
 // Run migrations with retry logic at startup
 try
@@ -139,7 +139,7 @@ app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager db
 app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
-});
+}).RequireAuthorization();
 app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
@@ -148,11 +148,11 @@ app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager d
 app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndUpdateCityInfoAsync(city, dbManager);
-});
+}).RequireAuthorization();
 
 app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndDeleteCityAsync(id, dbManager);
-});
+}).RequireAuthorization();
 
 app.Run();
