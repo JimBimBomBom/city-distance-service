@@ -34,11 +34,23 @@ configuration.AddEnvironmentVariables();
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 if (string.IsNullOrEmpty(connectionString))
 {
+    Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=city_distance;Uid=root;Pwd=changeme");
+    connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
+    Console.WriteLine(connectionString);
+
     connectionString = "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme";
     Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set.");
 }
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
+
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AUTH_USERNAME")) || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AUTH_PASSWORD")))
+{
+    Environment.SetEnvironmentVariable("AUTH_USERNAME", "admin");
+    Environment.SetEnvironmentVariable("AUTH_PASSWORD", "password");
+
+    Console.WriteLine("AUTH_USERNAME or AUTH_PASSWORD environment variable not set.");
+}
 
 // Configure FluentMigrator
 builder.Services.AddFluentMigratorCore()
@@ -60,10 +72,14 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", $"Documentation for City Distance Service version {Constants.Version}");
 });
 
+app.UseMiddleware<ApplicationVersionMiddleware>();
+app.UseMiddleware<BasicAuthMiddleware>();
+
 app.UseRouting();
+app.UseAuthorization();
 
 app.UseStaticFiles();
-app.MapControllers();
+app.MapControllers().RequireAuthorization();
 
 // Run migrations with retry logic at startup
 try
