@@ -11,6 +11,7 @@ var configuration = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
+builder.Services.AddAuthorization();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -72,14 +73,23 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", $"Documentation for City Distance Service version {Constants.Version}");
 });
 
-app.UseMiddleware<ApplicationVersionMiddleware>();
-app.UseMiddleware<BasicAuthMiddleware>();
 
 app.UseRouting();
+
+app.UseCors("AllowAll");
+app.UseStaticFiles();
+
+app.UseMiddleware<ApplicationVersionMiddleware>();
+
+var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version" };
+app.UseMiddleware<BasicAuthMiddleware>(exemptedPaths);
 app.UseAuthorization();
 
+<<<<<<< HEAD
 app.UseStaticFiles();
 app.MapControllers();
+=======
+>>>>>>> 34837f1be0cb7c3cf827734c08ee3b413eae3e62
 
 // Run migrations with retry logic at startup
 try
@@ -100,10 +110,7 @@ catch (Exception ex)
     return;
 }
 
-app.UseMiddleware<ApplicationVersionMiddleware>();
-
-// app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+// Add validation to endpoints in the /city group
 var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
 
 Console.WriteLine("App version: " + Constants.Version);
@@ -113,6 +120,8 @@ if (string.IsNullOrEmpty(Constants.Version))
     Console.WriteLine("No version found error.");
     return;
 }
+
+app.MapControllers();
 
 app.MapGet("/health_check", () =>
 {
@@ -126,6 +135,7 @@ app.MapGet("/version", () =>
 {
     return Results.Ok(Constants.Version);
 });
+
 
 app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
