@@ -4,6 +4,9 @@ using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +15,7 @@ var configuration = builder.Configuration;
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
+builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -77,12 +81,12 @@ app.UseSwaggerUI(c =>
 app.UseRouting();
 
 app.UseCors("AllowAll");
-app.UseStaticFiles();
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
 
 var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version" };
 app.UseMiddleware<BasicAuthMiddleware>(exemptedPaths);
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Run migrations with retry logic at startup
