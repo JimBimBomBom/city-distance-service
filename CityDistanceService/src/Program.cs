@@ -16,9 +16,9 @@ var configuration = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
-// builder.Services.AddAuthorization();
+builder.Services.AddAuthorization();
 
-builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
+// builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 builder.Environment.WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "/wwwroot");
 
 builder.Services.AddSwaggerGen();
@@ -91,7 +91,7 @@ app.UseWhen(
     !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
     appBuilder =>
     {
-        appBuilder.UseAuthentication();
+        // appBuilder.UseAuthentication();
         appBuilder.UseAuthorization();
         appBuilder.UseMiddleware<BasicAuthMiddleware>();
     });
