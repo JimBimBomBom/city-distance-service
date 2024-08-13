@@ -149,15 +149,16 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/search/Cairo",
+					"raw": "http://localhost:8080/swagger/0.1.14/swagger.json",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"port": "8080",
 					"path": [
-						"search",
-						"Cairo"
+						"swagger",
+						"0.1.14",
+						"swagger.json"
 					]
 				}
 			},
@@ -231,6 +232,23 @@
 					"path": [
 						"version"
 					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"CityId\": \"dc0011ed-90bb-4275-bfa1-bd8c233b51d6\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
 				}
 			},
 			"response": []
