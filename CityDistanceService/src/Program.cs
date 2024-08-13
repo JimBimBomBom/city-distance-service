@@ -8,24 +8,29 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
-builder.Services.AddAuthorization();
-builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
+// builder.Services.AddAuthorization();
 
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc($"{Constants.Version}", new OpenApiInfo
-    {
-        Version = $"{Constants.Version}",
-        Title = "City Distance Service",
-        Description = "A simple service to manage city information and calculate distances between cities.",
-    });
-});
+builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
+builder.Environment.WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "/wwwroot");
+
+builder.Services.AddSwaggerGen();
+// builder.Services.AddSwaggerGen(options =>
+// {
+//     options.SwaggerDoc($"{Constants.Version}", new OpenApiInfo
+//     {
+//         Version = $"{Constants.Version}",
+//         Title = "City Distance Service",
+//         Description = "A simple service to manage city information and calculate distances between cities.",
+//     });
+// });
 
 builder.Services.AddCors(options =>
 {
@@ -69,25 +74,34 @@ builder.Services.AddFluentMigratorCore()
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
+builder.Services.AddControllers();
+
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+app.UseStaticFiles(new StaticFileOptions
 {
-    c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", $"Documentation for City Distance Service version {Constants.Version}");
+    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "/wwwroot")),
+    RequestPath = string.Empty,
 });
-
-
 app.UseRouting();
+
+var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/swagger", "/swagger/index.html", "/swagger/0.1.15/swagger.json", "/wwwroot/index.html", "/favicon.ico" };
+app.UseWhen(
+    context =>
+    !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
+    appBuilder =>
+    {
+        appBuilder.UseAuthentication();
+        appBuilder.UseAuthorization();
+        appBuilder.UseMiddleware<BasicAuthMiddleware>();
+    });
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
-
-var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version" };
-app.UseMiddleware<BasicAuthMiddleware>(exemptedPaths);
-app.UseAuthentication();
-app.UseAuthorization();
 
 // Run migrations with retry logic at startup
 try
@@ -119,7 +133,7 @@ if (string.IsNullOrEmpty(Constants.Version))
     return;
 }
 
-app.MapControllers();
+app.MapControllers().AllowAnonymous();
 
 app.MapGet("/health_check", () =>
 {

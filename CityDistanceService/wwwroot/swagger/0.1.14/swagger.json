@@ -1,0 +1,216 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+      "title": "City Distance Service",
+      "description": "A simple service to manage city information and calculate distances between cities.",
+      "version": "0.1.14"
+    },
+    "paths": {
+      "/health_check": {
+        "get": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      },
+      "/db_health_check": {
+        "get": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      },
+      "/version": {
+        "get": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      },
+      "/city/{id}": {
+        "get": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        },
+        "delete": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      },
+      "/search/{name}": {
+        "get": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "parameters": [
+            {
+              "name": "name",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      },
+      "/city": {
+        "post": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CityInfo"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        },
+        "put": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CityInfo"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      },
+      "/distance": {
+        "post": {
+          "tags": [
+            "CityDistanceService"
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CitiesDistanceRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "CitiesDistanceRequest": {
+          "type": "object",
+          "properties": {
+            "city1": {
+              "type": "string",
+              "nullable": true
+            },
+            "city2": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "CityInfo": {
+          "type": "object",
+          "properties": {
+            "cityId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "cityName": {
+              "type": "string",
+              "nullable": true
+            },
+            "latitude": {
+              "type": "number",
+              "format": "double"
+            },
+            "longitude": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
