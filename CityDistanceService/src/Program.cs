@@ -28,6 +28,31 @@ builder.Services.AddSwaggerGen(options =>
         Title = "City Distance Service",
         Description = "A simple service to manage city information and calculate distances between cities.",
     });
+
+    // Add Basic Authentication
+    options.AddSecurityDefinition("basic", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "basic",
+        In = ParameterLocation.Header,
+        Description = "Basic Authorization header using the Bearer scheme.",
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "basic",
+                }
+            },
+            new string[] {}
+        }
+    });
 });
 
 configuration.AddEnvironmentVariables();
@@ -134,7 +159,6 @@ app.MapGet("/version", () =>
 {
     return Results.Ok(Constants.Version);
 });
-
 
 app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
