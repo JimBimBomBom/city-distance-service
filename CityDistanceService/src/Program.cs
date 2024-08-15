@@ -16,27 +16,17 @@ var configuration = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
+
 builder.Services.AddAuthorization();
+builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 
-// builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
-builder.Environment.WebRootPath = Path.Combine(Directory.GetCurrentDirectory(), "/wwwroot");
-
-builder.Services.AddSwaggerGen();
-// builder.Services.AddSwaggerGen(options =>
-// {
-//     options.SwaggerDoc($"{Constants.Version}", new OpenApiInfo
-//     {
-//         Version = $"{Constants.Version}",
-//         Title = "City Distance Service",
-//         Description = "A simple service to manage city information and calculate distances between cities.",
-//     });
-// });
-
-builder.Services.AddCors(options =>
+builder.Services.AddSwaggerGen(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
+    options.SwaggerDoc($"{Constants.Version}", new OpenApiInfo
     {
-        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        Version = $"{Constants.Version}",
+        Title = "City Distance Service",
+        Description = "A simple service to manage city information and calculate distances between cities.",
     });
 });
 
@@ -44,7 +34,7 @@ configuration.AddEnvironmentVariables();
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 if (string.IsNullOrEmpty(connectionString))
 {
-    Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=city_distance;Uid=root;Pwd=changeme");
+    Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme");
     connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
     Console.WriteLine(connectionString);
 
@@ -78,28 +68,25 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "/wwwroot")),
-    RequestPath = string.Empty,
-});
 app.UseRouting();
 
-var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/swagger", "/swagger/index.html", "/swagger/0.1.15/swagger.json", "/wwwroot/index.html", "/favicon.ico" };
+var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/swagger", "/swagger/index.html" };
 app.UseWhen(
     context =>
     !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
     appBuilder =>
     {
-        // appBuilder.UseAuthentication();
+        appBuilder.UseAuthentication();
         appBuilder.UseAuthorization();
         appBuilder.UseMiddleware<BasicAuthMiddleware>();
     });
 
 app.UseSwagger();
-app.UseSwaggerUI();
-
-app.UseCors("AllowAll");
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", "City Distance Service " + Constants.Version);
+    c.RoutePrefix = "swagger";
+});
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
 
@@ -133,7 +120,7 @@ if (string.IsNullOrEmpty(Constants.Version))
     return;
 }
 
-app.MapControllers().AllowAnonymous();
+app.MapControllers();
 
 app.MapGet("/health_check", () =>
 {

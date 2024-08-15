@@ -13,8 +13,6 @@ RUN dotnet publish ./CityDistanceService.csproj -c Release -o out
 
 # Build runtime image.
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
-# Copy the docs folder to the container.
-COPY ./wwwroot ./wwwroot
 
 WORKDIR /app
 COPY --from=build-env /app/out .
