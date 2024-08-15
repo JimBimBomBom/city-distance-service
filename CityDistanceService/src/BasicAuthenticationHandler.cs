@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
+
     public BasicAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
@@ -23,7 +24,7 @@ public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     {
         if (!Request.Headers.ContainsKey("Authorization"))
         {
-            return AuthenticateResult.Fail("Missing Authorization Header");
+            return AuthenticateResult.Fail("Authorization header missing");
         }
 
         try
