@@ -8,12 +8,15 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
+
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 
@@ -27,19 +30,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", builder =>
-    {
-        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-    });
-});
-
 configuration.AddEnvironmentVariables();
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 if (string.IsNullOrEmpty(connectionString))
 {
-    Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=city_distance;Uid=root;Pwd=changeme");
+    Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme");
     connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
     Console.WriteLine(connectionString);
 
@@ -69,25 +64,31 @@ builder.Services.AddFluentMigratorCore()
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
+builder.Services.AddControllers();
+
 var app = builder.Build();
+
+app.UseRouting();
+
+var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/swagger", "/swagger/index.html" };
+app.UseWhen(
+    context =>
+    !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
+    appBuilder =>
+    {
+        appBuilder.UseAuthentication();
+        appBuilder.UseAuthorization();
+        appBuilder.UseMiddleware<BasicAuthMiddleware>();
+    });
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", $"Documentation for City Distance Service version {Constants.Version}");
+    c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", "City Distance Service " + Constants.Version);
+    c.RoutePrefix = "swagger";
 });
 
-
-app.UseRouting();
-
-app.UseCors("AllowAll");
-
 app.UseMiddleware<ApplicationVersionMiddleware>();
-
-var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version" };
-app.UseMiddleware<BasicAuthMiddleware>(exemptedPaths);
-app.UseAuthentication();
-app.UseAuthorization();
 
 // Run migrations with retry logic at startup
 try
