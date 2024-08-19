@@ -1,0 +1,24 @@
+steps:
+  # Step 1: Pull the latest tagged image from DockerHub
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['pull', 'docker.io/your-dockerhub-username/CityDistanceService:${TAG_NAME}']
+
+  # Step 2: Deploy the pulled image to Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      [
+        'run', 'deploy', 'CityDistanceService', # Replace with your Cloud Run service name
+        '--image', 'docker.io/your-dockerhub-username/CityDistanceService:${TAG_NAME}',
+        '--platform', 'managed',
+        '--region', 'your-region', # Replace with your Cloud Run service region
+        '--project', 'your-project-id', # Replace with your Google Cloud project ID
+        '--allow-unauthenticated' # Add this flag if your service should be publicly accessible
+      ]
+
+substitutions:
+  _SERVICE_NAME: 'CityDistanceService'
+  _REGION: 'your-region' # Replace with your Cloud Run service region
+  _PROJECT_ID: 'your-project-id' # Replace with your Google Cloud project ID
+
+timeout: '900s'  # Set the timeout for the build process
