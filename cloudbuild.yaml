@@ -22,6 +22,5 @@ substitutions:
   _PROJECT_ID: 'city-distance-service' # Replace with your Google Cloud project ID
   _DOCKER_USERNAME: 'jimbimdocker'
   _DOCKER_REPO: 'city-distance-service'
-  # _TAG_NAME: echo "APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)"
 
 timeout: '900s'  # Set the timeout for the build process
