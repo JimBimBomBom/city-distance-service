@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
+using System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -29,7 +30,7 @@ builder.Services.AddSwaggerGen(options =>
         Description = "A simple service to manage city information and calculate distances between cities.",
     });
 
-    // Add Basic Authentication
+    // Add Basic Authentication option to SwaggerGen
     options.AddSecurityDefinition("basic", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -38,7 +39,6 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "Basic Authorization header using the Bearer scheme.",
     });
-
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -48,48 +48,46 @@ builder.Services.AddSwaggerGen(options =>
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "basic",
-                }
+                },
             },
-            new string[] {}
-        }
+            new string[] { }
+        },
     });
 });
 
 configuration.AddEnvironmentVariables();
-var connectionString = configuration["DATABASE_CONNECTION_STRING"];
-if (string.IsNullOrEmpty(connectionString))
 {
-    Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme");
-    connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
-    Console.WriteLine(connectionString);
+    if (configuration["AUTH_USERNAME"] == null || configuration["AUTH_PASSWORD"] == null)
+    {
+        Console.WriteLine("AUTH_USERNAME or AUTH_PASSWORD environment variable not set. Using default value");
+        Environment.SetEnvironmentVariable("AUTH_USERNAME", "admin");
+        Environment.SetEnvironmentVariable("AUTH_PASSWORD", "password");
+    }
 
-    connectionString = "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme";
-    Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set.");
+    if (configuration["DATABASE_CONNECTION_STRING"] == null)
+    {
+        Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set. Missing default value.");
+        Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme;");
+    }
+
+    var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
+
+    builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
+
+    // Configure FluentMigrator
+    builder.Services.AddFluentMigratorCore()
+        .ConfigureRunner(rb => rb
+            .AddMySql5()
+            .WithGlobalConnectionString(connectionString)
+            .ScanIn(typeof(Program).Assembly).For.Migrations())
+        .AddLogging(lb => lb.AddFluentMigratorConsole());
+
+    // Configure FluentValidation
+    builder.Services.AddFluentValidationAutoValidation();
+    builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
+
+    builder.Services.AddControllers();
 }
-
-builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
-
-if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AUTH_USERNAME")) || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AUTH_PASSWORD")))
-{
-    Environment.SetEnvironmentVariable("AUTH_USERNAME", "admin");
-    Environment.SetEnvironmentVariable("AUTH_PASSWORD", "password");
-
-    Console.WriteLine("AUTH_USERNAME or AUTH_PASSWORD environment variable not set.");
-}
-
-// Configure FluentMigrator
-builder.Services.AddFluentMigratorCore()
-    .ConfigureRunner(rb => rb
-        .AddMySql5()
-        .WithGlobalConnectionString(connectionString)
-        .ScanIn(typeof(Program).Assembly).For.Migrations())
-    .AddLogging(lb => lb.AddFluentMigratorConsole());
-
-// Configure FluentValidation
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
-
-builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -137,12 +135,14 @@ catch (Exception ex)
 // Add validation to endpoints in the /city group
 var endpointGroup = app.MapGroup("/city").AddFluentValidationAutoValidation();
 
-Console.WriteLine("App version: " + Constants.Version);
-
 if (string.IsNullOrEmpty(Constants.Version))
 {
     Console.WriteLine("No version found error.");
     return;
+}
+else
+{
+    Console.WriteLine("App version: " + Constants.Version);
 }
 
 app.MapControllers();
