@@ -67,7 +67,7 @@ configuration.AddEnvironmentVariables();
     if (configuration["DATABASE_CONNECTION_STRING"] == null)
     {
         Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set. Missing default value.");
-        Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=localhost;Database=CityDistanceService;Uid=root;Pwd=changeme;");
+        Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme;");
     }
 
     var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
