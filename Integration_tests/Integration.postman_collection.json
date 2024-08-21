@@ -10,6 +10,9 @@
 		{
 			"name": "health_check",
 			"request": {
+				"auth": {
+					"type": "noauth"
+				},
 				"method": "GET",
 				"header": [],
 				"url": {
