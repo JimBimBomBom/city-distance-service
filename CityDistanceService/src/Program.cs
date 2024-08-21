@@ -93,7 +93,7 @@ var app = builder.Build();
 
 app.UseRouting();
 
-var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/swagger", "/swagger/index.html" };
+var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/distance", "/swagger", "/swagger/index.html" };
 app.UseWhen(
     context =>
     !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
