@@ -13,12 +13,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/health_check",
+					"raw": "http://localhost:{{port}}/health_check",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"health_check"
 					]
@@ -32,12 +32,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/db_health_check",
+					"raw": "http://localhost:{{port}}/db_health_check",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"db_health_check"
 					]
@@ -49,29 +49,17 @@
 			"name": "version",
 			"request": {
 				"auth": {
-					"type": "basic",
-					"basic": [
-						{
-							"key": "password",
-							"value": "password",
-							"type": "string"
-						},
-						{
-							"key": "username",
-							"value": "admin",
-							"type": "string"
-						}
-					]
+					"type": "noauth"
 				},
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/version",
+					"raw": "http://localhost:{{port}}/version",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"version"
 					]
@@ -97,6 +85,21 @@
 				}
 			],
 			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "admi",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "password",
+							"type": "string"
+						}
+					]
+				},
 				"method": "POST",
 				"header": [],
 				"body": {
@@ -109,12 +112,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8080/city",
+					"raw": "http://localhost:{{port}}/city",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"city"
 					]
@@ -153,12 +156,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8080/city",
+					"raw": "http://localhost:{{port}}/city",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"city"
 					]
@@ -170,6 +173,21 @@
 		{
 			"name": "Distance",
 			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "password",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "admin",
+							"type": "string"
+						}
+					]
+				},
 				"method": "POST",
 				"header": [],
 				"body": {
@@ -182,12 +200,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8080/distance",
+					"raw": "http://localhost:{{port}}/distance",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"distance"
 					]
@@ -201,12 +219,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/search/Cairo",
+					"raw": "http://localhost:{{port}}/search/Cairo",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"search",
 						"Cairo"
@@ -259,6 +277,11 @@
 		{
 			"key": "base_url",
 			"value": "https://postman-rest-api-learner.glitch.me/"
+		},
+		{
+			"key": "port",
+			"value": "5000",
+			"type": "string"
 		}
 	]
 }
