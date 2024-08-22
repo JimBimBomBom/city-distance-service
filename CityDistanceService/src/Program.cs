@@ -93,6 +93,11 @@ var app = builder.Build();
 
 app.UseRouting();
 
+app.UseCors(builder =>
+    builder.WithOrigins("https://jimbimbombom.github.io")
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+
 var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/distance", "/swagger", "/swagger/index.html" };
 app.UseWhen(
     context =>
