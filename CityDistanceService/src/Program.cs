@@ -59,7 +59,7 @@ configuration.AddEnvironmentVariables();
 
 builder.Services.AddSingleton<ElasticSearchService>();
 
-var connectionString = configuration.GetValue("DATABASE_CONNECTION_STRING", "Server=localhost;Database=CityDistanceService;Uid=root;Pwd=changeme");
+var connectionString = configuration.GetValue("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme");
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 
