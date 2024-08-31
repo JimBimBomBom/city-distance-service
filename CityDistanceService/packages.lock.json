@@ -2,6 +2,15 @@
   "version": 1,
   "dependencies": {
     "net8.0": {
+      "Elastic.Clients.Elasticsearch": {
+        "type": "Direct",
+        "requested": "[8.15.4, )",
+        "resolved": "8.15.4",
+        "contentHash": "9imKYxsptCNZBryFD1C9Qic9iG3oIkSjsk0kwnUkW/5NBdReEJKzej6xMxPtPcS1GLEsc8Uu5s+b2TcttHYIRQ==",
+        "dependencies": {
+          "Elastic.Transport": "0.4.22"
+        }
+      },
       "FluentMigrator": {
         "type": "Direct",
         "requested": "[5.2.0, )",
@@ -123,6 +132,15 @@
           "Microsoft.Extensions.Logging.Abstractions": "7.0.1"
         }
       },
+      "NEST": {
+        "type": "Direct",
+        "requested": "[7.17.5, )",
+        "resolved": "7.17.5",
+        "contentHash": "bo9UyuIoVRx4IUQiuC8ZrlZuvAXKIccernC7UUKukQCEmRq2eVIk+gubHlnMQljrP51q0mN4cjgy9vv5uZPkoA==",
+        "dependencies": {
+          "Elasticsearch.Net": "7.17.5"
+        }
+      },
       "Newtonsoft.Json": {
         "type": "Direct",
         "requested": "[13.0.1, )",
@@ -220,6 +238,21 @@
         "type": "Transitive",
         "resolved": "2.2.1",
         "contentHash": "A6Zr52zVqJKt18ZBsTnX0qhG0kwIQftVAjLmszmkiR/trSp8H+xj1gUOzk7XHwaKgyREMSV1v9XaKrBUeIOdvQ=="
+      },
+      "Elastic.Transport": {
+        "type": "Transitive",
+        "resolved": "0.4.22",
+        "contentHash": "9J5GPHJcT8sewn2zVfWTrsCQvfQYgUiY/jx+IRjWUk7XNPd837qfEL42I5baH69cyW/e4RoDy8v76yxqz95tDw=="
+      },
+      "Elasticsearch.Net": {
+        "type": "Transitive",
+        "resolved": "7.17.5",
+        "contentHash": "orChsQi1Ceho/NyIylNOn6y4vuGcsbCfMZnCueNN0fzqYEGQmQdPfcVmsR5+3fwpXTgxCdjTUVmqOwvHpCSB+Q==",
+        "dependencies": {
+          "Microsoft.CSharp": "4.6.0",
+          "System.Buffers": "4.5.1",
+          "System.Diagnostics.DiagnosticSource": "5.0.0"
+        }
       },
       "FirebirdSql.Data.FirebirdClient": {
         "type": "Transitive",
@@ -541,8 +574,8 @@
       },
       "Microsoft.CSharp": {
         "type": "Transitive",
-        "resolved": "4.5.0",
-        "contentHash": "kaj6Wb4qoMuH3HySFJhxwQfe8R/sJsNJnANrvv8WdFPMoNbKY5htfNscv+LHCu5ipz+49m2e+WQXpLXr9XYemQ=="
+        "resolved": "4.6.0",
+        "contentHash": "kxn3M2rnAGy5N5DgcIwcE8QTePWU/XiYcQVzn9HqTls2NKluVzVSmVWRjK7OUPWbljCXuZxHyhEz9kPRIQeXow=="
       },
       "Microsoft.Data.SqlClient": {
         "type": "Transitive",

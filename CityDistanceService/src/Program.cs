@@ -50,44 +50,32 @@ builder.Services.AddSwaggerGen(options =>
                     Id = "basic",
                 },
             },
-            new string[] { }
+            Array.Empty<string>()
         },
     });
 });
 
 configuration.AddEnvironmentVariables();
-{
-    if (configuration["AUTH_USERNAME"] == null || configuration["AUTH_PASSWORD"] == null)
-    {
-        Console.WriteLine("AUTH_USERNAME or AUTH_PASSWORD environment variable not set. Using default value");
-        Environment.SetEnvironmentVariable("AUTH_USERNAME", "admin");
-        Environment.SetEnvironmentVariable("AUTH_PASSWORD", "password");
-    }
 
-    if (configuration["DATABASE_CONNECTION_STRING"] == null)
-    {
-        Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set. Missing default value.");
-        Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme;");
-    }
+builder.Services.AddSingleton<ElasticSearchService>();
 
-    var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
+var connectionString = configuration.GetValue("DATABASE_CONNECTION_STRING", "Server=localhost;Database=CityDistanceService;Uid=root;Pwd=changeme");
 
-    builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
+builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 
-    // Configure FluentMigrator
-    builder.Services.AddFluentMigratorCore()
-        .ConfigureRunner(rb => rb
-            .AddMySql5()
-            .WithGlobalConnectionString(connectionString)
-            .ScanIn(typeof(Program).Assembly).For.Migrations())
-        .AddLogging(lb => lb.AddFluentMigratorConsole());
+// Configure FluentMigrator
+builder.Services.AddFluentMigratorCore()
+    .ConfigureRunner(rb => rb
+        .AddMySql5()
+        .WithGlobalConnectionString(connectionString)
+        .ScanIn(typeof(Program).Assembly).For.Migrations())
+    .AddLogging(lb => lb.AddFluentMigratorConsole());
 
-    // Configure FluentValidation
-    builder.Services.AddFluentValidationAutoValidation();
-    builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
+// Configure FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
-    builder.Services.AddControllers();
-}
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -98,7 +86,7 @@ app.UseCors(builder =>
             .AllowAnyMethod()
             .AllowAnyHeader());
 
-var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/distance", "/swagger", "/swagger/index.html" };
+var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/distance", "/search", "/swagger", "/swagger/index.html" };
 app.UseWhen(
     context =>
     !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
@@ -169,18 +157,18 @@ app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager)
 {
     return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
 });
-app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
+app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager, ElasticSearchService elSearch) =>
 {
-    return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
+    return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager, elSearch);
 });
 
 app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
 }).RequireAuthorization();
-app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
+app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager, ElasticSearchService elSearch) =>
 {
-    return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
+    return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager, elSearch);
 }).AddFluentValidationAutoValidation();
 
 app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>

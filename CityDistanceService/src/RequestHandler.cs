@@ -1,3 +1,6 @@
+using System.Linq;
+using System.Collections.Generic;
+
 public static class RequestHandler
 {
     public static async Task<IResult> TestConnection(IDatabaseManager dbManager)
@@ -5,8 +8,20 @@ public static class RequestHandler
         return Results.Ok(await dbManager.TestConnection());
     }
 
-    public static async Task<IResult> ValidateAndProcessCityDistanceAsync(CitiesDistanceRequest cities, IDatabaseManager dbManager)
+    public static async Task<IResult> ValidateAndProcessCityDistanceAsync(CitiesDistanceRequest cities, IDatabaseManager dbManager, ElasticSearchService elSearch)
     {
+        cities.City1 = await elSearch.GetLikeliestMatch(cities.City1);
+        if (cities.City1 == null)
+        {
+            return Results.BadRequest($"Invalid city1 parameter. {cities.City1} Not found in database.");
+        }
+
+        cities.City2 = await elSearch.GetLikeliestMatch(cities.City2);
+        if (cities.City2 == null)
+        {
+            return Results.BadRequest($"Invalid city2 parameter. {cities.City2} Not found in database.");
+        }
+
         var distance = await DistanceCalculationService.CalculateDistanceAsync(cities.City1, cities.City2, dbManager);
         if (distance == -1)
         {
@@ -31,7 +46,7 @@ public static class RequestHandler
         }
     }
 
-    public static async Task<IResult> ValidateAndReturnCitiesCloseMatchAsync(string cityName, IDatabaseManager dbManager)
+    public static async Task<IResult> ValidateAndReturnCitiesCloseMatchAsync(string cityName, IDatabaseManager dbManager, ElasticSearchService elSearch)
     {
         var validationResult = await new StringValidator().ValidateAsync(cityName);
         if (!validationResult.IsValid)
@@ -39,14 +54,15 @@ public static class RequestHandler
             return Results.BadRequest("Invalid cityNameContains parameter.");
         }
 
-        var cities = await dbManager.GetCities(cityName);
+        var cities = await elSearch.FuzzySearchAsync(cityName);
         if (cities == null)
         {
             return Results.NotFound("No city with given name was found");
         }
         else
         {
-            return Results.Ok(new ApiResponse<List<CityInfo>>(cities, "Here is the full list of requested cities"));
+            var citiesInfo = await dbManager.GetCities(cities);
+            return Results.Ok(new ApiResponse<List<CityInfo>>(citiesInfo, "Here is the full list of requested cities"));
         }
     }
 
