@@ -57,7 +57,7 @@ builder.Services.AddSwaggerGen(options =>
 
 configuration.AddEnvironmentVariables();
 
-builder.Services.AddSingleton<ElasticSearchService>();
+builder.Services.AddSingleton(provider => new ElasticSearchService(configuration));
 
 var connectionString = configuration.GetValue("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme");
 
@@ -94,7 +94,7 @@ app.UseWhen(
     {
         appBuilder.UseAuthentication();
         appBuilder.UseAuthorization();
-        appBuilder.UseMiddleware<BasicAuthMiddleware>();
+        appBuilder.UseMiddleware<BasicAuthMiddleware>(configuration);
     });
 
 app.UseSwagger();

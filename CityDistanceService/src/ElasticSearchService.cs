@@ -1,6 +1,7 @@
 using System.Text;
 using Elastic.Clients.Elasticsearch;
 using Elasticsearch.Net;
+using Microsoft.Extensions.Configuration;
 using Nest;
 
 public class ElasticSearchService
@@ -8,11 +9,21 @@ public class ElasticSearchService
     private readonly IElasticClient _client;
     private readonly string clusterIndex;
 
-    public ElasticSearchService()
+    public ElasticSearchService(IConfiguration configuration)
     {
-        var clusterUrl = Environment.GetEnvironmentVariable("ELASTICSEARCH_URL");
-        var clusterApiKey = Environment.GetEnvironmentVariable("ELASTICSEARCH_API_KEY");
-        clusterIndex = Environment.GetEnvironmentVariable("ELASTICSEARCH_INDEX");
+        var clusterUrl = configuration["ELASTICSEARCH_URL"];
+        var clusterApiKey = configuration["ELASTICSEARCH_API_KEY"];
+        clusterIndex = configuration["ELASTICSEARCH_INDEX"];
+
+        if (string.IsNullOrEmpty(clusterUrl))
+        {
+            throw new ArgumentNullException(nameof(clusterUrl), "Elasticsearch URL cannot be null or empty");
+        }
+
+        if (string.IsNullOrEmpty(clusterApiKey))
+        {
+            throw new ArgumentNullException(nameof(clusterApiKey), "Elasticsearch API key cannot be null or empty");
+        }
 
         var settings = new ConnectionSettings(new Uri(clusterUrl))
             .ApiKeyAuthentication(new ApiKeyAuthenticationCredentials(clusterApiKey))
