@@ -57,6 +57,12 @@ builder.Services.AddSwaggerGen(options =>
 
 configuration.AddEnvironmentVariables();
 
+if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty(configuration["AUTH_PASSWORD"]))
+{
+    Console.WriteLine("Basic authentication username or password not set.");
+    return;
+}
+
 var connectionString = configuration.GetValue("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme");
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
