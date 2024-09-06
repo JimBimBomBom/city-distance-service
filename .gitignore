@@ -5,6 +5,7 @@
 
 # dotenv files
 *.bat
+*.env
 
 # User-specific files
 *.rsuser

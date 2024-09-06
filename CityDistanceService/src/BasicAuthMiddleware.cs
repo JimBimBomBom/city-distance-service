@@ -1,11 +1,16 @@
 using System.Text;
+using Microsoft.Extensions.Configuration;
 
 public class BasicAuthMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly string _auth_username;
+    private readonly string _auth_password;
 
-    public BasicAuthMiddleware(RequestDelegate next)
+    public BasicAuthMiddleware(IConfiguration configuration, RequestDelegate next)
     {
+        _auth_username = configuration["AUTH_USERNAME"];
+        _auth_password = configuration["AUTH_PASSWORD"];
         _next = next;
     }
 
@@ -25,8 +30,8 @@ public class BasicAuthMiddleware
             var credentialString = Encoding.UTF8.GetString(Convert.FromBase64String(token));
             var credentials = credentialString.Split(':');
 
-            var username = Environment.GetEnvironmentVariable("AUTH_USERNAME");
-            var password = Environment.GetEnvironmentVariable("AUTH_PASSWORD");
+            var username = _auth_username;
+            var password = _auth_password;
 
             if (credentials[0] == username && credentials[1] == password)
             {
