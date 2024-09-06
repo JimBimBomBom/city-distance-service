@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.FileProviders;
@@ -91,7 +90,7 @@ app.UseWhen(
     !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
     appBuilder =>
     {
-        // appBuilder.UseAuthentication();
+        appBuilder.UseAuthentication();
         appBuilder.UseAuthorization();
         appBuilder.UseMiddleware<BasicAuthMiddleware>(configuration);
     });
