@@ -63,7 +63,13 @@ if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty
     return;
 }
 
-var connectionString = configuration.GetValue("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme");
+if (string.IsNullOrEmpty(configuration["MYSQL_CONNECTION_STRING"]))
+{
+    Console.WriteLine("MySQL connection string not set.");
+    return;
+}
+
+var connectionString = configuration["MYSQL_CONNECTION_STRING"];
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 
