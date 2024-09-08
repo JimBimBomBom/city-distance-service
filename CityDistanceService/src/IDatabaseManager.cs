@@ -12,6 +12,8 @@ public interface IDatabaseManager
 
     Task<List<CityInfo>> GetCities(string cityNameContains);
 
+    Task<List<CityInfo>> GetCities(List<string> cityNames);
+
     Task<CityInfo> UpdateCity(CityInfo updatedCity);
 
     Task DeleteCity(Guid cityId);

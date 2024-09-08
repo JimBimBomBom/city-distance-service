@@ -194,6 +194,51 @@ public class MySQLManager : IDatabaseManager
         return result;
     }
 
+    public async Task<List<CityInfo>> GetCities(List<string> cityNames)
+    {
+        var cities = new List<CityInfo>();
+
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = cityNames.Select((name, index) => $"@CityName{index}").ToList();
+            var query = $"SELECT * FROM cities WHERE CityName IN ({string.Join(",", parameters)});";
+            using var command = new MySqlCommand(query, connection);
+
+            for (int i = 0; i < cityNames.Count; i++)
+            {
+                command.Parameters.AddWithValue($"@CityName{i}", cityNames[i]);
+            }
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (reader.Read())
+            {
+                var city = new CityInfo
+                {
+                    CityId = reader.GetGuid(reader.GetOrdinal("CityId")),
+                    CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                };
+                cities.Add(city);
+            }
+
+            Console.WriteLine("Product fetched successfully.");
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        return cities;
+    }
+
     public async Task<List<CityInfo>> GetCities(string cityNameContains)
     {
         var cities = new List<CityInfo>();
