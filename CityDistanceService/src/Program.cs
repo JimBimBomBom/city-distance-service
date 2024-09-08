@@ -28,6 +28,7 @@ if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty
     Console.WriteLine("Basic authentication username or password not set.");
     return;
 }
+Console.WriteLine($"Basic authentication username: {configuration["AUTH_USERNAME"]}, password: {configuration["AUTH_PASSWORD"]}");
 
 builder.Services.AddAuthorization(options =>
 {
@@ -70,12 +71,6 @@ builder.Services.AddSwaggerGen(options =>
         },
     });
 });
-
-if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty(configuration["AUTH_PASSWORD"]))
-{
-    Console.WriteLine("Basic authentication username or password not set.");
-    return;
-}
 
 if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 {
