@@ -11,15 +11,32 @@ using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using System.Configuration;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
+configuration.AddEnvironmentVariables();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
 
-builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
+
+if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty(configuration["AUTH_PASSWORD"]))
+{
+    Console.WriteLine("Basic authentication username or password not set.");
+    return;
+}
+Console.WriteLine($"Basic authentication username: {configuration["AUTH_USERNAME"]}, password: {configuration["AUTH_PASSWORD"]}");
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("BasicAuthentication", policy =>
+        policy.Requirements.Add(new BasicAuthorizationRequirement(configuration["AUTH_USERNAME"], configuration["AUTH_PASSWORD"])));
+});
+
+builder.Services.AddSingleton<IAuthorizationHandler, BasicAuthorizationHandler>();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -50,64 +67,45 @@ builder.Services.AddSwaggerGen(options =>
                     Id = "basic",
                 },
             },
-            new string[] { }
+            Array.Empty<string>()
         },
     });
 });
 
-configuration.AddEnvironmentVariables();
+if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 {
-    if (configuration["AUTH_USERNAME"] == null || configuration["AUTH_PASSWORD"] == null)
-    {
-        Console.WriteLine("AUTH_USERNAME or AUTH_PASSWORD environment variable not set. Using default value");
-        Environment.SetEnvironmentVariable("AUTH_USERNAME", "admin");
-        Environment.SetEnvironmentVariable("AUTH_PASSWORD", "password");
-    }
-
-    if (configuration["DATABASE_CONNECTION_STRING"] == null)
-    {
-        Console.WriteLine("DATABASE_CONNECTION_STRING environment variable not set. Missing default value.");
-        Environment.SetEnvironmentVariable("DATABASE_CONNECTION_STRING", "Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme;");
-    }
-
-    var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING");
-
-    builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
-
-    // Configure FluentMigrator
-    builder.Services.AddFluentMigratorCore()
-        .ConfigureRunner(rb => rb
-            .AddMySql5()
-            .WithGlobalConnectionString(connectionString)
-            .ScanIn(typeof(Program).Assembly).For.Migrations())
-        .AddLogging(lb => lb.AddFluentMigratorConsole());
-
-    // Configure FluentValidation
-    builder.Services.AddFluentValidationAutoValidation();
-    builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
-
-    builder.Services.AddControllers();
+    Console.WriteLine("Database connection string not set.");
+    return;
 }
+
+var connectionString = configuration["DATABASE_CONNECTION_STRING"];
+
+builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
+
+// Configure FluentMigrator
+builder.Services.AddFluentMigratorCore()
+    .ConfigureRunner(rb => rb
+        .AddMySql5()
+        .WithGlobalConnectionString(connectionString)
+        .ScanIn(typeof(Program).Assembly).For.Migrations())
+    .AddLogging(lb => lb.AddFluentMigratorConsole());
+
+// Configure FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
+
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseCors(builder =>
     builder.WithOrigins("https://jimbimbombom.github.io")
             .AllowAnyMethod()
             .AllowAnyHeader());
-
-var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/distance", "/swagger", "/swagger/index.html" };
-app.UseWhen(
-    context =>
-    !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
-    appBuilder =>
-    {
-        appBuilder.UseAuthentication();
-        appBuilder.UseAuthorization();
-        appBuilder.UseMiddleware<BasicAuthMiddleware>();
-    });
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -155,42 +153,41 @@ app.MapControllers();
 app.MapGet("/health_check", () =>
 {
     return Results.Ok();
-});
+}).AllowAnonymous();
 app.MapGet("/db_health_check", async (IDatabaseManager dbManager) =>
 {
     return await RequestHandler.TestConnection(dbManager);
-});
+}).AllowAnonymous();
 app.MapGet("/version", () =>
 {
     return Results.Ok(Constants.Version);
-});
-
-app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
-{
-    return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
-});
+}).AllowAnonymous();
 app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
-});
-
-app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
+}).AllowAnonymous();
+app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
-}).RequireAuthorization();
+    return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
+}).RequireAuthorization("BasicAuthentication");
+
 app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
-}).AddFluentValidationAutoValidation();
+}).AddFluentValidationAutoValidation().AllowAnonymous();
+app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
+{
+    return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
+}).RequireAuthorization("BasicAuthentication");
 
 app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndUpdateCityInfoAsync(city, dbManager);
-}).RequireAuthorization();
+}).RequireAuthorization().RequireAuthorization("BasicAuthentication");
 
 app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndDeleteCityAsync(id, dbManager);
-}).RequireAuthorization();
+}).RequireAuthorization().RequireAuthorization("BasicAuthentication");
 
 app.Run();

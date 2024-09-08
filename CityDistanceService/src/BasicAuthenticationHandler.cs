@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -9,14 +10,19 @@ using System.Threading.Tasks;
 
 public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
+    private readonly string _auth_username;
+    private readonly string _auth_password;
 
     public BasicAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        ISystemClock clock)
+        ISystemClock clock,
+        IConfiguration configuration)
         : base(options, logger, encoder, clock)
     {
+        _auth_username = configuration["AUTH_USERNAME"];
+        _auth_password = configuration["AUTH_PASSWORD"];
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -38,8 +44,8 @@ public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                     .GetString(Convert.FromBase64String(authHeaderVal.Parameter))
                     .Split(':', 2);
 
-                var username = Environment.GetEnvironmentVariable("AUTH_USERNAME");
-                var password = Environment.GetEnvironmentVariable("AUTH_PASSWORD");
+                var username = _auth_username;
+                var password = _auth_password;
 
                 if (credentials[0] == username && credentials[1] == password)
                 {
