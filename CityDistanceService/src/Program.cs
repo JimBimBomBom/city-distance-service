@@ -11,15 +11,25 @@ using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using System.Configuration;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
+configuration.AddEnvironmentVariables();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
 
-builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("BasicAuthentication", policy =>
+        policy.Requirements.Add(new BasicAuthorizationRequirement(configuration["AUTH_USERNAME"], configuration["AUTH_PASSWORD"])));
+});
+
+builder.Services.AddSingleton<IAuthorizationHandler, BasicAuthorizationHandler>();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -55,21 +65,19 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-configuration.AddEnvironmentVariables();
-
 if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty(configuration["AUTH_PASSWORD"]))
 {
     Console.WriteLine("Basic authentication username or password not set.");
     return;
 }
 
-if (string.IsNullOrEmpty(configuration["MYSQL_CONNECTION_STRING"]))
+if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 {
-    Console.WriteLine("MySQL connection string not set.");
+    Console.WriteLine("Database connection string not set.");
     return;
 }
 
-var connectionString = configuration["MYSQL_CONNECTION_STRING"];
+var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 
@@ -90,22 +98,13 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseCors(builder =>
     builder.WithOrigins("https://jimbimbombom.github.io")
             .AllowAnyMethod()
             .AllowAnyHeader());
-
-var exemptedPaths = new List<string> { "/health_check", "/db_health_check", "/version", "/distance", "/search", "/swagger", "/swagger/index.html" };
-app.UseWhen(
-    context =>
-    !exemptedPaths.Any(p => context.Request.Path.StartsWithSegments(new PathString(p))),
-    appBuilder =>
-    {
-        appBuilder.UseAuthentication();
-        appBuilder.UseAuthorization();
-        appBuilder.UseMiddleware<BasicAuthMiddleware>(configuration);
-    });
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -153,42 +152,41 @@ app.MapControllers();
 app.MapGet("/health_check", () =>
 {
     return Results.Ok();
-});
+}).AllowAnonymous();
 app.MapGet("/db_health_check", async (IDatabaseManager dbManager) =>
 {
     return await RequestHandler.TestConnection(dbManager);
-});
+}).AllowAnonymous();
 app.MapGet("/version", () =>
 {
     return Results.Ok(Constants.Version);
-});
-
-app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
-{
-    return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
-});
+}).AllowAnonymous();
 app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
-});
-
-app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
+}).AllowAnonymous();
+app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
-}).RequireAuthorization();
+    return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
+}).RequireAuthorization("BasicAuthentication");
+
 app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
-}).AddFluentValidationAutoValidation();
+}).AddFluentValidationAutoValidation().AllowAnonymous();
+app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
+{
+    return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
+}).RequireAuthorization("BasicAuthentication");
 
 app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndUpdateCityInfoAsync(city, dbManager);
-}).RequireAuthorization();
+}).RequireAuthorization().RequireAuthorization("BasicAuthentication");
 
 app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndDeleteCityAsync(id, dbManager);
-}).RequireAuthorization();
+}).RequireAuthorization().RequireAuthorization("BasicAuthentication");
 
 app.Run();
