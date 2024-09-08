@@ -23,6 +23,12 @@ builder.Services.AddControllers();
 
 builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 
+if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty(configuration["AUTH_PASSWORD"]))
+{
+    Console.WriteLine("Basic authentication username or password not set.");
+    return;
+}
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("BasicAuthentication", policy =>
