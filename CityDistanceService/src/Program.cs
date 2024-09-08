@@ -72,6 +72,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddSingleton(provider => new ElasticSearchService(configuration));
+
 if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 {
     Console.WriteLine("Database connection string not set.");
@@ -79,6 +81,7 @@ if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 }
 
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
+
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
 
@@ -162,18 +165,18 @@ app.MapGet("/version", () =>
 {
     return Results.Ok(Constants.Version);
 }).AllowAnonymous();
-app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
+app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager, ElasticSearchService elSearch) =>
 {
-    return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
+    return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager, elSearch);
 }).AllowAnonymous();
 app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
 }).RequireAuthorization("BasicAuthentication");
 
-app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
+app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager, ElasticSearchService elSearch) =>
 {
-    return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
+    return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager, elSearch);
 }).AddFluentValidationAutoValidation().AllowAnonymous();
 app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
