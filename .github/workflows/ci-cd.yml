@@ -38,7 +38,7 @@ jobs:
               run: npm install -g newman
                 
             - name: Wait for services to initialize
-              run: sleep 40    
+              run: sleep 60    
 
             - name: Run Postman tests
               run: newman run ./Integration_tests/Integration.postman_collection.json
