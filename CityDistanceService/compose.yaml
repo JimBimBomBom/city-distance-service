@@ -4,12 +4,12 @@ services:
             context: .
             dockerfile: Dockerfile
         environment:
-            - AUTH_USERNAME=admin
-            - AUTH_PASSWORD=password
-            - DATABASE_CONNECTION_STRING=Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme
-            - ELASTICSEARCH_API_KEY=${{ secrets.ELASTICSEARCH_API_KEY }}
-            - ELASTICSEARCH_INDEX=${{ secrets.ELASTICSEARCH_INDEX }}
-            - ELASTICSEARCH_URL=${{ secrets.ELASTICSEARCH_URL }} 
+            AUTH_USERNAME: admin
+            AUTH_PASSWORD: password
+            DATABASE_CONNECTION_STRING: Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme
+            ELASTICSEARCH_API_KEY: $${{ secrets.ELASTICSEARCH_API_KEY }}
+            ELASTICSEARCH_INDEX: $${{ secrets.ELASTICSEARCH_INDEX }}
+            ELASTICSEARCH_URL: $${{ secrets.ELASTICSEARCH_URL }} 
         ports:
             - "8080:8080"
         depends_on:
