@@ -3,6 +3,20 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
+        # environment:
+        #     AUTH_USERNAME: admin
+        #     AUTH_PASSWORD: password
+        #     DATABASE_CONNECTION_STRING: Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme
+        #     ELASTICSEARCH_API_KEY: aE04MjBwRUJXMXRqc3JJbmM1bUI6dE84OUdoUnpTdkdyTTA1WFJLRE41QQ==
+        #     ELASTICSEARCH_INDEX: cities
+        #     ELASTICSEARCH_URL: https://citydistanceservice.es.westeurope.azure.elastic-cloud.com/
+        environment:
+            AUTH_USERNAME: $${secrects.AUTH_USERNAME}
+            AUTH_PASSWORD: $${secrets.AUTH_PASSWORD}
+            DATABASE_CONNECTION_STRING: $${secrects.DATABASE_CONNECTION_STRING}
+            ELASTICSEARCH_API_KEY: $${secrets.ELASTICSEARCH_API_KEY}
+            ELASTICSEARCH_INDEX: $${secrets.ELASTICSEARCH_INDEX}
+            ELASTICSEARCH_URL: $${secrets.ELASTICSEARCH_URL} 
         ports:
             - "8080:8080"
         depends_on:
