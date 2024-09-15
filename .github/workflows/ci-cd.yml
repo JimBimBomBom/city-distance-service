@@ -20,20 +20,25 @@ jobs:
             - name: Build Docker images
               env:
                 DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
-              run: docker compose build
+                AUTH_USERNAME: ${{ secrets.AUTH_USERNAME }}
+                AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
+                ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
+                ELASTICSEARCH_INDEX: ${{ secrets.ELASTICSEARCH_INDEX }}
+                ELASTICSEARCH_API_KEY: ${{ secrets.ELASTICSEARCH_API_KEY }}
+              run: docker compose up --build -d
               working-directory: ./CityDistanceService/
 
-            - name: Start services
-              env:
-                DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
-              run: docker compose up -d 
-              working-directory: ./CityDistanceService/
+            # - name: Start services
+            #   env:
+            #     DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
+            #   run: docker compose up -d 
+            #   working-directory: ./CityDistanceService/
 
             - name: Install Newman
               run: npm install -g newman
                 
             - name: Wait for services to initialize
-              run: sleep 40    
+              run: sleep 60    
 
             - name: Run Postman tests
               run: newman run ./Integration_tests/Integration.postman_collection.json

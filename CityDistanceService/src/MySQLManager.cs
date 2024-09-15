@@ -34,6 +34,38 @@ public class MySQLManager : IDatabaseManager
         return Results.Ok(_connectionString);
     }
 
+    public async Task<List<string>> GetCityNames()
+    {
+        var cityNames = new List<string>();
+
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = "SELECT CityName FROM cities;";
+            using var command = new MySqlCommand(query, connection);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (reader.Read())
+            {
+                cityNames.Add(reader.GetString(reader.GetOrdinal("CityName")));
+            }
+
+            Console.WriteLine("Product fetched successfully.");
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        return cityNames;
+    }
+
     public async Task<CityInfo> AddCity(CityInfo city)
     {
         try
@@ -41,22 +73,21 @@ public class MySQLManager : IDatabaseManager
             using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
 
-            if (await GetCity(city.CityName) != null)
-            {
-                throw new Exception("City already exists.");
-            }
             if (city.CityId == Guid.Empty)
             {
                 city.CityId = Guid.NewGuid();
             }
 
-            var query = "INSERT INTO cities (CityId, CityName, Longitude, Latitude) VALUES (@CityId, @CityName, @Longitude, @Latitude);";
-            using var command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@CityId", city.CityId);
-            command.Parameters.AddWithValue("@CityName", city.CityName);
-            command.Parameters.AddWithValue("@Latitude", city.Latitude);
-            command.Parameters.AddWithValue("@Longitude", city.Longitude);
-            await command.ExecuteScalarAsync();
+            if (await GetCity(city.CityName) == null) // If city already exists we still want to return it from the database
+            {
+                var query = "INSERT INTO cities (CityId, CityName, Longitude, Latitude) VALUES (@CityId, @CityName, @Longitude, @Latitude);";
+                using var command = new MySqlCommand(query, connection);
+                command.Parameters.AddWithValue("@CityId", city.CityId);
+                command.Parameters.AddWithValue("@CityName", city.CityName);
+                command.Parameters.AddWithValue("@Latitude", city.Latitude);
+                command.Parameters.AddWithValue("@Longitude", city.Longitude);
+                await command.ExecuteScalarAsync();
+            }
 
             city = await GetCity(city.CityName);
             if (city == null)

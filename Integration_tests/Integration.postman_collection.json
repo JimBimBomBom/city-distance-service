@@ -30,6 +30,28 @@
 			"response": []
 		},
 		{
+			"name": "getCities",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:{{port}}/cities",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "{{port}}",
+					"path": [
+						"cities"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "db_health_check",
 			"request": {
 				"auth": {
@@ -91,26 +113,11 @@
 				}
 			],
 			"request": {
-				"auth": {
-					"type": "basic",
-					"basic": [
-						{
-							"key": "password",
-							"value": "password",
-							"type": "string"
-						},
-						{
-							"key": "username",
-							"value": "admin",
-							"type": "string"
-						}
-					]
-				},
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"CityName\":\"Cairo\",\n    \"Latitude\":30.0444,\n    \"Longitude\":30.2357\n}",
+					"raw": "{\n\t\"CityName\":\"Bratislava\",\n    \"Latitude\":48.148598,\n    \"Longitude\":17.107748\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -231,7 +238,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:{{port}}/search/Cairo",
+					"raw": "http://localhost:{{port}}/search/Cair",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -239,7 +246,7 @@
 					"port": "{{port}}",
 					"path": [
 						"search",
-						"Cairo"
+						"Cair"
 					]
 				}
 			},
