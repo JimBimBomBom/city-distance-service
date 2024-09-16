@@ -28,12 +28,6 @@ jobs:
               run: docker compose up --build -d
               working-directory: ./CityDistanceService/
 
-            # - name: Start services
-            #   env:
-            #     DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
-            #   run: docker compose up -d 
-            #   working-directory: ./CityDistanceService/
-
             - name: Install Newman
               run: npm install -g newman
                 

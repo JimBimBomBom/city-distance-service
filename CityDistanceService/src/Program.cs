@@ -90,7 +90,9 @@ builder.Services.AddSingleton<IHostedService, CityNameSynchronizationService>(pr
     {
         var elSearch = provider.GetRequiredService<ElasticSearchService>();
         var dbManager = scope.ServiceProvider.GetRequiredService<IDatabaseManager>();
-        return new CityNameSynchronizationService(dbManager, elSearch, 5);
+        var syncInterval = 24; // Default sync interval in hours
+
+        return new CityNameSynchronizationService(dbManager, elSearch, syncInterval);
     }
 });
 
