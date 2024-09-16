@@ -13,7 +13,7 @@ public class CityNameSynchronizationService : BackgroundService
     {
         _dbManager = dbManager;
         _elSearch = elSearch;
-        _syncInterval = TimeSpan.FromMinutes(syncInterval);
+        _syncInterval = TimeSpan.FromHours(syncInterval);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
