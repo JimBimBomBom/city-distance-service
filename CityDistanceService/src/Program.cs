@@ -28,7 +28,6 @@ if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty
     Console.WriteLine("Basic authentication username or password not set.");
     return;
 }
-Console.WriteLine($"Basic authentication username: {configuration["AUTH_USERNAME"]}, password: {configuration["AUTH_PASSWORD"]}");
 
 builder.Services.AddAuthorization(options =>
 {
@@ -72,8 +71,6 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddSingleton(provider => new ElasticSearchService(configuration));
-
 if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 {
     Console.WriteLine("Database connection string not set.");
@@ -83,18 +80,6 @@ if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
-
-builder.Services.AddSingleton<IHostedService, CityNameSynchronizationService>(provider =>
-{
-    using (var scope = provider.CreateScope())
-    {
-        var elSearch = provider.GetRequiredService<ElasticSearchService>();
-        var dbManager = scope.ServiceProvider.GetRequiredService<IDatabaseManager>();
-        var syncInterval = 24; // Default sync interval in hours
-
-        return new CityNameSynchronizationService(dbManager, elSearch, syncInterval);
-    }
-});
 
 // Configure FluentMigrator
 builder.Services.AddFluentMigratorCore()
@@ -180,18 +165,18 @@ app.MapGet("/version", () =>
 {
     return Results.Ok(Constants.Version);
 }).AllowAnonymous();
-app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager, ElasticSearchService elSearch) =>
+app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager, elSearch);
+    return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
 }).AllowAnonymous();
 app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
 }).RequireAuthorization("BasicAuthentication");
 
-app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager, ElasticSearchService elSearch) =>
+app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager, elSearch);
+    return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
 }).AddFluentValidationAutoValidation().AllowAnonymous();
 app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {

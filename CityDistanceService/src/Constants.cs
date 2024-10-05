@@ -3,5 +3,5 @@ class Constants
     /// <summary>
     /// The version of the application.
     /// </summary>
-   public const string Version = "0.1.22";
+   public const string Version = "0.1.23";
 }
