@@ -47,6 +47,22 @@ public class ElasticSearchService
         _client = new ElasticClient(settings);
     }
 
+    public async Task<List<string>> GetAllCityNamesFromElasticsearchAsync()
+    {
+        var searchResponse = await _client.SearchAsync<CityName>(s => s
+            .Index(clusterIndex)
+            .Size(1000)); // Default is 10
+
+        if (!searchResponse.IsValid)
+        {
+            Console.WriteLine($"Failed to retrieve city names from Elasticsearch: {searchResponse.DebugInformation}");
+            return new List<string>();
+        }
+
+        var cityNames = searchResponse.Documents.Select(city => city.Name).ToList();
+        return cityNames;
+    }
+
     public async Task CreateIndexAsync()
     {
         var createIndexResponse = await _client.Indices.CreateAsync(clusterIndex, c => c

@@ -8,6 +8,11 @@ public static class RequestHandler
         return Results.Ok(await dbManager.TestConnection());
     }
 
+    public static async Task<IResult> GetCityNames(IDatabaseManager dbManager)
+    {
+        return Results.Ok(await dbManager.GetCityNames());
+    }
+
     public static async Task<IResult> ValidateAndProcessCityDistanceAsync(CitiesDistanceRequest cities, IDatabaseManager dbManager, ElasticSearchService elSearch)
     {
         cities.City1 = await elSearch.GetLikeliestMatch(cities.City1);

@@ -82,8 +82,19 @@ if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 
-
 builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
+
+builder.Services.AddSingleton<IHostedService, CityNameSynchronizationService>(provider =>
+{
+    using (var scope = provider.CreateScope())
+    {
+        var elSearch = provider.GetRequiredService<ElasticSearchService>();
+        var dbManager = scope.ServiceProvider.GetRequiredService<IDatabaseManager>();
+        var syncInterval = 24; // Default sync interval in hours
+
+        return new CityNameSynchronizationService(dbManager, elSearch, syncInterval);
+    }
+});
 
 // Configure FluentMigrator
 builder.Services.AddFluentMigratorCore()
@@ -156,6 +167,10 @@ app.MapControllers();
 app.MapGet("/health_check", () =>
 {
     return Results.Ok();
+}).AllowAnonymous();
+app.MapGet("/get_city_names", async (IDatabaseManager dbManager) =>
+{
+    return await RequestHandler.GetCityNames(dbManager);
 }).AllowAnonymous();
 app.MapGet("/db_health_check", async (IDatabaseManager dbManager) =>
 {
