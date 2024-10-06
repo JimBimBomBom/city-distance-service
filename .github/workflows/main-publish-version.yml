@@ -12,11 +12,14 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v2
+              with:
+                ref: main
             
             - name: Fetch tag
               run: |
                 echo "TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+              working-directory: ./CityDistanceService/
             
             - name: Fetch app version
               run: |
@@ -29,6 +32,7 @@ jobs:
                   echo "Tag and version do not match"
                   exit 1
                 fi
+              working-directory: ./CityDistanceService/
             
             - name: Build Docker images
               env:

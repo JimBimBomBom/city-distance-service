@@ -137,6 +137,10 @@ public class MySQLManager : IDatabaseManager
                 }
             }
 
+            if (result == null)
+            {
+                Console.WriteLine("City not found.");   
+            }
             Console.WriteLine("Product fetched successfully.");
         }
         catch (MySqlException ex)
