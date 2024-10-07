@@ -3,20 +3,11 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        # environment:
-        #     AUTH_USERNAME: admin
-        #     AUTH_PASSWORD: password
-        #     DATABASE_CONNECTION_STRING: Server=db;Database=CityDistanceService;Uid=root;Pwd=changeme
-        #     ELASTICSEARCH_API_KEY: aE04MjBwRUJXMXRqc3JJbmM1bUI6dE84OUdoUnpTdkdyTTA1WFJLRE41QQ==
-        #     ELASTICSEARCH_INDEX: cities
-        #     ELASTICSEARCH_URL: https://citydistanceservice.es.westeurope.azure.elastic-cloud.com/
-        environment:
-            - AUTH_USERNAME=${AUTH_USERNAME}
-            - AUTH_PASSWORD=${AUTH_PASSWORD}
-            - DATABASE_CONNECTION_STRING=${DATABASE_CONNECTION_STRING}
-            - ELASTICSEARCH_API_KEY=${ELASTICSEARCH_API_KEY}
-            - ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX}
-            - ELASTICSEARCH_URL=${ELASTICSEARCH_URL} 
+        env_file: 
+            - path: "DefaultAppEnv.env"
+              required: true # default env file
+            - path: "ProductionAppEnv.env"
+              required: false # production env file -> overrides values from DefaultAppEnv.env if set
         ports:
             - "8080:8080"
         depends_on:
@@ -26,7 +17,11 @@ services:
 
     db:
         image: mysql:latest
-        env_file: "DatabaseEnv.env"
+        env_file: 
+            - path: "DefaultDatabaseEnv.env"
+              required: true # default env file
+            - path: "ProductionDatabaseEnv.env"
+              required: false # production env file -> overrides values from DefaultDatabaseEnv.env if set
         volumes:
             - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
         networks:
