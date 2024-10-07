@@ -5,6 +5,8 @@
 
 # dotenv files
 *.bat
+ProductionAppEnv.env
+ProductionDatabaseEnv.env
 
 # User-specific files
 *.rsuser
