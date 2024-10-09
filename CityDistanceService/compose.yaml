@@ -31,10 +31,8 @@ services:
         image: nginx:latest
         container_name: nginx_reverse_proxy
         ports:
-            - "443:443"
             - "80:80"
-            - "4443:4443"
-            - "4000:4000"
+            - "8443:8443"
         depends_on:
             - app
         networks:
