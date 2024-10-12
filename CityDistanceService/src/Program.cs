@@ -24,6 +24,12 @@ configuration.AddEnvironmentVariables();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers();
 
+// Configure Kestrel server options
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 52428800; // 50 MB limit, adjust as needed
+});
+
 builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 
 if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || string.IsNullOrEmpty(configuration["AUTH_PASSWORD"]))
@@ -157,22 +163,27 @@ app.MapGet("/health_check", () =>
 {
     return Results.Ok();
 }).AllowAnonymous();
+
 app.MapGet("/get_city_names", async (IDatabaseManager dbManager) =>
 {
     return await RequestHandler.GetCityNames(dbManager);
 }).AllowAnonymous();
+
 app.MapGet("/db_health_check", async (IDatabaseManager dbManager) =>
 {
     return await RequestHandler.TestConnection(dbManager);
 }).AllowAnonymous();
+
 app.MapGet("/version", () =>
 {
     return Results.Ok(Constants.Version);
 }).AllowAnonymous();
+
 app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
 }).AllowAnonymous();
+
 app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ReturnCityInfoAsync(id, dbManager);
@@ -182,6 +193,7 @@ app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager d
 {
     return await RequestHandler.ProcessCityDistanceAsync(cities, dbManager);
 }).AddFluentValidationAutoValidation().AllowAnonymous();
+
 app.MapPost("/city", async (NewCityInfo city, IDatabaseManager dbManager, IValidator<NewCityInfo> validator) =>
 {
     var validationResult = await validator.ValidateAsync(city);
@@ -193,22 +205,6 @@ app.MapPost("/city", async (NewCityInfo city, IDatabaseManager dbManager, IValid
 })
 .AddFluentValidationAutoValidation()
 .RequireAuthorization("BasicAuthentication");
-
-app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
-{
-    return await RequestHandler.UpdateCityInfoAsync(city, dbManager);
-}).RequireAuthorization().RequireAuthorization("BasicAuthentication");
-
-app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
-{
-    return await RequestHandler.DeleteCityAsync(id, dbManager);
-}).RequireAuthorization().RequireAuthorization("BasicAuthentication");
-
-// app.MapPost("/cities/bulk", async (List<NewCityInfoJSON> cities, IDatabaseManager dbManager) =>
-// {
-//     return await RequestHandler.BulkInsertCitiesAsync(cities, dbManager);
-// })
-// .RequireAuthorization("BasicAuthentication");
 
 app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager dbManager) =>
 {
@@ -245,5 +241,16 @@ app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager db
 
 })
 .RequireAuthorization("BasicAuthentication");
+
+app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
+{
+    return await RequestHandler.UpdateCityInfoAsync(city, dbManager);
+}).RequireAuthorization().RequireAuthorization("BasicAuthentication");
+
+app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
+{
+    return await RequestHandler.DeleteCityAsync(id, dbManager);
+}).RequireAuthorization().RequireAuthorization("BasicAuthentication");
+
 
 app.Run();
