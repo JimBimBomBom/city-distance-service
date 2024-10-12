@@ -237,17 +237,7 @@ app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager db
         return Results.BadRequest($"Error parsing JSON: {ex.Message}");
     }
 
-    var successCount = 0;
-    foreach (var city in cities)
-    {
-        var result = await dbManager.AddCity(city);
-        if (result == null)
-        {
-            Console.WriteLine($"Failed to add city {city.CityName} to database, or city already exists.");
-            return Results.BadRequest("Failed to add city to database, or city already exists.");
-        }
-        successCount++;
-    }
+    var successCount = await dbManager.BulkInsertCitiesAsync(cities);
 
     return Results.Ok($"Successfully inserted {successCount} cities.");
 
