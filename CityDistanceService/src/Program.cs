@@ -12,6 +12,9 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using System.Configuration;
 using Microsoft.AspNetCore.Authorization;
+// using System.Text.Json;
+// using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -91,6 +94,7 @@ builder.Services.AddFluentMigratorCore()
 
 // Configure FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<NewCityInfo>();
 builder.Services.AddValidatorsFromAssemblyContaining<CityInfo>();
 
 builder.Services.AddControllers();
@@ -171,26 +175,85 @@ app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager db
 }).AllowAnonymous();
 app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndReturnCityInfoAsync(id, dbManager);
+    return await RequestHandler.ReturnCityInfoAsync(id, dbManager);
 }).RequireAuthorization("BasicAuthentication");
 
 app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndProcessCityDistanceAsync(cities, dbManager);
+    return await RequestHandler.ProcessCityDistanceAsync(cities, dbManager);
 }).AddFluentValidationAutoValidation().AllowAnonymous();
-app.MapPost("/city", async (CityInfo city, IDatabaseManager dbManager) =>
+app.MapPost("/city", async (NewCityInfo city, IDatabaseManager dbManager, IValidator<NewCityInfo> validator) =>
 {
-    return await RequestHandler.ValidateAndPostCityInfoAsync(city, dbManager);
-}).RequireAuthorization("BasicAuthentication");
+    var validationResult = await validator.ValidateAsync(city);
+    if (!validationResult.IsValid)
+    {
+        return Results.BadRequest(validationResult.Errors);
+    }
+    return await RequestHandler.PostCityInfoAsync(city, dbManager);
+})
+.AddFluentValidationAutoValidation()
+.RequireAuthorization("BasicAuthentication");
 
 app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndUpdateCityInfoAsync(city, dbManager);
+    return await RequestHandler.UpdateCityInfoAsync(city, dbManager);
 }).RequireAuthorization().RequireAuthorization("BasicAuthentication");
 
 app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
 {
-    return await RequestHandler.ValidateAndDeleteCityAsync(id, dbManager);
+    return await RequestHandler.DeleteCityAsync(id, dbManager);
 }).RequireAuthorization().RequireAuthorization("BasicAuthentication");
+
+// app.MapPost("/cities/bulk", async (List<NewCityInfoJSON> cities, IDatabaseManager dbManager) =>
+// {
+//     return await RequestHandler.BulkInsertCitiesAsync(cities, dbManager);
+// })
+// .RequireAuthorization("BasicAuthentication");
+
+app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager dbManager) =>
+{
+    if (!request.HasFormContentType || request.Form.Files.Count == 0)
+    {
+        return Results.BadRequest("Please upload a JSON file.");
+    }
+
+    var file = request.Form.Files[0];
+    using var stream = file.OpenReadStream();
+    using var reader = new StreamReader(stream);
+    var jsonString = await reader.ReadToEndAsync();
+    
+    List<NewCityInfo> cities;
+    try
+    {
+        cities = JsonConvert.DeserializeObject<List<NewCityInfo>>(jsonString);
+        if (cities == null || cities.Count == 0)
+        {
+            return Results.BadRequest("The JSON file is empty or not in the correct format.");
+        }
+        Console.WriteLine(cities.Count);
+    }
+    catch (JsonException ex)
+    {
+        return Results.BadRequest($"Error parsing JSON: {ex.Message}");
+    }
+
+    var successCount = 0;
+    foreach (var city in cities)
+    {
+        var result = await dbManager.AddCity(city);
+        if (result == null)
+        {
+            Console.WriteLine($"Failed to add city {city.CityName} to database, or city already exists.");
+            return Results.BadRequest("Failed to add city to database, or city already exists.");
+        }
+        successCount++;
+    }
+
+    return Results.Ok($"Successfully inserted {successCount} cities.");
+
+    // return await RequestHandler.BulkInsertCitiesAsync(cities, dbManager);
+
+})
+.RequireAuthorization("BasicAuthentication");
 
 app.Run();
