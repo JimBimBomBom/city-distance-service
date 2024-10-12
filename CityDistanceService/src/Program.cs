@@ -235,6 +235,7 @@ app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager db
 
     var successCount = await dbManager.BulkInsertCitiesAsync(cities);
 
+    Console.WriteLine($"Successfully inserted {successCount} cities.");
     return Results.Ok($"Successfully inserted {successCount} cities.");
 
     // return await RequestHandler.BulkInsertCitiesAsync(cities, dbManager);
