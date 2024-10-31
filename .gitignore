@@ -8,6 +8,11 @@
 ProductionAppEnv.env
 ProductionDatabaseEnv.env
 
+nginx/certs/*key
+nginx/certs/*crt
+nginx/certs/*pem
+
+
 # User-specific files
 *.rsuser
 *.suo

@@ -11,7 +11,7 @@ public class CityInfoValidator : AbstractValidator<CityInfo>
     }
 }
 
-public class NewCityInfoValidator : AbstractValidator<CityInfo>
+public class NewCityInfoValidator : AbstractValidator<NewCityInfo>
 {
     public NewCityInfoValidator()
     {
