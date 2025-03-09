@@ -12,8 +12,6 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using System.Configuration;
 using Microsoft.AspNetCore.Authorization;
-// using System.Text.Json;
-// using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -201,6 +199,7 @@ app.MapPost("/city", async (NewCityInfo city, IDatabaseManager dbManager, IValid
     {
         return Results.BadRequest(validationResult.Errors);
     }
+
     return await RequestHandler.PostCityInfoAsync(city, dbManager);
 })
 .AddFluentValidationAutoValidation()
@@ -217,7 +216,6 @@ app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager db
     using var stream = file.OpenReadStream();
     using var reader = new StreamReader(stream);
     var jsonString = await reader.ReadToEndAsync();
-    
     List<NewCityInfo> cities;
     try
     {
@@ -226,6 +224,7 @@ app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager db
         {
             return Results.BadRequest("The JSON file is empty or not in the correct format.");
         }
+
         Console.WriteLine(cities.Count);
     }
     catch (JsonException ex)
@@ -237,9 +236,6 @@ app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager db
 
     Console.WriteLine($"Successfully inserted {successCount} cities.");
     return Results.Ok($"Successfully inserted {successCount} cities.");
-
-    // return await RequestHandler.BulkInsertCitiesAsync(cities, dbManager);
-
 })
 .RequireAuthorization("BasicAuthentication");
 
@@ -252,6 +248,5 @@ app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManag
 {
     return await RequestHandler.DeleteCityAsync(id, dbManager);
 }).RequireAuthorization().RequireAuthorization("BasicAuthentication");
-
 
 app.Run();
