@@ -6,9 +6,7 @@ CityDistanceService/nginx/certs
 CityDistanceService/nginx/nginx.conf
 
 CityDistanceService/elasticsearch/data
-# CityDistanceService/elasticsearch/data/_state
-# CityDistanceService/elasticsearch/data/indices
-# CityDistanceService/elasticsearch/data/snapshot_cache
+CityDistanceService/redis_data
 
 CityDistanceService/bin
 CityDistanceService/obj
