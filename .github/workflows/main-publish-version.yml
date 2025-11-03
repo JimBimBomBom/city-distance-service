@@ -30,7 +30,12 @@ jobs:
               run: |
                 if [ "${TAG}" != "${APP_VERSION}" ]; then
                   echo "Tag and version do not match"
-                  exit 1
+                  if [ "${TAG}" == "main" ]; then
+                    echo "Branch is main, continuing..."
+                  else
+                    echo "Exiting due to version mismatch"
+                    exit 1
+                  fi
                 fi
               working-directory: ./CityDistanceService/
             
