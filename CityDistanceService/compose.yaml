@@ -1,5 +1,6 @@
 services:
     app:
+        image: jimbimdocker/city-distance-service:latest
         build:
             context: .
             dockerfile: Dockerfile
