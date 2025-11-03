@@ -66,31 +66,57 @@ public class MySQLManager : IDatabaseManager
         return cityNames;
     }
 
-    public async Task<CityInfo> AddCity(CityInfo city)
+    public async Task<bool> AddCityNoReturn(NewCityInfo city)
     {
+        bool success = false;
         try
         {
             using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
 
-            if (city.CityId == Guid.Empty)
-            {
-                city.CityId = Guid.NewGuid();
-            }
+            var query = @"
+                INSERT IGNORE INTO cities (CityName, Longitude, Latitude) 
+                VALUES (@CityName, @Longitude, @Latitude);";
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityName", city.CityName);
+            command.Parameters.AddWithValue("@Latitude", city.Latitude);
+            command.Parameters.AddWithValue("@Longitude", city.Longitude);
+            
+            int rowsAffected = await command.ExecuteNonQueryAsync();
+            success = rowsAffected > 0;
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"MySQL Error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"General Error: {ex.Message}");
+        }
+
+        return success;
+    }
+
+    public async Task<CityInfo?> AddCity(NewCityInfo city)
+    {
+        CityInfo? addedCity = null;
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
 
             if (await GetCity(city.CityName) == null) // If city already exists we still want to return it from the database
             {
-                var query = "INSERT INTO cities (CityId, CityName, Longitude, Latitude) VALUES (@CityId, @CityName, @Longitude, @Latitude);";
+                var query = "INSERT INTO cities (CityName, Longitude, Latitude) VALUES (@CityName, @Longitude, @Latitude);";
                 using var command = new MySqlCommand(query, connection);
-                command.Parameters.AddWithValue("@CityId", city.CityId);
                 command.Parameters.AddWithValue("@CityName", city.CityName);
                 command.Parameters.AddWithValue("@Latitude", city.Latitude);
                 command.Parameters.AddWithValue("@Longitude", city.Longitude);
                 await command.ExecuteScalarAsync();
             }
 
-            city = await GetCity(city.CityName);
-            if (city == null)
+            addedCity = await GetCity(city.CityName);
+            if (addedCity == null)
             {
                 throw new Exception("Internal error: City not found after adding.");
             }
@@ -106,7 +132,7 @@ public class MySQLManager : IDatabaseManager
             Console.WriteLine($"Error add2: {ex.Message}");
         }
 
-        return city;
+        return addedCity;
     }
 
     public async Task<CityInfo?> GetCity(Guid cityId)
@@ -370,6 +396,55 @@ public class MySQLManager : IDatabaseManager
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    public async Task<int> BulkInsertCitiesAsync(List<NewCityInfo> cities)
+    {
+        using var connection = new MySqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        using var transaction = await connection.BeginTransactionAsync();
+
+        try
+        {
+            var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = @"
+                INSERT IGNORE INTO cities (CityName, Latitude, Longitude)
+                VALUES (@CityName, @Latitude, @Longitude)";
+
+            var nameParam = command.Parameters.Add("@CityName", MySqlDbType.VarChar);
+            var latParam = command.Parameters.Add("@Latitude", MySqlDbType.Double);
+            var lonParam = command.Parameters.Add("@Longitude", MySqlDbType.Double);
+
+            int insertedCount = 0;
+
+            foreach (var city in cities)
+            {
+                try
+                {
+                    nameParam.Value = city.CityName;
+                    latParam.Value = city.Latitude;
+                    lonParam.Value = city.Longitude;
+
+                    insertedCount += await command.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to insert city: {city.CityName}. Error: {ex.Message}");
+                    // Continue with the next city
+                }
+            }
+
+            await transaction.CommitAsync();
+            return insertedCount;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            Console.WriteLine($"Error in bulk insert operation: {ex.Message}");
+            throw;
         }
     }
 }

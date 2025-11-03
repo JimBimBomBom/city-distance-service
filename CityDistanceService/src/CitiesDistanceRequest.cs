@@ -12,6 +12,24 @@ public class Coordinates
     public double Longitude { get; set; }
 }
 
+public class NewCityInfoJSON
+{
+    public string cityName { get; set; }
+
+    public double latitude { get; set; }
+
+    public double longitude { get; set; }
+}
+
+public class NewCityInfo
+{
+    public string CityName { get; set; }
+
+    public double Latitude { get; set; }
+
+    public double Longitude { get; set; }
+}
+
 public class CityInfo
 {
     public Guid CityId { get; set; }
