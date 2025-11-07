@@ -1,7 +1,6 @@
 ProductionAppEnv.env
 ProductionDatabaseEnv.env
 
-
 CityDistanceService/nginx/certs
 CityDistanceService/nginx/nginx.conf
 
