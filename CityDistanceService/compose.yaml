@@ -33,7 +33,7 @@ services:
         ports:
             - "8443:443"
         depends_on:
-            - app
+            - cert_renewer
         networks:
             - cdsNetwork
         volumes:
@@ -44,8 +44,6 @@ services:
     cert_renewer:
         build: ./cert_renewer
         container_name: cert_renewer
-        depends_on:
-            - nginx
         volumes:
             - certs:/certs
             - /var/run/docker.sock:/var/run/docker.sock
