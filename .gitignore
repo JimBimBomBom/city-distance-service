@@ -2,8 +2,9 @@ ProductionAppEnv.env
 ProductionDatabaseEnv.env
 
 
-# CityDistanceService/nginx/certs
-# CityDistanceService/nginx/nginx.conf
+CityDistanceService/nginx/certs
+CityDistanceService/nginx/nginx.conf
+
 
 CityDistanceService/elasticsearch/data
 CityDistanceService/redis_data
