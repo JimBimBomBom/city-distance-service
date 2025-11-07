@@ -33,7 +33,7 @@ services:
         ports:
             - "8443:443"
         depends_on:
-            - app
+            - cert_renewer
         networks:
             - cdsNetwork
         volumes:
