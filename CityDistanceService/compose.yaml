@@ -1,8 +1,7 @@
 services:
     app:
-        build:
-            context: .
-            dockerfile: Dockerfile
+        image: jimbimdocker/city-distance-service:latest
+        container_name: city_distance_service_app
         env_file: 
             - path: "DefaultAppEnv.env"
               required: true # default env file
@@ -17,15 +16,16 @@ services:
 
     db:
         image: mysql:latest
+        container_name: cds_mysql_db
         env_file: 
             - path: "DefaultDatabaseEnv.env"
               required: true # default env file
             - path: "ProductionDatabaseEnv.env"
               required: false # production env file -> overrides values from DefaultDatabaseEnv.env if set
-        volumes:
-            - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
         networks:
             - cdsNetwork
+        volumes:
+            - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
     
     nginx:
         image: nginx:latest
@@ -38,21 +38,30 @@ services:
             - cdsNetwork
         volumes:
             - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-            - ./nginx/certs:/etc/nginx/certs
+            - certs:/etc/nginx/certs
             # - ./nginx/logs:/nginx/logs
     
-    elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.17.2
-        container_name: elasticsearch
-        environment: 
-            - discovery.type=single-node
-            - ELASTIC_PASSWORD=secretPwd123 # TODO: remove hardcoded password, probably will be managed through an env file
-        ports:
-            - "9200:9200"
-        networks:
-            - cdsNetwork
+    cert_renewer:
+        build: ./cert_renewer
+        container_name: cert_renewer
+        depends_on:
+            - nginx
         volumes:
-            - ./elasticsearch/data:/usr/share/elasticsearch/data
+            - certs:/certs
+            - /var/run/docker.sock:/var/run/docker.sock
+        
+    # elasticsearch:
+    #     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.2
+    #     container_name: elasticsearch
+    #     environment: 
+    #         - discovery.type=single-node
+    #         - ELASTIC_PASSWORD=secretPwd123 # TODO: remove hardcoded password, probably will be managed through an env file
+    #     ports:
+    #         - "9200:9200"
+    #     networks:
+    #         - cdsNetwork
+    #     volumes:
+    #         - ./elasticsearch/data:/usr/share/elasticsearch/data
       
     # redis:
     #   image: redis:latest
@@ -69,3 +78,4 @@ networks:
 
 volumes:
     db_data: {}
+    certs:
