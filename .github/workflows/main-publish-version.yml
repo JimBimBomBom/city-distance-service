@@ -30,7 +30,12 @@ jobs:
               run: |
                 if [ "${TAG}" != "${APP_VERSION}" ]; then
                   echo "Tag and version do not match"
-                  exit 1
+                  if [ "${TAG}" == "main" ]; then
+                    echo "Branch is main, continuing..."
+                  else
+                    echo "Exiting due to version mismatch"
+                    exit 1
+                  fi
                 fi
               working-directory: ./CityDistanceService/
             
@@ -45,7 +50,10 @@ jobs:
                 echo "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
                 IMAGE_NAME="$DOCKER_USERNAME/city-distance-service"
-                docker tag app $IMAGE_NAME:$APP_VERSION
+                if [ -n "$APP_VERSION" ]; then
+                    echo "Releasing version $APP_VERSION"
+                    docker tag app $IMAGE_NAME:$APP_VERSION
+                fi
                 docker tag app $IMAGE_NAME:latest
                 docker push $IMAGE_NAME --all-tags  
               working-directory: ./CityDistanceService/
