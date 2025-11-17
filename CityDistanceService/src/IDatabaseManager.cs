@@ -6,9 +6,7 @@ public interface IDatabaseManager
 
     Task<CityInfo> AddCity(NewCityInfo newCity);
 
-    Task<CityInfo?> GetCity(Guid cityId);
-
-    Task<CityInfo?> GetCity(string cityName);
+    Task<CityInfo?> GetCity(string cityId);
 
     Task<Coordinates?> GetCityCoordinates(string cityName);
 
@@ -18,7 +16,15 @@ public interface IDatabaseManager
 
     Task<CityInfo> UpdateCity(CityInfo updatedCity);
 
-    Task DeleteCity(Guid cityId);
+    Task DeleteCity(string cityId);
 
-    Task<int> BulkInsertCitiesAsync(List<NewCityInfo> cities);
+    Task<DateTime> GetLastSyncAsync();
+
+    Task UpdateLastSyncAsync(DateTime newTimestamp);
+
+    Task<List<SparQLCityInfo>> FetchCitiesAsync(DateTime lastSync);
+
+    Task<int> BulkUpsertCitiesAsync(List<SparQLCityInfo> cities);
+
+    Task<int> UpdateCityDatabaseAsync();
 }
