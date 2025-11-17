@@ -1,6 +1,23 @@
 services:
-    app:
-        image: jimbimdocker/city-distance-service:latest
+    # app:
+    #     image: jimbimdocker/city-distance-service:latest
+    #     container_name: city_distance_service_app
+    #     env_file: 
+    #         - path: "DefaultAppEnv.env"
+    #           required: true # default env file
+    #         - path: "ProductionAppEnv.env"
+    #           required: false # production env file -> overrides values from DefaultAppEnv.env if set
+    #     ports:
+    #         - "8080:8080"
+    #     depends_on:
+    #         - db
+    #     networks:
+    #         - cdsNetwork
+
+    app_debug:
+        build:
+            context: .
+            dockerfile: Dockerfile
         container_name: city_distance_service_app
         env_file: 
             - path: "DefaultAppEnv.env"
