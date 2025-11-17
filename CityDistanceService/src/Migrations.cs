@@ -62,3 +62,65 @@ public class AddCityNameIndex : Migration
         Delete.Index("IX_Cities_CityName").OnTable("cities");
     }
 }
+
+[Migration(4)]
+public class UpdateCitiesSchema : Migration
+{
+    public override void Up()
+    {
+        Delete.PrimaryKey("PK_cities").FromTable("cities");
+
+        Alter.Column("CityId").OnTable("cities")
+            .AsString(20)
+            .NotNullable();
+
+        Create.PrimaryKey("PK_cities")
+            .OnTable("cities")
+            .Column("CityId");
+
+        Alter.Column("CityName")
+            .OnTable("cities")
+            .AsString(255)
+            .NotNullable();
+    }
+
+    public override void Down()
+    {
+        // Revert column types to previous state
+        Delete.PrimaryKey("PK_cities").FromTable("cities");
+
+        Alter.Column("CityId").OnTable("cities")
+            .AsInt32().Identity().NotNullable();
+
+        Alter.Column("CityName").OnTable("cities")
+            .AsString(100).NotNullable();
+
+        Create.PrimaryKey("PK_cities")
+            .OnTable("cities")
+            .Column("CityId");
+    }
+}
+
+[Migration(5)]
+public class CreateSyncStateTable : Migration
+{
+    public override void Up()
+    {
+        Create.Table("sync_state")
+            .WithColumn("SyncKey").AsString(50).PrimaryKey()
+            .WithColumn("LastSync").AsDateTime().NotNullable();
+
+        // Insert initial row
+        Insert.IntoTable("sync_state")
+            .Row(new
+            {
+                SyncKey = "CitySync",
+                LastSync = new DateTime(2000, 1, 1)
+            });
+    }
+
+    public override void Down()
+    {
+        Delete.Table("sync_state");
+    }
+}

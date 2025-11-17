@@ -26,7 +26,7 @@ public static class RequestHandler
         }
     }
 
-    public static async Task<IResult> ReturnCityInfoAsync(Guid cityId, IDatabaseManager dbManager)
+    public static async Task<IResult> ReturnCityInfoAsync(string cityId, IDatabaseManager dbManager)
     {
         var cityInfo = await dbManager.GetCity(cityId);
         if (cityInfo == null)
@@ -71,7 +71,7 @@ public static class RequestHandler
         return Results.Ok(new ApiResponse<CityInfo>(updatedCity, "Item has been successfully updated."));
     }
 
-    public static async Task<IResult> DeleteCityAsync(Guid cityId, IDatabaseManager dbManager)
+    public static async Task<IResult> DeleteCityAsync(string cityId, IDatabaseManager dbManager)
     {
         var cityInfo = await dbManager.GetCity(cityId);
         if (cityInfo == null)
@@ -85,16 +85,16 @@ public static class RequestHandler
         }
     }
 
-    public static async Task<IResult> BulkInsertCitiesAsync(List<NewCityInfo> cities, IDatabaseManager dbManager)
+    public static async Task<IResult> UpdateCityDatabaseAsync(IDatabaseManager dbManager)
     {
         try
         {
-            int insertedCount = await dbManager.BulkInsertCitiesAsync(cities);
-            return Results.Ok(new { Message = $"Successfully inserted {insertedCount} cities." });
+            int updatedCount = await dbManager.UpdateCityDatabaseAsync();
+            return Results.Ok(new { Message = $"Successfully updated or inserted {updatedCount} cities." });
         }
         catch (Exception ex)
         {
-            return Results.BadRequest(new { Message = $"Error inserting cities: {ex.Message}" });
+            return Results.BadRequest(new { Message = $"Error updating city database: {ex.Message}" });
         }
     }
 }
