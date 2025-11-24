@@ -1,19 +1,4 @@
 services:
-    # app:
-    #     image: jimbimdocker/city-distance-service:latest
-    #     container_name: city_distance_service_app
-    #     env_file: 
-    #         - path: "DefaultAppEnv.env"
-    #           required: true # default env file
-    #         - path: "ProductionAppEnv.env"
-    #           required: false # production env file -> overrides values from DefaultAppEnv.env if set
-    #     ports:
-    #         - "8080:8080"
-    #     depends_on:
-    #         - db
-    #     networks:
-    #         - cdsNetwork
-
     app:
         build:
             context: .
@@ -77,7 +62,6 @@ volumes:
     caddy_data: # Define the new named volumes
     caddy_config:
 
-      
     # redis:
     #   image: redis:latest
     #   container_name: redis
