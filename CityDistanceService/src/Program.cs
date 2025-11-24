@@ -77,25 +77,31 @@ builder.Services.AddSwaggerGen(options =>
         },
     });
 });
+// --- ELASTICSEARCH AND SYNC STATE CONFIGURATION ---
 
-if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
+// 1. Get ElasticSearch URI
+var elasticsearchUri = configuration["ELASTICSEARCH_URI"] ?? "http://localhost:9200";
+
+if (string.IsNullOrEmpty(configuration["SYNC_DB_CONNECTION_STRING"]))
 {
-    Console.WriteLine("Database connection string not set.");
+    // We still need a connection string for the sync_state table.
+    Console.WriteLine("Synchronization database connection string (SYNC_DB_CONNECTION_STRING) not set.");
     return;
 }
+var syncConnectionString = configuration["SYNC_DB_CONNECTION_STRING"];
 
-var connectionString = configuration["DATABASE_CONNECTION_STRING"];
+// 2. Register the new ElasticsearchManager
+// The manager handles all data requests and the autonomous index setup.
+builder.Services.AddScoped<IDatabaseManager>(provider => 
+    new ElasticsearchManager(elasticsearchUri, syncConnectionString));
 
-builder.Services.AddScoped<IDatabaseManager>(provider => new MySQLManager(connectionString));
+// --- REMOVED: FluentMigrator Configuration ---
+// Since we are transitioning to Elasticsearch, we assume the MySQL cities table is obsolete.
+// We keep the sync_state table, but FluentMigrator code for the main 'cities' table migrations 
+// is no longer necessary/relevant here.
 
-// Configure FluentMigrator
-builder.Services.AddFluentMigratorCore()
-    .ConfigureRunner(rb => rb
-        .AddMySql5()
-        .WithGlobalConnectionString(connectionString)
-        .ScanIn(typeof(Program).Assembly).For.Migrations())
-    .AddLogging(lb => lb.AddFluentMigratorConsole());
-
+// 3. Register the Synchronization Hosted Service
+// The Hosted Service will automatically run the autonomous index setup and sync loop.
 builder.Services.AddHostedService<WikidataSyncService>();
 
 // Configure FluentValidation

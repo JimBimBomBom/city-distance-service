@@ -35,333 +35,333 @@ public class MySQLManager : IDatabaseManager
         return Results.Ok(_connectionString);
     }
 
-    public async Task<List<string>> GetCityNames()
-    {
-        var cityNames = new List<string>();
+    // public async Task<List<string>> GetCityNames()
+    // {
+    //     var cityNames = new List<string>();
 
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
+    //     try
+    //     {
+    //         using var connection = new MySqlConnection(_connectionString);
+    //         await connection.OpenAsync();
 
-            var query = "SELECT CityName FROM cities;";
-            using var command = new MySqlCommand(query, connection);
+    //         var query = "SELECT CityName FROM cities;";
+    //         using var command = new MySqlCommand(query, connection);
 
-            using var reader = await command.ExecuteReaderAsync();
-            while (reader.Read())
-            {
-                cityNames.Add(reader.GetString(reader.GetOrdinal("CityName")));
-            }
+    //         using var reader = await command.ExecuteReaderAsync();
+    //         while (reader.Read())
+    //         {
+    //             cityNames.Add(reader.GetString(reader.GetOrdinal("CityName")));
+    //         }
 
-            Console.WriteLine("Product fetched successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
+    //         Console.WriteLine("Product fetched successfully.");
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
 
-        return cityNames;
-    }
+    //     return cityNames;
+    // }
 
-    public async Task<bool> AddCityNoReturn(NewCityInfo city)
-    {
-        bool success = false;
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
+    // public async Task<bool> AddCityNoReturn(NewCityInfo city)
+    // {
+    //     bool success = false;
+    //     try
+    //     {
+    //         using var connection = new MySqlConnection(_connectionString);
+    //         await connection.OpenAsync();
 
-            var query = @"
-                INSERT IGNORE INTO cities (CityName, Longitude, Latitude) 
-                VALUES (@CityName, @Longitude, @Latitude);";
-            using var command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@CityName", city.CityName);
-            command.Parameters.AddWithValue("@Latitude", city.Latitude);
-            command.Parameters.AddWithValue("@Longitude", city.Longitude);
+    //         var query = @"
+    //             INSERT IGNORE INTO cities (CityName, Longitude, Latitude) 
+    //             VALUES (@CityName, @Longitude, @Latitude);";
+    //         using var command = new MySqlCommand(query, connection);
+    //         command.Parameters.AddWithValue("@CityName", city.CityName);
+    //         command.Parameters.AddWithValue("@Latitude", city.Latitude);
+    //         command.Parameters.AddWithValue("@Longitude", city.Longitude);
 
-            int rowsAffected = await command.ExecuteNonQueryAsync();
-            success = rowsAffected > 0;
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"MySQL Error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"General Error: {ex.Message}");
-        }
+    //         int rowsAffected = await command.ExecuteNonQueryAsync();
+    //         success = rowsAffected > 0;
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"MySQL Error: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"General Error: {ex.Message}");
+    //     }
 
-        return success;
-    }
+    //     return success;
+    // }
 
-    public async Task<CityInfo?> AddCity(NewCityInfo city)
-    {
-        CityInfo? addedCity = null;
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
+    // public async Task<CityInfo?> AddCity(NewCityInfo city)
+    // {
+    //     CityInfo? addedCity = null;
+    //     try
+    //     {
+    //         using var connection = new MySqlConnection(_connectionString);
+    //         await connection.OpenAsync();
 
-            if (await GetCity(city.CityName) == null) // If city already exists we still want to return it from the database
-            {
-                var query = "INSERT INTO cities (CityName, Longitude, Latitude) VALUES (@CityName, @Longitude, @Latitude);";
-                using var command = new MySqlCommand(query, connection);
-                command.Parameters.AddWithValue("@CityName", city.CityName);
-                command.Parameters.AddWithValue("@Latitude", city.Latitude);
-                command.Parameters.AddWithValue("@Longitude", city.Longitude);
-                await command.ExecuteScalarAsync();
-            }
+    //         if (await GetCity(city.CityName) == null) // If city already exists we still want to return it from the database
+    //         {
+    //             var query = "INSERT INTO cities (CityName, Longitude, Latitude) VALUES (@CityName, @Longitude, @Latitude);";
+    //             using var command = new MySqlCommand(query, connection);
+    //             command.Parameters.AddWithValue("@CityName", city.CityName);
+    //             command.Parameters.AddWithValue("@Latitude", city.Latitude);
+    //             command.Parameters.AddWithValue("@Longitude", city.Longitude);
+    //             await command.ExecuteScalarAsync();
+    //         }
 
-            addedCity = await GetCity(city.CityName);
-            if (addedCity == null)
-            {
-                throw new Exception("Internal error: City not found after adding.");
-            }
+    //         addedCity = await GetCity(city.CityName);
+    //         if (addedCity == null)
+    //         {
+    //             throw new Exception("Internal error: City not found after adding.");
+    //         }
 
-            Console.WriteLine("Product added successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error add1: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error add2: {ex.Message}");
-        }
+    //         Console.WriteLine("Product added successfully.");
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"Error add1: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error add2: {ex.Message}");
+    //     }
 
-        return addedCity;
-    }
+    //     return addedCity;
+    // }
 
-    public async Task<CityInfo?> GetCity(string cityId)
-    {
-        CityInfo result = null;
-        try
-        {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
+    // public async Task<CityInfo?> GetCity(string cityId)
+    // {
+    //     CityInfo result = null;
+    //     try
+    //     {
+    //         using (var connection = new MySqlConnection(_connectionString))
+    //         {
+    //             await connection.OpenAsync();
 
-                var query = "SELECT * FROM cities WHERE CityId = @CityId;";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@CityId", cityId);
+    //             var query = "SELECT * FROM cities WHERE CityId = @CityId;";
+    //             using (var command = new MySqlCommand(query, connection))
+    //             {
+    //                 command.Parameters.AddWithValue("@CityId", cityId);
 
-                    using var reader = await command.ExecuteReaderAsync();
-                    if (reader.Read())
-                    {
-                        result = new CityInfo
-                        {
-                            CityId = reader.GetString(reader.GetOrdinal("CityId")),
-                            CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                            Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                        };
-                    }
-                }
-            }
+    //                 using var reader = await command.ExecuteReaderAsync();
+    //                 if (reader.Read())
+    //                 {
+    //                     result = new CityInfo
+    //                     {
+    //                         CityId = reader.GetString(reader.GetOrdinal("CityId")),
+    //                         CityName = reader.GetString(reader.GetOrdinal("CityName")),
+    //                         Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+    //                         Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+    //                     };
+    //                 }
+    //             }
+    //         }
 
-            if (result == null)
-            {
-                Console.WriteLine("City not found.");
-            }
+    //         if (result == null)
+    //         {
+    //             Console.WriteLine("City not found.");
+    //         }
 
-            Console.WriteLine("Product fetched successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error here: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error there: {ex.Message}");
-        }
+    //         Console.WriteLine("Product fetched successfully.");
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"Error here: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error there: {ex.Message}");
+    //     }
 
-        return result;
-    }
+    //     return result;
+    // }
 
-    public async Task<Coordinates?> GetCityCoordinates(string cityName)
-    {
-        Coordinates result = null;
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
+    // public async Task<Coordinates?> GetCityCoordinates(string cityName)
+    // {
+    //     Coordinates result = null;
+    //     try
+    //     {
+    //         using var connection = new MySqlConnection(_connectionString);
+    //         await connection.OpenAsync();
 
-            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
-            using var command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@CityName", cityName.ToLower());
+    //         var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
+    //         using var command = new MySqlCommand(query, connection);
+    //         command.Parameters.AddWithValue("@CityName", cityName.ToLower());
 
-            using var reader = await command.ExecuteReaderAsync();
-            if (reader.Read())
-            {
-                result = new Coordinates
-                {
-                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                };
-            }
+    //         using var reader = await command.ExecuteReaderAsync();
+    //         if (reader.Read())
+    //         {
+    //             result = new Coordinates
+    //             {
+    //                 Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+    //                 Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+    //             };
+    //         }
 
-            Console.WriteLine("Product fetched successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error here: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error there: {ex.Message}");
-        }
+    //         Console.WriteLine("Product fetched successfully.");
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"Error here: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error there: {ex.Message}");
+    //     }
 
-        return result;
-    }
+    //     return result;
+    // }
 
-    public async Task<List<CityInfo>> GetCities(List<string> cityNames)
-    {
-        var cities = new List<CityInfo>();
+    // public async Task<List<CityInfo>> GetCities(List<string> cityNames)
+    // {
+    //     var cities = new List<CityInfo>();
 
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
+    //     try
+    //     {
+    //         using var connection = new MySqlConnection(_connectionString);
+    //         await connection.OpenAsync();
 
-            var parameters = cityNames.Select((name, index) => $"@CityName{index}").ToList();
-            var query = $"SELECT * FROM cities WHERE CityName IN ({string.Join(",", parameters)});";
-            using var command = new MySqlCommand(query, connection);
+    //         var parameters = cityNames.Select((name, index) => $"@CityName{index}").ToList();
+    //         var query = $"SELECT * FROM cities WHERE CityName IN ({string.Join(",", parameters)});";
+    //         using var command = new MySqlCommand(query, connection);
 
-            for (int i = 0; i < cityNames.Count; i++)
-            {
-                command.Parameters.AddWithValue($"@CityName{i}", cityNames[i]);
-            }
+    //         for (int i = 0; i < cityNames.Count; i++)
+    //         {
+    //             command.Parameters.AddWithValue($"@CityName{i}", cityNames[i]);
+    //         }
 
-            using var reader = await command.ExecuteReaderAsync();
-            while (reader.Read())
-            {
-                var city = new CityInfo
-                {
-                    CityId = reader.GetString(reader.GetOrdinal("CityId")),
-                    CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                };
-                cities.Add(city);
-            }
+    //         using var reader = await command.ExecuteReaderAsync();
+    //         while (reader.Read())
+    //         {
+    //             var city = new CityInfo
+    //             {
+    //                 CityId = reader.GetString(reader.GetOrdinal("CityId")),
+    //                 CityName = reader.GetString(reader.GetOrdinal("CityName")),
+    //                 Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+    //                 Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+    //             };
+    //             cities.Add(city);
+    //         }
 
-            Console.WriteLine("Product fetched successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
+    //         Console.WriteLine("Product fetched successfully.");
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
 
-        return cities;
-    }
+    //     return cities;
+    // }
 
-    public async Task<List<CityInfo>> GetCities(string cityNameContains)
-    {
-        var cities = new List<CityInfo>();
+    // public async Task<List<CityInfo>> GetCities(string cityNameContains)
+    // {
+    //     var cities = new List<CityInfo>();
 
-        try
-        {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
+    //     try
+    //     {
+    //         using (var connection = new MySqlConnection(_connectionString))
+    //         {
+    //             await connection.OpenAsync();
 
-                var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
+    //             var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
+    //             using (var command = new MySqlCommand(query, connection))
+    //             {
+    //                 command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
 
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        while (reader.Read())
-                        {
-                            var city = new CityInfo
-                            {
-                                CityId = reader.GetString(reader.GetOrdinal("CityId")),
-                                CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                            };
-                            cities.Add(city);
-                        }
-                    }
-                }
-            }
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
+    //                 using (var reader = await command.ExecuteReaderAsync())
+    //                 {
+    //                     while (reader.Read())
+    //                     {
+    //                         var city = new CityInfo
+    //                         {
+    //                             CityId = reader.GetString(reader.GetOrdinal("CityId")),
+    //                             CityName = reader.GetString(reader.GetOrdinal("CityName")),
+    //                             Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+    //                             Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+    //                         };
+    //                         cities.Add(city);
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
 
-        return cities;
-    }
+    //     return cities;
+    // }
 
-    public async Task<CityInfo> UpdateCity(CityInfo updatedCity)
-    {
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
+    // public async Task<CityInfo> UpdateCity(CityInfo updatedCity)
+    // {
+    //     try
+    //     {
+    //         using var connection = new MySqlConnection(_connectionString);
+    //         await connection.OpenAsync();
 
-            var query = "UPDATE cities SET CityName = @CityName, Latitude = @Latitude, Longitude = @Longitude WHERE CityId = @CityId;";
-            using var command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@CityId", updatedCity.CityId);
-            command.Parameters.AddWithValue("@CityName", updatedCity.CityName);
-            command.Parameters.AddWithValue("@Latitude", updatedCity.Latitude);
-            command.Parameters.AddWithValue("@Longitude", updatedCity.Longitude);
+    //         var query = "UPDATE cities SET CityName = @CityName, Latitude = @Latitude, Longitude = @Longitude WHERE CityId = @CityId;";
+    //         using var command = new MySqlCommand(query, connection);
+    //         command.Parameters.AddWithValue("@CityId", updatedCity.CityId);
+    //         command.Parameters.AddWithValue("@CityName", updatedCity.CityName);
+    //         command.Parameters.AddWithValue("@Latitude", updatedCity.Latitude);
+    //         command.Parameters.AddWithValue("@Longitude", updatedCity.Longitude);
 
-            await command.ExecuteNonQueryAsync();
+    //         await command.ExecuteNonQueryAsync();
 
-            Console.WriteLine("Product modified successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
+    //         Console.WriteLine("Product modified successfully.");
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
 
-        return await GetCity(updatedCity.CityId);
-    }
+    //     return await GetCity(updatedCity.CityId);
+    // }
 
-    public async Task DeleteCity(string cityId)
-    {
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
+    // public async Task DeleteCity(string cityId)
+    // {
+    //     try
+    //     {
+    //         using var connection = new MySqlConnection(_connectionString);
+    //         await connection.OpenAsync();
 
-            var query = "DELETE FROM cities WHERE CityId = @CityId";
-            using var command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@CityId", cityId);
+    //         var query = "DELETE FROM cities WHERE CityId = @CityId";
+    //         using var command = new MySqlCommand(query, connection);
+    //         command.Parameters.AddWithValue("@CityId", cityId);
 
-            await command.ExecuteNonQueryAsync();
+    //         await command.ExecuteNonQueryAsync();
 
-            Console.WriteLine("Product deleted successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-    }
+    //         Console.WriteLine("Product deleted successfully.");
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Error: {ex.Message}");
+    //     }
+    // }
 
     public async Task<DateTime> GetLastSyncAsync()
     {
@@ -399,176 +399,183 @@ public class MySQLManager : IDatabaseManager
         await cmd.ExecuteNonQueryAsync();
     }
 
-    private static async Task<string> ExecuteSparqlAsync(string query)
-    {
-        using var client = new HttpClient();
+    // private static async Task<string> ExecuteSparqlAsync(string query)
+    // {
+    //     using var client = new HttpClient();
 
-        client.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "CityDistanceService/1.0 (https://yourdomain.example; your-email@example.com)"
-        );
-        client.DefaultRequestHeaders.Accept.ParseAdd("application/sparql-results+json");
+    //     client.DefaultRequestHeaders.UserAgent.ParseAdd(
+    //         "CityDistanceService/1.0 (https://yourdomain.example; your-email@example.com)"
+    //     );
+    //     client.DefaultRequestHeaders.Accept.ParseAdd("application/sparql-results+json");
 
-        var content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["query"] = query
-        });
+    //     var content = new FormUrlEncodedContent(new Dictionary<string, string>
+    //     {
+    //         ["query"] = query
+    //     });
 
-        var response = await client.PostAsync("https://query.wikidata.org/sparql", content);
-        var raw = await response.Content.ReadAsStringAsync();
+    //     var response = await client.PostAsync("https://query.wikidata.org/sparql", content);
+    //     var raw = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine("Wikidata response status: " + response.StatusCode);
+    //     Console.WriteLine("Wikidata response status: " + response.StatusCode);
 
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Wikidata status {response.StatusCode}. Body:\n{raw}");
+    //     if (!response.IsSuccessStatusCode)
+    //         throw new Exception($"Wikidata status {response.StatusCode}. Body:\n{raw}");
 
-        return raw;
-    }
+    //     return raw;
+    // }
 
-    public async Task<List<SparQLCityInfo>> FetchCitiesAsync(DateTime lastSync)
-    {
-        string lastSyncIso = lastSync.ToString("yyyy-MM-ddTHH:mm:ssZ");
+    // public async Task<List<SparQLCityInfo>> FetchCitiesAsync(DateTime lastSync)
+    // {
+    //     string lastSyncIso = lastSync.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-        string query = $@"
-        SELECT ?city ?cityLabel ?lat ?lon ?modified WHERE {{
-            ?city wdt:P625 ?coord .
-            ?city wdt:P31 ?type .
-            ?type wdt:P279* wd:Q515 .                # items whose type is a subclass of city
-            ?city schema:dateModified ?modified .
-            FILTER(?modified > ""{lastSyncIso}""^^xsd:dateTime)
-            BIND(geof:latitude(?coord) AS ?lat)
-            BIND(geof:longitude(?coord) AS ?lon)
-            SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""en"". }}
-        }}
-    ";
+    //     string query = $@"
+    //         SELECT ?city ?cityLabel (LANG(?cityLabel) AS ?lang) ?lat ?lon ?modified WHERE {{
+    //         ?city wdt:P625 ?coord .
+    //         ?city wdt:P31/wdt:P279* wd:Q515 .        # items whose type is a subclass of city
+    //         ?city schema:dateModified ?modified .
+    //         FILTER(?modified > ""{lastSyncIso}""^^xsd:dateTime)
 
-        var raw = await ExecuteSparqlAsync(query);
+    //         # Get the label in ALL available languages
+    //         ?city rdfs:label ?cityLabel.
 
-        using var json = JsonDocument.Parse(raw);
+    //         BIND(geof:latitude(?coord) AS ?lat)
+    //         BIND(geof:longitude(?coord) AS ?lon)
+    //         }}
+    //     ";
 
-        var bindings = json.RootElement
-            .GetProperty("results")
-            .GetProperty("bindings");
+    //     var raw = await ExecuteSparqlAsync(query);
 
-        int bindingCount = 0;
-        var cities = new List<SparQLCityInfo>();
+    //     using var json = JsonDocument.Parse(raw);
+    //     var bindings = json.RootElement
+    //         .GetProperty("results")
+    //         .GetProperty("bindings");
 
-        foreach (var row in bindings.EnumerateArray())
-        {
-            if (!row.TryGetProperty("city", out var cityProp) ||
-                !cityProp.TryGetProperty("value", out var cityValProp))
-                continue;
-            string id = cityValProp.GetString()!.Split('/').Last();
+    //     int bindingCount = 0;
+    //     var intermediateLabels = new List<SparQLCityLabel>();
 
-            if (!row.TryGetProperty("cityLabel", out var labelProp) ||
-                !labelProp.TryGetProperty("value", out var labelVal))
-                continue;
-            string name = labelVal.GetString()!;
+    //     foreach (var row in bindings.EnumerateArray())
+    //     {
+    //         // 1. Basic property extraction 
+    //         string id = row.GetProperty("city").GetProperty("value").GetString()!.Split('/').Last();
+    //         string name = row.GetProperty("cityLabel").GetProperty("value").GetString()!;
+    //         double lat = double.Parse(row.GetProperty("lat").GetProperty("value").GetString()!);
+    //         double lon = double.Parse(row.GetProperty("lon").GetProperty("value").GetString()!);
+    //         DateTime modified = DateTime.Parse(row.GetProperty("modified").GetProperty("value").GetString()!);
 
-            // --- OPTIONAL
-            string modified = row.TryGetProperty("modified", out var modProp) &&
-                              modProp.TryGetProperty("value", out var modVal)
-                              ? modVal.GetString()!
-                              : "2000-01-01T00:00:00Z";
+    //         // 2. Get the language code
+    //         string lang = row.TryGetProperty("lang", out var langProp) &&
+    //                     langProp.TryGetProperty("value", out var langVal)
+    //                     ? langVal.GetString()!
+    //                     : "und"; // 'und' for undefined if language is not set (rare, but safe)
+            
+    //         intermediateLabels.Add(new SparQLCityLabel
+    //         {
+    //             WikidataId = id,
+    //             CityName = name,
+    //             LanguageCode = lang,
+    //             Latitude = lat,
+    //             Longitude = lon,
+    //             Modified = modified
+    //         });
+    //     }
 
-            if (!row.TryGetProperty("lat", out var latProp) ||
-                !latProp.TryGetProperty("value", out var latVal) ||
-                !double.TryParse(latVal.GetString(), out double lat))
-                continue;
+    //     // 3. Aggregate Labels by CityId
+    //     var finalDocuments = intermediateLabels
+    //         .GroupBy(label => label.WikidataId)
+    //         .Select(group => {
+    //             // Take the first item to get coordinates and ID (all items in the group have the same coordinates)
+    //             var first = group.First();
+                
+    //             return new ElasticCityDocument
+    //             {
+    //                 CityId = first.WikidataId,
+    //                 Latitude = first.Latitude,
+    //                 Longitude = first.Longitude,
+    //                 Location = $"{first.Latitude},{first.Longitude}", // GeoPoint format
+    //                 Modified = group.Max(g => g.Modified), // Use the latest modification date across all labels
+                    
+    //                 // Build the multilingual dictionary: { "en": "New York", "fr": "Nouvelle-York" }
+    //                 CityName = group.ToDictionary(
+    //                     label => label.LanguageCode,
+    //                     label => label.CityName,
+    //                     StringComparer.OrdinalIgnoreCase // Case-insensitive key comparison
+    //                 )
+    //             };
+    //         })
+    //         .ToList();
+        
+    //     Console.WriteLine($"SPARQL returned {intermediateLabels.Count} language bindings, aggregated into {finalDocuments.Count} unique cities.");
+    //     return finalDocuments;
+    // }
 
-            if (!row.TryGetProperty("lon", out var lonProp) ||
-                !lonProp.TryGetProperty("value", out var lonVal) ||
-                !double.TryParse(lonVal.GetString(), out double lon))
-                continue;
+    // // Updates cities in MySQL database based on SparQL wiki query information gained from FetchCitiesAsync
+    // public async Task<int> SynchronizeElasticSearchAsync()
+    // {
+    //     var lastSync = await GetLastSyncAsync();
+    //     var cities = await FetchCitiesAsync(lastSync);
 
-            cities.Add(new SparQLCityInfo
-            {
-                WikidataId = id,
-                CityName = name,
-                Latitude = lat,
-                Longitude = lon,
-            });
-        }
+    //     if (cities.Count == 0)
+    //     {
+    //         Console.WriteLine("No new or updated cities found.");
+    //         return 0;
+    //     }
 
-        Console.WriteLine($"SPARQL returned {bindingCount} bindings; parsed {cities.Count} cities.");
+    //     Console.WriteLine($"Fetched {cities.Count} new or updated cities from Wikidata since {lastSync}.");
 
-        if (bindingCount == 0)
-        {
-            // Helpful for debugging — show the top-level JSON keys
-            Console.WriteLine("No bindings. Top-level keys: " +
-                string.Join(", ", json.RootElement.EnumerateObject().Select(p => p.Name)));
-        }
+    //     var upsertedCities = await BulkUpsertCitiesAsync(cities);
+    //     Console.WriteLine($"Updated and or inserted {upsertedCities} cities.");
 
-        return cities;
-    }
+    //     await UpdateLastSyncAsync(DateTime.UtcNow);
 
-    // Updates cities in MySQL database based on SparQL wiki query information gained from FetchCitiesAsync
-    public async Task<int> UpdateCityDatabaseAsync()
-    {
-        var lastSync = await GetLastSyncAsync();
-        var cities = await FetchCitiesAsync(lastSync);
+    //     return upsertedCities;
+    // }
 
-        if (cities.Count == 0)
-        {
-            Console.WriteLine("No new or updated cities found.");
-            return 0;
-        }
+    // public async Task<int> BulkUpsertCitiesAsync(List<SparQLCityInfo> cities)
+    // {
+    //     using var connection = new MySqlConnection(_connectionString);
+    //     await connection.OpenAsync();
 
-        Console.WriteLine($"Fetched {cities.Count} new or updated cities from Wikidata since {lastSync}.");
+    //     using var transaction = await connection.BeginTransactionAsync();
 
-        var upsertedCities = await BulkUpsertCitiesAsync(cities);
-        Console.WriteLine($"Updated and or inserted {upsertedCities} cities.");
+    //     var command = connection.CreateCommand();
+    //     command.Transaction = transaction;
 
-        await UpdateLastSyncAsync(DateTime.UtcNow);
+    //     command.CommandText = @"
+    //         INSERT INTO cities (CityId, CityName, Latitude, Longitude)
+    //         VALUES (@CityId, @CityName, @Latitude, @Longitude)
+    //         ON DUPLICATE KEY UPDATE
+    //             CityName = VALUES(CityName),
+    //             Latitude = VALUES(Latitude),
+    //             Longitude = VALUES(Longitude);";
 
-        return upsertedCities;
-    }
+    //     var idParam = command.Parameters.Add("@CityId", MySqlDbType.VarChar);
+    //     var nameParam = command.Parameters.Add("@CityName", MySqlDbType.VarChar);
+    //     var latParam = command.Parameters.Add("@Latitude", MySqlDbType.Double);
+    //     var lonParam = command.Parameters.Add("@Longitude", MySqlDbType.Double);
 
-    public async Task<int> BulkUpsertCitiesAsync(List<SparQLCityInfo> cities)
-    {
-        using var connection = new MySqlConnection(_connectionString);
-        await connection.OpenAsync();
+    //     int affected = 0;
 
-        using var transaction = await connection.BeginTransactionAsync();
+    //     try
+    //     {
+    //         foreach (var city in cities)
+    //         {
+    //             idParam.Value = city.WikidataId;
+    //             nameParam.Value = city.CityName;
+    //             latParam.Value = city.Latitude;
+    //             lonParam.Value = city.Longitude;
 
-        var command = connection.CreateCommand();
-        command.Transaction = transaction;
+    //             affected += await command.ExecuteNonQueryAsync();
+    //         }
 
-        command.CommandText = @"
-            INSERT INTO cities (CityId, CityName, Latitude, Longitude)
-            VALUES (@CityId, @CityName, @Latitude, @Longitude)
-            ON DUPLICATE KEY UPDATE
-                CityName = VALUES(CityName),
-                Latitude = VALUES(Latitude),
-                Longitude = VALUES(Longitude);";
+    //         await transaction.CommitAsync();
+    //     }
+    //     catch
+    //     {
+    //         Console.WriteLine("Error occurred while upserting cities.");
+    //         await transaction.RollbackAsync();
+    //         throw;
+    //     }
 
-        var idParam = command.Parameters.Add("@CityId", MySqlDbType.VarChar);
-        var nameParam = command.Parameters.Add("@CityName", MySqlDbType.VarChar);
-        var latParam = command.Parameters.Add("@Latitude", MySqlDbType.Double);
-        var lonParam = command.Parameters.Add("@Longitude", MySqlDbType.Double);
-
-        int affected = 0;
-
-        try
-        {
-            foreach (var city in cities)
-            {
-                idParam.Value = city.WikidataId;
-                nameParam.Value = city.CityName;
-                latParam.Value = city.Latitude;
-                lonParam.Value = city.Longitude;
-
-                affected += await command.ExecuteNonQueryAsync();
-            }
-
-            await transaction.CommitAsync();
-        }
-        catch
-        {
-            Console.WriteLine("Error occurred while upserting cities.");
-            await transaction.RollbackAsync();
-            throw;
-        }
-
-        return affected;
-    }
+    //     return affected;
+    // }
 }
