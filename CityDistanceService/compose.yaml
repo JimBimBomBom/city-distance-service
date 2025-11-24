@@ -27,23 +27,10 @@ services:
         ports:
             - "8080:8080"
         depends_on:
-            - db
+            - elasticsearch
         networks:
             - cdsNetwork
 
-    db:
-        image: mysql:latest
-        container_name: cds_mysql_db
-        env_file: 
-            - path: "DefaultDatabaseEnv.env"
-              required: true # default env file
-            - path: "ProductionDatabaseEnv.env"
-              required: false # production env file -> overrides values from DefaultDatabaseEnv.env if set
-        networks:
-            - cdsNetwork
-        volumes:
-            - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
-    
     caddy: # Renamed service from swag to caddy
         build: 
             context: .
@@ -63,70 +50,33 @@ services:
         networks:
             - cdsNetwork
 
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.17.2
+        container_name: elasticsearch
+        restart:
+            - unless-stopped
+        environment: 
+            - discovery.type=single-node
+            - ELASTIC_PASSWORD=secretPwd123 # TODO: remove hardcoded password, probably will be managed through an env file
+        ports:
+            - "9200:9200"
+        networks:
+            - cdsNetwork
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        volumes:
+            - es_data:/usr/share/elasticsearch/data 
+
 networks:
     cdsNetwork: {}
 
 volumes:
-    db_data: {}
+    es_data: {}
     caddy_data: # Define the new named volumes
     caddy_config:
 
-    # swag:
-    #     image: linuxserver/swag
-    #     container_name: swag
-    #     cap_add:
-    #         - NET_ADMIN
-    #     environment:
-    #         - PUID=1000
-    #         - PGID=1000
-    #         - TZ=Europe/London
-    #         - URL=citydistanceservice.duckdns.org
-    #         - SUBDOMAINS=wildcard
-    #         - VALIDATION=dns
-    #         - DNSPLUGIN=duckdns
-    #         - DUCKDNSTOKEN=5680b4d0-9cdd-46cb-9de7-c9e06775e451
-    #         - EMAIL=filipkurcak1@gmail.com
-    #     volumes:
-    #         - ./swag/config:/config  # This is where your config files will live
-    #     ports:
-    #         - "8443:443"  # SWAG handles the HTTPS entry
-    #     networks:
-    #         - cdsNetwork 
-    #     restart: unless-stopped
-    
-    # nginx:
-    #     image: nginx:latest
-    #     container_name: nginx_reverse_proxy
-    #     ports:
-    #         - "8443:443"
-    #     depends_on:
-    #         - cert_renewer
-    #     networks:
-    #         - cdsNetwork
-    #     volumes:
-    #         - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-    #         - certs:/etc/nginx/certs
-    #         # - ./nginx/logs:/nginx/logs
-    
-    # cert_renewer:
-    #     build: ./cert_renewer
-    #     container_name: cert_renewer
-    #     volumes:
-    #         - certs:/certs
-    #         - /var/run/docker.sock:/var/run/docker.sock
-        
-    # elasticsearch:
-    #     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.2
-    #     container_name: elasticsearch
-    #     environment: 
-    #         - discovery.type=single-node
-    #         - ELASTIC_PASSWORD=secretPwd123 # TODO: remove hardcoded password, probably will be managed through an env file
-    #     ports:
-    #         - "9200:9200"
-    #     networks:
-    #         - cdsNetwork
-    #     volumes:
-    #         - ./elasticsearch/data:/usr/share/elasticsearch/data
       
     # redis:
     #   image: redis:latest

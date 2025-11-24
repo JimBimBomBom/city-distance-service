@@ -41,15 +41,25 @@ public class CityInfo
     public double Longitude { get; set; }
 }
 
-public class SparQLCityInfo
+public class SparQLCityLabel
 {
     public string WikidataId { get; set; }
-
     public string CityName { get; set; }
-
+    public string LanguageCode { get; set; }
     public double Latitude { get; set; }
-
     public double Longitude { get; set; }
+    public DateTime Modified { get; set; } 
+}
+
+[ElasticsearchType(RelationName = "cities")]
+public class ElasticCityDocument
+{
+    public string CityId { get; set; }
+    public Dictionary<string, string> CityName { get; set; }
+    public double Longitude { get; set; }
+    public double Latitude { get; set; }
+    public string Location { get; set; }
+    public DateTime Modified { get; set;}
 }
 
 public class CityId
