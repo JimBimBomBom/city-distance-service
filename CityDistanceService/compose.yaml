@@ -14,10 +14,10 @@ services:
     #     networks:
     #         - cdsNetwork
 
-    app_debug:
+    app:
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.App
         container_name: city_distance_service_app
         env_file: 
             - path: "DefaultAppEnv.env"
@@ -44,26 +44,76 @@ services:
         volumes:
             - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
     
-    nginx:
-        image: nginx:latest
-        container_name: nginx_reverse_proxy
+    caddy: # Renamed service from swag to caddy
+        build: 
+            context: .
+            dockerfile: Dockerfile.Caddy
+        container_name: caddy
+        restart: unless-stopped
+        env_file:
+            - .caddy.env
+        environment:
+            - TZ=Europe/London
         ports:
-            - "8443:443"
-        depends_on:
-            - cert_renewer
+            - "8443:8443" 
+        volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile # Mounts your Caddy config
+            - caddy_data:/data # Caddy stores certificates here
+            - caddy_config:/config # Caddy stores other configs here
         networks:
             - cdsNetwork
-        volumes:
-            - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-            - certs:/etc/nginx/certs
-            # - ./nginx/logs:/nginx/logs
+
+networks:
+    cdsNetwork: {}
+
+volumes:
+    db_data: {}
+    caddy_data: # Define the new named volumes
+    caddy_config:
+
+    # swag:
+    #     image: linuxserver/swag
+    #     container_name: swag
+    #     cap_add:
+    #         - NET_ADMIN
+    #     environment:
+    #         - PUID=1000
+    #         - PGID=1000
+    #         - TZ=Europe/London
+    #         - URL=citydistanceservice.duckdns.org
+    #         - SUBDOMAINS=wildcard
+    #         - VALIDATION=dns
+    #         - DNSPLUGIN=duckdns
+    #         - DUCKDNSTOKEN=5680b4d0-9cdd-46cb-9de7-c9e06775e451
+    #         - EMAIL=filipkurcak1@gmail.com
+    #     volumes:
+    #         - ./swag/config:/config  # This is where your config files will live
+    #     ports:
+    #         - "8443:443"  # SWAG handles the HTTPS entry
+    #     networks:
+    #         - cdsNetwork 
+    #     restart: unless-stopped
     
-    cert_renewer:
-        build: ./cert_renewer
-        container_name: cert_renewer
-        volumes:
-            - certs:/certs
-            - /var/run/docker.sock:/var/run/docker.sock
+    # nginx:
+    #     image: nginx:latest
+    #     container_name: nginx_reverse_proxy
+    #     ports:
+    #         - "8443:443"
+    #     depends_on:
+    #         - cert_renewer
+    #     networks:
+    #         - cdsNetwork
+    #     volumes:
+    #         - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    #         - certs:/etc/nginx/certs
+    #         # - ./nginx/logs:/nginx/logs
+    
+    # cert_renewer:
+    #     build: ./cert_renewer
+    #     container_name: cert_renewer
+    #     volumes:
+    #         - certs:/certs
+    #         - /var/run/docker.sock:/var/run/docker.sock
         
     # elasticsearch:
     #     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.2
@@ -87,10 +137,3 @@ services:
     #       - cdsNetwork
     #   volumes:
     #       - ./redis_data:/data
-
-networks:
-    cdsNetwork: {}
-
-volumes:
-    db_data: {}
-    certs:
