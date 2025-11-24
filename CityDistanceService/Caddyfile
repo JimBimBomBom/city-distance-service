@@ -1,0 +1,11 @@
+# Global options block
+{
+    email filipkurcak1@gmail.com
+    # Set the DNS provider globally (recommended)
+    acme_dns duckdns {$DUCKDNS_TOKEN} 
+}
+
+# The site block
+citydistanceservice.duckdns.org:8443 { 
+    reverse_proxy city_distance_service_app:8080
+}

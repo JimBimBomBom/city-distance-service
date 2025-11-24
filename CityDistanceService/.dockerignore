@@ -1,0 +1,5 @@
+.gitignore
+.caddy.env
+/caddy_data
+/caddy_config
+/swag/config # If you still have this folder
