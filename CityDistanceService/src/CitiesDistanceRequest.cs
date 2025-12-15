@@ -32,7 +32,18 @@ public class NewCityInfo
 
 public class CityInfo
 {
-    public Guid CityId { get; set; }
+    public string CityId { get; set; }
+
+    public string CityName { get; set; }
+
+    public double Latitude { get; set; }
+
+    public double Longitude { get; set; }
+}
+
+public class SparQLCityInfo
+{
+    public string WikidataId { get; set; }
 
     public string CityName { get; set; }
 
@@ -43,7 +54,7 @@ public class CityInfo
 
 public class CityId
 {
-    public Guid Id { get; set; }
+    public string Id { get; set; }
 }
 
 public class CityName

@@ -96,6 +96,8 @@ builder.Services.AddFluentMigratorCore()
         .ScanIn(typeof(Program).Assembly).For.Migrations())
     .AddLogging(lb => lb.AddFluentMigratorConsole());
 
+builder.Services.AddHostedService<WikidataSyncService>();
+
 // Configure FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<NewCityInfo>();
@@ -182,10 +184,18 @@ app.MapGet("/search/{name}", async ([FromRoute] string name, IDatabaseManager db
     return await RequestHandler.ValidateAndReturnCitiesCloseMatchAsync(name, dbManager);
 }).AllowAnonymous();
 
-app.MapGet("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
+app.MapGet("/city/{id}", async ([FromRoute] string id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.ReturnCityInfoAsync(id, dbManager);
 }).RequireAuthorization("BasicAuthentication");
+
+app.MapPost("/wikidata", async (IDatabaseManager dbManager) =>
+{
+    Console.WriteLine("Starting Wikidata sync...");
+    var response = await RequestHandler.UpdateCityDatabaseAsync(dbManager);
+    Console.WriteLine($"{response}");
+    return response;
+}).AllowAnonymous();
 
 app.MapPost("/distance", async (CitiesDistanceRequest cities, IDatabaseManager dbManager) =>
 {
@@ -205,46 +215,12 @@ app.MapPost("/city", async (NewCityInfo city, IDatabaseManager dbManager, IValid
 .AddFluentValidationAutoValidation()
 .RequireAuthorization("BasicAuthentication");
 
-app.MapPost("/cities-json/bulk", async (HttpRequest request, IDatabaseManager dbManager) =>
-{
-    if (!request.HasFormContentType || request.Form.Files.Count == 0)
-    {
-        return Results.BadRequest("Please upload a JSON file.");
-    }
-
-    var file = request.Form.Files[0];
-    using var stream = file.OpenReadStream();
-    using var reader = new StreamReader(stream);
-    var jsonString = await reader.ReadToEndAsync();
-    List<NewCityInfo> cities;
-    try
-    {
-        cities = JsonConvert.DeserializeObject<List<NewCityInfo>>(jsonString);
-        if (cities == null || cities.Count == 0)
-        {
-            return Results.BadRequest("The JSON file is empty or not in the correct format.");
-        }
-
-        Console.WriteLine(cities.Count);
-    }
-    catch (JsonException ex)
-    {
-        return Results.BadRequest($"Error parsing JSON: {ex.Message}");
-    }
-
-    var successCount = await dbManager.BulkInsertCitiesAsync(cities);
-
-    Console.WriteLine($"Successfully inserted {successCount} cities.");
-    return Results.Ok($"Successfully inserted {successCount} cities.");
-})
-.RequireAuthorization("BasicAuthentication");
-
 app.MapPut("/city", async (CityInfo city, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.UpdateCityInfoAsync(city, dbManager);
 }).RequireAuthorization().RequireAuthorization("BasicAuthentication");
 
-app.MapDelete("/city/{id}", async ([FromRoute] Guid id, IDatabaseManager dbManager) =>
+app.MapDelete("/city/{id}", async ([FromRoute] string id, IDatabaseManager dbManager) =>
 {
     return await RequestHandler.DeleteCityAsync(id, dbManager);
 }).RequireAuthorization().RequireAuthorization("BasicAuthentication");
