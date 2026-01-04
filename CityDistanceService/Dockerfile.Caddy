@@ -1,13 +1,8 @@
-# Dockerfile.Caddy
-
-# Stage 1: Build Caddy with the DuckDNS plugin
 FROM caddy:builder AS builder
 
 RUN xcaddy build \
-    --with github.com/caddy-dns/duckdns
+    --with github.com/caddy-dns/cloudflare
 
-# Stage 2: Create a slim final image
 FROM caddy:latest
-
-# Copy the custom-built Caddy binary into the final image
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+

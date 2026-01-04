@@ -1,0 +1,11 @@
+**/caddy_data/
+**/caddy_config/
+**/esdata/
+
+.caddy.env
+DefaultAppEnv.env
+DefaultDatabaseEnv.env
+
+bin/
+obj/
+*.user
