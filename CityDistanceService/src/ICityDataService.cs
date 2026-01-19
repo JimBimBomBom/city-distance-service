@@ -36,8 +36,11 @@ public class CityDataService : ICityDataService
     {
         var languages = new[]
         {
-            "en", "sk", "de", "fr", "it", "es", "pt", "nl", "sv", "no", "da", "fi", "pl", "cs",
-            "hu", "ro", "el", "bg", "hr", "sr", "sl", "et", "lv", "lt", "ru", "uk", "tr", "zh", "ja",
+            "en", "sk", //"de", "fr", "it", "es",
+            // "pt", "nl", "sv", "no", "da", "fi",
+            // "pl", "cs", "hu", "ro", "el", "bg",
+            // "hr", "sr", "sl", "et", "lv", "lt",
+            // "ru", "uk", "tr", "zh", "ja",
         };
 
         Console.WriteLine("=================================================");

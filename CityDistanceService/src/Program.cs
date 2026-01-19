@@ -82,7 +82,8 @@ var esPassword = builder.Configuration["Elasticsearch:Password"] ?? "testPasswor
 
 var settings = new ElasticsearchClientSettings(new Uri(esUrl))
     .Authentication(new BasicAuthentication("elastic", esPassword))
-    .DefaultIndex("cities");
+    .DefaultIndex("cities")
+    .RequestTimeout(TimeSpan.FromMinutes(5));
 
 var esClient = new ElasticsearchClient(settings);
 builder.Services.AddSingleton(esClient);
