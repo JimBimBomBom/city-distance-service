@@ -9,3 +9,8 @@ DefaultDatabaseEnv.env
 bin/
 obj/
 *.user
+
+data/app/*
+data/elasticsearch/*
+data/mysql/*
+data/caddy/*

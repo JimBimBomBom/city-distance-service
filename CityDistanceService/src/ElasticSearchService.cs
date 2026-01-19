@@ -17,7 +17,7 @@ public class ElasticSearchService : IElasticSearchService
     public async Task EnsureIndexExistsAsync()
     {
         var existsResponse = await _client.Indices.ExistsAsync(IndexName);
-        
+
         if (existsResponse.Exists)
         {
             Console.WriteLine($"Index '{IndexName}' already exists.");
@@ -113,52 +113,115 @@ public class ElasticSearchService : IElasticSearchService
             .Distinct();
     }
 
-    public async Task BulkUpsertCitiesAsync(List<SparQLCityInfo> cities)
+public async Task BulkUpsertCitiesAsync(List<SparQLCityInfo> cities)
+{
+    if (!cities.Any()) return;
+
+    const int batchSize = 500;
+    int totalBatches = (int)Math.Ceiling(cities.Count / (double)batchSize);
+    int totalSuccessful = 0;
+    int totalFailed = 0;
+    
+    Console.WriteLine($"Processing {cities.Count} cities in {totalBatches} batches of {batchSize}...");
+
+    for (int i = 0; i < cities.Count; i += batchSize)
     {
-        if (!cities.Any()) return;
+        var batch = cities.Skip(i).Take(batchSize).ToList();
+        int currentBatch = (i / batchSize) + 1;
 
-        var cityDocs = cities.Select(city => new CityDoc
+        try
         {
-            CityId = city.WikidataId,
-            CityNames = city.AllNames,
-            Location = GeoLocation.LatitudeLongitude(new LatLonGeoLocation
+            var cityDocs = batch.Select(city => new CityDoc
             {
-                Lat = city.Latitude,
-                Lon = city.Longitude,
-            }),
-        }).ToList();
+                CityId = city.WikidataId,
+                CityNames = city.AllNames,
+                Location = GeoLocation.LatitudeLongitude(new LatLonGeoLocation
+                {
+                    Lat = city.Latitude,
+                    Lon = city.Longitude,
+                }),
+            }).ToList();
 
-        var response = await _client.BulkAsync(b => b
-            .Index(IndexName)
-            .UpdateMany(cityDocs, (descriptor, cityDoc) => descriptor
-                .Id(cityDoc.CityId)
-                .Script(s => s
-                    .Source(@"
-                        if (ctx._source.cityNames == null) {
-                            ctx._source.cityNames = [];
-                        }
-                        for (name in params.newNames) {
-                            if (!ctx._source.cityNames.contains(name)) {
-                                ctx._source.cityNames.add(name)
+            var response = await _client.BulkAsync(b => b
+                .Index(IndexName)
+                .UpdateMany(cityDocs, (descriptor, cityDoc) => descriptor
+                    .Id(cityDoc.CityId)
+                    .Script(s => s
+                        .Source(@"
+                            if (ctx._source.cityNames == null) {
+                                ctx._source.cityNames = [];
                             }
-                        }
-                        ctx._source.location = params.location
-                    ")
-                    .Params(p => p
-                        .Add("newNames", cityDoc.CityNames)
-                        .Add("location", cityDoc.Location)
+                            for (name in params.newNames) {
+                                if (!ctx._source.cityNames.contains(name)) {
+                                    ctx._source.cityNames.add(name)
+                                }
+                            }
+                            ctx._source.location = params.location
+                        ")
+                        .Params(p => p
+                            .Add("newNames", cityDoc.CityNames)
+                            .Add("location", cityDoc.Location)
+                        )
                     )
+                    .Upsert(cityDoc)
                 )
-                .Upsert(cityDoc)
-            )
-        );
+            );
 
-        if (!response.IsValidResponse)
+            if (!response.IsValidResponse)
+            {
+                // Check if there are partial failures
+                if (response.ItemsWithErrors.Any())
+                {
+                    int batchFailed = response.ItemsWithErrors.Count();
+                    int batchSuccessful = batch.Count - batchFailed;
+                    
+                    totalSuccessful += batchSuccessful;
+                    totalFailed += batchFailed;
+                    
+                    Console.WriteLine($"⚠ ES Batch {currentBatch}/{totalBatches}: {batchSuccessful} succeeded, {batchFailed} failed");
+                    
+                    // Log first few errors
+                    foreach (var item in response.ItemsWithErrors.Take(3))
+                    {
+                        Console.WriteLine($"  Error on city {item.Id}: {item.Error?.Reason}");
+                    }
+                }
+                else
+                {
+                    // Complete batch failure
+                    totalFailed += batch.Count;
+                    Console.WriteLine($"✗ ES Batch {currentBatch}/{totalBatches} completely failed");
+                    Console.WriteLine($"  Debug Info: {response.DebugInformation}");
+                }
+            }
+            else
+            {
+                totalSuccessful += batch.Count;
+                Console.WriteLine($"✓ ES Batch {currentBatch}/{totalBatches} completed ({batch.Count} cities)");
+            }
+
+            // Small delay between batches
+            if (i + batchSize < cities.Count)
+            {
+                await Task.Delay(200);
+            }
+        }
+        catch (Exception ex)
         {
-            Console.WriteLine($"ES Bulk Error: {response.DebugInformation}");
-            throw new Exception($"Elasticsearch bulk operation failed: {response.DebugInformation}");
+            totalFailed += batch.Count;
+            Console.WriteLine($"[ERROR] ES Batch {currentBatch}/{totalBatches} exception: {ex.Message}");
+            // Continue with next batch instead of throwing
         }
     }
+
+    Console.WriteLine($"\n=== Elasticsearch Summary ===");
+    Console.WriteLine($"Total cities processed: {cities.Count}");
+    Console.WriteLine($"✓ Successfully indexed: {totalSuccessful}");
+    if (totalFailed > 0)
+    {
+        Console.WriteLine($"✗ Failed: {totalFailed}");
+    }
+}
 
     public async Task UpsertCityAsync(CityDoc city)
     {

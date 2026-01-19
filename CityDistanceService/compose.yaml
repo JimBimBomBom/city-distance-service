@@ -21,9 +21,9 @@ services:
         container_name: city_distance_service_app
         env_file: 
             - path: "DefaultAppEnv.env"
-              required: true # default env file
+              required: true
             - path: "ProductionAppEnv.env"
-              required: false # production env file -> overrides values from DefaultAppEnv.env if set
+              required: false
         ports:
             - "8080:8080"
         depends_on:
@@ -31,46 +31,58 @@ services:
           - elasticsearch
         networks:
             - cdsNetwork
+        volumes:
+            - ./data/app/logs:/app/logs
+        restart: unless-stopped
 
     db:
         image: mysql:latest
         container_name: cds_mysql_db
         env_file: 
             - path: "DefaultDatabaseEnv.env"
-              required: true # default env file
+              required: true
             - path: "ProductionDatabaseEnv.env"
-              required: false # production env file -> overrides values from DefaultDatabaseEnv.env if set
+              required: false
         networks:
             - cdsNetwork
         volumes:
             - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
+            - ./data/mysql:/var/lib/mysql  # Persistent database storage
+        restart: unless-stopped
         
     elasticsearch:
-      image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
-      container_name: elasticsearch
-      environment:
-        - ELASTIC_PASSWORD=testPassword123
-        - node.name=elasticsearch
-        - discovery.type=single-node
-        - bootstrap.memory_lock=true
-        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      ulimits:
-        memlock:
-          soft: -1
-          hard: -1
-      volumes:
-        - esdata:/usr/share/elasticsearch/data
-      ports:
-        - "9200:9200"
-      networks:
-        - cdsNetwork
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+        container_name: elasticsearch
+        environment:
+            - ELASTIC_PASSWORD=testPassword123
+            - node.name=elasticsearch
+            - discovery.type=single-node
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+            - xpack.security.enabled=false
+            - http.max_content_length=200mb
+            - http.cors.enabled=true
+            - cluster.routing.allocation.disk.threshold_enabled=true
+            - cluster.routing.allocation.disk.watermark.low=95%
+            - cluster.routing.allocation.disk.watermark.high=97%
+            - cluster.routing.allocation.disk.watermark.flood_stage=98%
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        volumes:
+            - ./data/elasticsearch:/usr/share/elasticsearch/data
+        ports:
+            - "9200:9200"
+        networks:
+            - cdsNetwork
+        restart: unless-stopped
     
     caddy:
         build: 
             context: .
             dockerfile: Dockerfile.Caddy
         container_name: caddy
-        restart: unless-stopped
         env_file:
             - .caddy.env
         environment:
@@ -78,17 +90,12 @@ services:
         ports:
             - "8443:8443" 
         volumes:
-            - ./Caddyfile:/etc/caddy/Caddyfile # Mounts your Caddy config
-            - caddy_data:/data # Caddy stores certificates here
-            - caddy_config:/config # Caddy stores other configs here
+            - ./Caddyfile:/etc/caddy/Caddyfile
+            - ./data/caddy/data:/data  # SSL certificates and other data
+            - ./data/caddy/config:/config  # Caddy configuration cache
         networks:
             - cdsNetwork
+        restart: unless-stopped
 
 networks:
     cdsNetwork: {}
-
-volumes:
-    db_data: 
-    caddy_data: # Define the new named volumes
-    caddy_config:
-    esdata:

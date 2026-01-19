@@ -1,4 +1,5 @@
 .gitignore
 .caddy.env
-/caddy_data
-/caddy_config
+data/
+CityDistanceService.Tests/
+ 
