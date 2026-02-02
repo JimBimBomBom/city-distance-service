@@ -34,16 +34,21 @@ public class CitiesDistanceRequestValidator : AbstractValidator<CitiesDistanceRe
 {
     public CitiesDistanceRequestValidator()
     {
-        RuleFor(x => x.City1).NotEmpty();
-        RuleFor(x => x.City2).NotEmpty();
+        RuleFor(x => x.City1Name).NotEmpty();
+        RuleFor(x => x.City2Name).NotEmpty();
     }
 }
 
+// String validator for input validation
 public class StringValidator : AbstractValidator<string>
 {
     public StringValidator()
     {
-        RuleFor(x => x).NotEmpty();
+        RuleFor(x => x)
+            .NotEmpty().WithMessage("Value cannot be empty")
+            .MinimumLength(1).WithMessage("Value must be at least 1 character")
+            .MaximumLength(100).WithMessage("Value cannot exceed 100 characters")
+            .Matches(@"^[a-zA-Z0-9\s\-\.]+$").WithMessage("Value contains invalid characters");
     }
 }
 

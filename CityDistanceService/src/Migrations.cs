@@ -124,3 +124,23 @@ public class CreateSyncStateTable : Migration
         Delete.Table("sync_state");
     }
 }
+
+[Migration(6)]
+public class RemoveUniqueCityNameIndex : Migration
+{
+    public override void Up()
+    {
+        // Drop the unique index
+        Delete.Index("IX_Cities_CityName").OnTable("cities");
+
+        // Re-create it as a standard non-unique index for performance
+        Create.Index("IX_Cities_CityName").OnTable("cities").OnColumn("CityName");
+    }
+
+    public override void Down()
+    {
+        // Revert to unique if we roll back
+        Delete.Index("IX_Cities_CityName").OnTable("cities");
+        Create.Index("IX_Cities_CityName").OnTable("cities").OnColumn("CityName").Unique();
+    }
+}

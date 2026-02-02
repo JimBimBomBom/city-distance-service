@@ -1,8 +1,7 @@
-using Microsoft.Data.SqlClient;
 using MySqlConnector;
-using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 
-public class MySQLManager : IDatabaseManager
+public class MySQLManager : IDatabaseService
 {
     private readonly string _connectionString;
 
@@ -16,296 +15,190 @@ public class MySQLManager : IDatabaseManager
         try
         {
             using var connection = new MySqlConnection(_connectionString);
-
             await connection.OpenAsync();
-
             Console.WriteLine("Connection successful.");
-        }
-        catch (SqlException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-            return Results.BadRequest($"Error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-            return Results.BadRequest($"Error: {ex.Message}");
-        }
-
-        return Results.Ok(_connectionString);
-    }
-
-    public async Task<List<string>> GetCityNames()
-    {
-        var cityNames = new List<string>();
-
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var query = "SELECT CityName FROM cities;";
-            using var command = new MySqlCommand(query, connection);
-
-            using var reader = await command.ExecuteReaderAsync();
-            while (reader.Read())
-            {
-                cityNames.Add(reader.GetString(reader.GetOrdinal("CityName")));
-            }
-
-            Console.WriteLine("Product fetched successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-
-        return cityNames;
-    }
-
-    public async Task<bool> AddCityNoReturn(NewCityInfo city)
-    {
-        bool success = false;
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var query = @"
-                INSERT IGNORE INTO cities (CityName, Longitude, Latitude) 
-                VALUES (@CityName, @Longitude, @Latitude);";
-            using var command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@CityName", city.CityName);
-            command.Parameters.AddWithValue("@Latitude", city.Latitude);
-            command.Parameters.AddWithValue("@Longitude", city.Longitude);
-
-            int rowsAffected = await command.ExecuteNonQueryAsync();
-            success = rowsAffected > 0;
+            return Results.Ok(new { Message = "Connection successful", ConnectionString = _connectionString });
         }
         catch (MySqlException ex)
         {
             Console.WriteLine($"MySQL Error: {ex.Message}");
+            return Results.BadRequest(new { Error = ex.Message });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"General Error: {ex.Message}");
+            Console.WriteLine($"Error: {ex.Message}");
+            return Results.BadRequest(new { Error = ex.Message });
         }
-
-        return success;
-    }
-
-    public async Task<CityInfo?> AddCity(NewCityInfo city)
-    {
-        CityInfo? addedCity = null;
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            if (await GetCity(city.CityName) == null) // If city already exists we still want to return it from the database
-            {
-                var query = "INSERT INTO cities (CityName, Longitude, Latitude) VALUES (@CityName, @Longitude, @Latitude);";
-                using var command = new MySqlCommand(query, connection);
-                command.Parameters.AddWithValue("@CityName", city.CityName);
-                command.Parameters.AddWithValue("@Latitude", city.Latitude);
-                command.Parameters.AddWithValue("@Longitude", city.Longitude);
-                await command.ExecuteScalarAsync();
-            }
-
-            addedCity = await GetCity(city.CityName);
-            if (addedCity == null)
-            {
-                throw new Exception("Internal error: City not found after adding.");
-            }
-
-            Console.WriteLine("Product added successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error add1: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error add2: {ex.Message}");
-        }
-
-        return addedCity;
     }
 
     public async Task<CityInfo?> GetCity(string cityId)
     {
-        CityInfo result = null;
-        try
-        {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-
-                var query = "SELECT * FROM cities WHERE CityId = @CityId;";
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@CityId", cityId);
-
-                    using var reader = await command.ExecuteReaderAsync();
-                    if (reader.Read())
-                    {
-                        result = new CityInfo
-                        {
-                            CityId = reader.GetString(reader.GetOrdinal("CityId")),
-                            CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                            Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                            Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                        };
-                    }
-                }
-            }
-
-            if (result == null)
-            {
-                Console.WriteLine("City not found.");
-            }
-
-            Console.WriteLine("Product fetched successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error here: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error there: {ex.Message}");
-        }
-
-        return result;
-    }
-
-    public async Task<Coordinates?> GetCityCoordinates(string cityName)
-    {
-        Coordinates result = null;
         try
         {
             using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
 
-            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName;";
+            var query = "SELECT * FROM cities WHERE CityId = @CityId;";
             using var command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@CityName", cityName.ToLower());
+            command.Parameters.AddWithValue("@CityId", cityId);
 
             using var reader = await command.ExecuteReaderAsync();
             if (reader.Read())
             {
-                result = new Coordinates
-                {
-                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                };
-            }
-
-            Console.WriteLine("Product fetched successfully.");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"Error here: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error there: {ex.Message}");
-        }
-
-        return result;
-    }
-
-    public async Task<List<CityInfo>> GetCities(List<string> cityNames)
-    {
-        var cities = new List<CityInfo>();
-
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var parameters = cityNames.Select((name, index) => $"@CityName{index}").ToList();
-            var query = $"SELECT * FROM cities WHERE CityName IN ({string.Join(",", parameters)});";
-            using var command = new MySqlCommand(query, connection);
-
-            for (int i = 0; i < cityNames.Count; i++)
-            {
-                command.Parameters.AddWithValue($"@CityName{i}", cityNames[i]);
-            }
-
-            using var reader = await command.ExecuteReaderAsync();
-            while (reader.Read())
-            {
-                var city = new CityInfo
+                return new CityInfo
                 {
                     CityId = reader.GetString(reader.GetOrdinal("CityId")),
                     CityName = reader.GetString(reader.GetOrdinal("CityName")),
                     Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
                     Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
                 };
-                cities.Add(city);
             }
 
-            Console.WriteLine("Product fetched successfully.");
+            Console.WriteLine($"City with ID {cityId} not found.");
+            return null;
         }
         catch (MySqlException ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"MySQL Error: {ex.Message}");
+            throw;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+            throw;
+        }
+    }
+
+    public async Task<List<CityInfo>> GetCities(List<string> cityIds)
+    {
+        var cities = new List<CityInfo>();
+
+        if (!cityIds.Any())
+            return cities;
+
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = cityIds.Select((id, index) => $"@CityId{index}").ToList();
+            var query = $"SELECT * FROM cities WHERE CityId IN ({string.Join(",", parameters)});";
+            using var command = new MySqlCommand(query, connection);
+
+            for (int i = 0; i < cityIds.Count; i++)
+            {
+                command.Parameters.AddWithValue($"@CityId{i}", cityIds[i]);
+            }
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (reader.Read())
+            {
+                cities.Add(new CityInfo
+                {
+                    CityId = reader.GetString(reader.GetOrdinal("CityId")),
+                    CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                });
+            }
+
+            Console.WriteLine($"Retrieved {cities.Count} cities.");
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"MySQL Error: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            throw;
         }
 
         return cities;
     }
 
-    public async Task<List<CityInfo>> GetCities(string cityNameContains)
+    public async Task<Coordinates?> GetCityCoordinates(string cityId)
     {
-        var cities = new List<CityInfo>();
-
         try
         {
-            using (var connection = new MySqlConnection(_connectionString))
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = "SELECT Latitude, Longitude FROM cities WHERE CityId = @CityId;";
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityId", cityId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (reader.Read())
             {
-                await connection.OpenAsync();
-
-                var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName";
-                using (var command = new MySqlCommand(query, connection))
+                return new Coordinates
                 {
-                    command.Parameters.AddWithValue("@CityName", cityNameContains.ToLower());
-
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        while (reader.Read())
-                        {
-                            var city = new CityInfo
-                            {
-                                CityId = reader.GetString(reader.GetOrdinal("CityId")),
-                                CityName = reader.GetString(reader.GetOrdinal("CityName")),
-                                Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
-                                Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
-                            };
-                            cities.Add(city);
-                        }
-                    }
-                }
+                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                };
             }
+
+            Console.WriteLine($"Coordinates for city {cityId} not found.");
+            return null;
         }
         catch (MySqlException ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"MySQL Error: {ex.Message}");
+            throw;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+            throw;
         }
+    }
 
-        return cities;
+    public async Task<CityInfo> AddCity(NewCityInfo city)
+    {
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            // Check if city already exists by name
+            var existingCity = await GetCityByName(city.CityName, connection);
+            if (existingCity != null)
+            {
+                Console.WriteLine($"City {city.CityName} already exists.");
+                return existingCity;
+            }
+
+            // Insert new city
+            var query = @"
+                INSERT INTO cities (CityName, Longitude, Latitude) 
+                VALUES (@CityName, @Longitude, @Latitude);
+                SELECT LAST_INSERT_ID();";
+            
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityName", city.CityName);
+            command.Parameters.AddWithValue("@Latitude", city.Latitude);
+            command.Parameters.AddWithValue("@Longitude", city.Longitude);
+
+            var newId = await command.ExecuteScalarAsync();
+            var addedCity = await GetCity(newId.ToString());
+
+            if (addedCity == null)
+                throw new Exception("Internal error: City not found after adding.");
+
+            Console.WriteLine($"City {city.CityName} added successfully with ID {newId}.");
+            return addedCity;
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"MySQL Error: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            throw;
+        }
     }
 
     public async Task<CityInfo> UpdateCity(CityInfo updatedCity)
@@ -315,27 +208,37 @@ public class MySQLManager : IDatabaseManager
             using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
 
-            var query = "UPDATE cities SET CityName = @CityName, Latitude = @Latitude, Longitude = @Longitude WHERE CityId = @CityId;";
+            var query = @"
+                UPDATE cities 
+                SET CityName = @CityName, Latitude = @Latitude, Longitude = @Longitude 
+                WHERE CityId = @CityId;";
+            
             using var command = new MySqlCommand(query, connection);
             command.Parameters.AddWithValue("@CityId", updatedCity.CityId);
             command.Parameters.AddWithValue("@CityName", updatedCity.CityName);
             command.Parameters.AddWithValue("@Latitude", updatedCity.Latitude);
             command.Parameters.AddWithValue("@Longitude", updatedCity.Longitude);
 
-            await command.ExecuteNonQueryAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
 
-            Console.WriteLine("Product modified successfully.");
+            if (rowsAffected == 0)
+            {
+                throw new Exception($"City with ID {updatedCity.CityId} not found.");
+            }
+
+            Console.WriteLine($"City {updatedCity.CityId} updated successfully.");
+            return await GetCity(updatedCity.CityId);
         }
         catch (MySqlException ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"MySQL Error: {ex.Message}");
+            throw;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+            throw;
         }
-
-        return await GetCity(updatedCity.CityId);
     }
 
     public async Task DeleteCity(string cityId)
@@ -349,226 +252,160 @@ public class MySQLManager : IDatabaseManager
             using var command = new MySqlCommand(query, connection);
             command.Parameters.AddWithValue("@CityId", cityId);
 
-            await command.ExecuteNonQueryAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
 
-            Console.WriteLine("Product deleted successfully.");
+            if (rowsAffected == 0)
+            {
+                Console.WriteLine($"City with ID {cityId} not found.");
+            }
+            else
+            {
+                Console.WriteLine($"City {cityId} deleted successfully.");
+            }
         }
         catch (MySqlException ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"MySQL Error: {ex.Message}");
+            throw;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+            throw;
         }
-    }
-
-    public async Task<DateTime> GetLastSyncAsync()
-    {
-        using var connection = new MySqlConnection(_connectionString);
-        await connection.OpenAsync();
-
-        var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT LastSync FROM sync_state WHERE SyncKey = 'CitySync'";
-
-        var result = await cmd.ExecuteScalarAsync();
-
-        if (result == null || result == DBNull.Value)
-        {
-            Console.WriteLine("No last sync found, defaulting to 2000-01-01.");
-            return new DateTime(2000, 1, 1);
-        }
-
-        return (DateTime)result;
-    }
-
-    public async Task UpdateLastSyncAsync(DateTime newTimestamp)
-    {
-        using var connection = new MySqlConnection(_connectionString);
-        await connection.OpenAsync();
-
-        var cmd = connection.CreateCommand();
-        cmd.CommandText = @"
-            UPDATE sync_state
-            SET LastSync = @ts
-            WHERE SyncKey = 'CitySync';
-        ";
-
-        cmd.Parameters.AddWithValue("@ts", newTimestamp);
-
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    private static async Task<string> ExecuteSparqlAsync(string query)
-    {
-        using var client = new HttpClient();
-
-        client.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "CityDistanceService/1.0 (https://yourdomain.example; your-email@example.com)"
-        );
-        client.DefaultRequestHeaders.Accept.ParseAdd("application/sparql-results+json");
-
-        var content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["query"] = query
-        });
-
-        var response = await client.PostAsync("https://query.wikidata.org/sparql", content);
-        var raw = await response.Content.ReadAsStringAsync();
-
-        Console.WriteLine("Wikidata response status: " + response.StatusCode);
-
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Wikidata status {response.StatusCode}. Body:\n{raw}");
-
-        return raw;
-    }
-
-    public async Task<List<SparQLCityInfo>> FetchCitiesAsync(DateTime lastSync)
-    {
-        string lastSyncIso = lastSync.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-        string query = $@"
-        SELECT ?city ?cityLabel ?lat ?lon ?modified WHERE {{
-            ?city wdt:P625 ?coord .
-            ?city wdt:P31 ?type .
-            ?type wdt:P279* wd:Q515 .                # items whose type is a subclass of city
-            ?city schema:dateModified ?modified .
-            FILTER(?modified > ""{lastSyncIso}""^^xsd:dateTime)
-            BIND(geof:latitude(?coord) AS ?lat)
-            BIND(geof:longitude(?coord) AS ?lon)
-            SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""en"". }}
-        }}
-    ";
-
-        var raw = await ExecuteSparqlAsync(query);
-
-        using var json = JsonDocument.Parse(raw);
-
-        var bindings = json.RootElement
-            .GetProperty("results")
-            .GetProperty("bindings");
-
-        int bindingCount = 0;
-        var cities = new List<SparQLCityInfo>();
-
-        foreach (var row in bindings.EnumerateArray())
-        {
-            if (!row.TryGetProperty("city", out var cityProp) ||
-                !cityProp.TryGetProperty("value", out var cityValProp))
-                continue;
-            string id = cityValProp.GetString()!.Split('/').Last();
-
-            if (!row.TryGetProperty("cityLabel", out var labelProp) ||
-                !labelProp.TryGetProperty("value", out var labelVal))
-                continue;
-            string name = labelVal.GetString()!;
-
-            // --- OPTIONAL
-            string modified = row.TryGetProperty("modified", out var modProp) &&
-                              modProp.TryGetProperty("value", out var modVal)
-                              ? modVal.GetString()!
-                              : "2000-01-01T00:00:00Z";
-
-            if (!row.TryGetProperty("lat", out var latProp) ||
-                !latProp.TryGetProperty("value", out var latVal) ||
-                !double.TryParse(latVal.GetString(), out double lat))
-                continue;
-
-            if (!row.TryGetProperty("lon", out var lonProp) ||
-                !lonProp.TryGetProperty("value", out var lonVal) ||
-                !double.TryParse(lonVal.GetString(), out double lon))
-                continue;
-
-            cities.Add(new SparQLCityInfo
-            {
-                WikidataId = id,
-                CityName = name,
-                Latitude = lat,
-                Longitude = lon,
-            });
-        }
-
-        Console.WriteLine($"SPARQL returned {bindingCount} bindings; parsed {cities.Count} cities.");
-
-        if (bindingCount == 0)
-        {
-            // Helpful for debugging — show the top-level JSON keys
-            Console.WriteLine("No bindings. Top-level keys: " +
-                string.Join(", ", json.RootElement.EnumerateObject().Select(p => p.Name)));
-        }
-
-        return cities;
-    }
-
-    // Updates cities in MySQL database based on SparQL wiki query information gained from FetchCitiesAsync
-    public async Task<int> UpdateCityDatabaseAsync()
-    {
-        var lastSync = await GetLastSyncAsync();
-        var cities = await FetchCitiesAsync(lastSync);
-
-        if (cities.Count == 0)
-        {
-            Console.WriteLine("No new or updated cities found.");
-            return 0;
-        }
-
-        Console.WriteLine($"Fetched {cities.Count} new or updated cities from Wikidata since {lastSync}.");
-
-        var upsertedCities = await BulkUpsertCitiesAsync(cities);
-        Console.WriteLine($"Updated and or inserted {upsertedCities} cities.");
-
-        await UpdateLastSyncAsync(DateTime.UtcNow);
-
-        return upsertedCities;
     }
 
     public async Task<int> BulkUpsertCitiesAsync(List<SparQLCityInfo> cities)
     {
-        using var connection = new MySqlConnection(_connectionString);
-        await connection.OpenAsync();
+        int totalAffected = 0;
+        const int batchSize = 1000;
 
-        using var transaction = await connection.BeginTransactionAsync();
+        for (int i = 0; i < cities.Count; i += batchSize)
+        {
+            var batch = cities.Skip(i).Take(batchSize).ToList();
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+            using var transaction = await connection.BeginTransactionAsync();
 
-        var command = connection.CreateCommand();
-        command.Transaction = transaction;
+            try
+            {
+                var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                
+                // INSERT IGNORE will skip duplicates
+                command.CommandText = @"
+                    INSERT IGNORE INTO cities (CityId, CityName, Latitude, Longitude)
+                    VALUES (@CityId, @CityName, @Latitude, @Longitude);";
 
-        command.CommandText = @"
-            INSERT INTO cities (CityId, CityName, Latitude, Longitude)
-            VALUES (@CityId, @CityName, @Latitude, @Longitude)
-            ON DUPLICATE KEY UPDATE
-                CityName = VALUES(CityName),
-                Latitude = VALUES(Latitude),
-                Longitude = VALUES(Longitude);";
+                var idParam = command.Parameters.Add("@CityId", MySqlDbType.VarChar);
+                var nameParam = command.Parameters.Add("@CityName", MySqlDbType.VarChar);
+                var latParam = command.Parameters.Add("@Latitude", MySqlDbType.Double);
+                var lonParam = command.Parameters.Add("@Longitude", MySqlDbType.Double);
 
-        var idParam = command.Parameters.Add("@CityId", MySqlDbType.VarChar);
-        var nameParam = command.Parameters.Add("@CityName", MySqlDbType.VarChar);
-        var latParam = command.Parameters.Add("@Latitude", MySqlDbType.Double);
-        var lonParam = command.Parameters.Add("@Longitude", MySqlDbType.Double);
+                foreach (var city in batch)
+                {
+                    idParam.Value = city.WikidataId;
+                    nameParam.Value = city.CityName;
+                    latParam.Value = city.Latitude;
+                    lonParam.Value = city.Longitude;
+                    totalAffected += await command.ExecuteNonQueryAsync();
+                }
 
-        int affected = 0;
+                await transaction.CommitAsync();
+                Console.WriteLine($"Batch complete: {i + batch.Count}/{cities.Count} processed. {totalAffected} inserted.");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                Console.WriteLine($"Error in batch: {ex.Message}");
+                throw;
+            }
+        }
 
+        Console.WriteLine($"Bulk upsert complete. Total {totalAffected} new cities inserted.");
+        return totalAffected;
+    }
+
+    public async Task<DateTime> GetLastSyncAsync()
+    {
         try
         {
-            foreach (var city in cities)
-            {
-                idParam.Value = city.WikidataId;
-                nameParam.Value = city.CityName;
-                latParam.Value = city.Latitude;
-                lonParam.Value = city.Longitude;
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
 
-                affected += await command.ExecuteNonQueryAsync();
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT LastSync FROM sync_state WHERE SyncKey = 'CitySync'";
+
+            var result = await cmd.ExecuteScalarAsync();
+
+            if (result == null || result == DBNull.Value)
+            {
+                Console.WriteLine("No last sync found, defaulting to 2000-01-01.");
+                return new DateTime(2000, 1, 1);
             }
 
-            await transaction.CommitAsync();
+            return (DateTime)result;
         }
-        catch
+        catch (MySqlException ex)
         {
-            Console.WriteLine("Error occurred while upserting cities.");
-            await transaction.RollbackAsync();
+            Console.WriteLine($"MySQL Error: {ex.Message}");
+            // Return default if table doesn't exist yet
+            return new DateTime(2000, 1, 1);
+        }
+    }
+
+    public async Task UpdateLastSyncAsync(DateTime newTimestamp)
+    {
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                INSERT INTO sync_state (SyncKey, LastSync)
+                VALUES ('CitySync', @ts)
+                ON DUPLICATE KEY UPDATE LastSync = @ts;";
+
+            cmd.Parameters.AddWithValue("@ts", newTimestamp);
+
+            await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine($"Last sync updated to {newTimestamp:yyyy-MM-dd HH:mm:ss}");
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"MySQL Error: {ex.Message}");
             throw;
         }
+    }
 
-        return affected;
+    // Private helper method
+    private async Task<CityInfo?> GetCityByName(string cityName, MySqlConnection connection)
+    {
+        try
+        {
+            var query = "SELECT * FROM cities WHERE LOWER(CityName) = @CityName LIMIT 1;";
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@CityName", cityName.ToLower());
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (reader.Read())
+            {
+                return new CityInfo
+                {
+                    CityId = reader.GetString(reader.GetOrdinal("CityId")),
+                    CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                };
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetCityByName: {ex.Message}");
+            return null;
+        }
     }
 }
