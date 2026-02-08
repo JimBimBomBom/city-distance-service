@@ -9,28 +9,27 @@ public static class DistanceCalculationService
     /// Returns -1 if either city is not found.
     /// </summary>
     public static async Task<double> CalculateDistanceAsync(
-        string city1Name, 
-        string city2Name, 
+        string city1Id, 
+        string city2Id, 
         ICityDataService cityService)
     {
         try
         {
-            Console.WriteLine($"Calculating distance between '{city1Name}' and '{city2Name}'");
+            var city1 = await cityService.FindCityByIdAsync(city1Id);
+            var city2 = await cityService.FindCityByIdAsync(city2Id);
 
-            // Step 1: Find both cities using Elasticsearch search -> Database lookup
-            var city1 = await cityService.FindCityByNameAsync(city1Name);
-            var city2 = await cityService.FindCityByNameAsync(city2Name);
+            Console.WriteLine($"Calculating distance between '{city1.CityName}' and '{city2.CityName}'");
 
             // Step 2: Validate that both cities were found
             if (city1 == null)
             {
-                Console.WriteLine($"City not found: {city1Name}");
+                Console.WriteLine($"City not found: {city1.CityName}");
                 return -1;
             }
 
             if (city2 == null)
             {
-                Console.WriteLine($"City not found: {city2Name}");
+                Console.WriteLine($"City not found: {city2.CityName}");
                 return -1;
             }
 

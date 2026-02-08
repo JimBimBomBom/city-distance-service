@@ -4,7 +4,7 @@
     debug
 }
 
-cds.moojtube.com:443 {
+cds.moojtube.com:8443 {
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }

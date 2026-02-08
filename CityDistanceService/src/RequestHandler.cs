@@ -18,8 +18,8 @@ public static class RequestHandler
         try
         {
             var distance = await DistanceCalculationService.CalculateDistanceAsync(
-                request.City1Name,
-                request.City2Name,
+                request.City1Id,
+                request.City2Id,
                 cityService);
 
             if (distance == -1)
@@ -32,8 +32,8 @@ public static class RequestHandler
 
             return Results.Ok(new
             {
-                City1 = request.City1Name,
-                City2 = request.City2Name,
+                City1 = request.City1Id,
+                City2 = request.City2Id,
                 DistanceKm = Math.Round(distance, 2),
                 Message = "Distance calculated successfully"
             });
@@ -129,7 +129,7 @@ public static class RequestHandler
                 return Results.BadRequest(new { Error = "Invalid city name parameter." });
             }
 
-            var cityInfo = await cityService.FindCityByNameAsync(cityName);
+            var cityInfo = await cityService.FindCityByIdAsync(cityName);
 
             if (cityInfo == null)
             {
