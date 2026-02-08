@@ -89,8 +89,8 @@ public class Coordinates
 
 public class CitiesDistanceRequest
 {
-    public string City1Name { get; set; }
-    public string City2Name { get; set; }
+    public string City1Id { get; set; }
+    public string City2Id { get; set; }
 }
 
 // API Response wrapper class

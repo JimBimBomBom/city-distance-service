@@ -5,7 +5,7 @@ public interface ICityDataService
 {
     Task<int> SyncCitiesFromWikidataAsync();
 
-    Task<CityInfo?> FindCityByNameAsync(string cityName);
+    Task<CityInfo?> FindCityByIdAsync(string cityName);
 
     Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName);
 
@@ -109,16 +109,13 @@ public class CityDataService : ICityDataService
         return totalAffected;
     }
 
-    public async Task<CityInfo?> FindCityByNameAsync(string cityName)
+    public async Task<CityInfo?> FindCityByIdAsync(string cityId)
     {
         try
         {
-            Console.WriteLine($"Searching for city: {cityName}");
-            var cityId = await _esService.GetBestCityIdAsync(cityName);
-
             if (cityId == null)
             {
-                Console.WriteLine($"No city found matching: {cityName}");
+                Console.WriteLine($"No city found matching");
                 return null;
             }
 
