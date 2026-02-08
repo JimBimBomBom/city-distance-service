@@ -5,9 +5,9 @@ public interface ICityDataService
 {
     Task<int> SyncCitiesFromWikidataAsync();
 
-    Task<CityInfo?> FindCityByNameAsync(string cityName);
+    Task<CityInfo?> FindCityByIdAsync(string cityName);
 
-    Task<IEnumerable<string>> GetCitySuggestionsAsync(string partialName);
+    Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName);
 
     Task<CityInfo> AddCityAsync(NewCityInfo newCity);
 
@@ -34,14 +34,7 @@ public class CityDataService : ICityDataService
 
     public async Task<int> SyncCitiesFromWikidataAsync()
     {
-        var languages = new[]
-        {
-            "en", "sk", //"de", "fr", "it", "es",
-            // "pt", "nl", "sv", "no", "da", "fi",
-            // "pl", "cs", "hu", "ro", "el", "bg",
-            // "hr", "sr", "sl", "et", "lv", "lt",
-            // "ru", "uk", "tr", "zh", "ja",
-        };
+        var languages = new[] { "en", "sk" };
 
         Console.WriteLine("=================================================");
         Console.WriteLine("Starting Wikidata city synchronization");
@@ -116,16 +109,13 @@ public class CityDataService : ICityDataService
         return totalAffected;
     }
 
-    public async Task<CityInfo?> FindCityByNameAsync(string cityName)
+    public async Task<CityInfo?> FindCityByIdAsync(string cityId)
     {
         try
         {
-            Console.WriteLine($"Searching for city: {cityName}");
-            var cityId = await _esService.GetBestCityIdAsync(cityName);
-
             if (cityId == null)
             {
-                Console.WriteLine($"No city found matching: {cityName}");
+                Console.WriteLine($"No city found matching");
                 return null;
             }
 
@@ -150,7 +140,7 @@ public class CityDataService : ICityDataService
         }
     }
 
-    public async Task<IEnumerable<string>> GetCitySuggestionsAsync(string partialName)
+    public async Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName)
     {
         try
         {

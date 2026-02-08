@@ -34,8 +34,8 @@ public class CitiesDistanceRequestValidator : AbstractValidator<CitiesDistanceRe
 {
     public CitiesDistanceRequestValidator()
     {
-        RuleFor(x => x.City1Name).NotEmpty();
-        RuleFor(x => x.City2Name).NotEmpty();
+        RuleFor(x => x.City1Id).NotEmpty();
+        RuleFor(x => x.City2Id).NotEmpty();
     }
 }
 

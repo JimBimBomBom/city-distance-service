@@ -144,3 +144,27 @@ public class RemoveUniqueCityNameIndex : Migration
         Create.Index("IX_Cities_CityName").OnTable("cities").OnColumn("CityName").Unique();
     }
 }
+
+[Migration(7)]
+public class AddCityMetadata : Migration
+{
+    public override void Up()
+    {
+        Alter.Table("cities")
+            .AddColumn("CountryCode").AsString(2).Nullable()
+            .AddColumn("Country").AsString(100).Nullable()
+            .AddColumn("AdminRegion").AsString(100).Nullable()
+            .AddColumn("Population").AsInt32().Nullable();
+        
+        Create.Index("IX_cities_CountryCode").OnTable("cities")
+            .OnColumn("CountryCode").Ascending();
+    }
+
+    public override void Down()
+    {
+        Delete.Column("CountryCode").FromTable("cities");
+        Delete.Column("Country").FromTable("cities");
+        Delete.Column("AdminRegion").FromTable("cities");
+        Delete.Column("Population").FromTable("cities");
+    }
+}

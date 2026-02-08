@@ -33,42 +33,59 @@ public class MySQLManager : IDatabaseService
 
     public async Task<CityInfo?> GetCity(string cityId)
     {
+        CityInfo result = null;
         try
         {
             using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
 
-            var query = "SELECT * FROM cities WHERE CityId = @CityId;";
+            var query = @"SELECT CityId, CityName, Latitude, Longitude, 
+                     CountryCode, Country, AdminRegion, Population 
+                     FROM cities WHERE CityId = @CityId;";
+
             using var command = new MySqlCommand(query, connection);
             command.Parameters.AddWithValue("@CityId", cityId);
 
             using var reader = await command.ExecuteReaderAsync();
             if (reader.Read())
             {
-                return new CityInfo
+                result = new CityInfo
                 {
                     CityId = reader.GetString(reader.GetOrdinal("CityId")),
                     CityName = reader.GetString(reader.GetOrdinal("CityName")),
                     Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
                     Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                    CountryCode = reader.IsDBNull(reader.GetOrdinal("CountryCode"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("CountryCode")),
+                    Country = reader.IsDBNull(reader.GetOrdinal("Country"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("Country")),
+                    AdminRegion = reader.IsDBNull(reader.GetOrdinal("AdminRegion"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("AdminRegion")),
+                    Population = reader.IsDBNull(reader.GetOrdinal("Population"))
+                        ? null
+                        : reader.GetInt32(reader.GetOrdinal("Population"))
                 };
             }
 
-            Console.WriteLine($"City with ID {cityId} not found.");
-            return null;
+            if (result != null)
+            {
+                Console.WriteLine($"City fetched: {result.CityName}, {result.Country}");
+            }
         }
         catch (MySqlException ex)
         {
             Console.WriteLine($"MySQL Error: {ex.Message}");
-            throw;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            throw;
         }
-    }
 
+        return result;
+    }
     public async Task<List<CityInfo>> GetCities(List<string> cityIds)
     {
         var cities = new List<CityInfo>();
@@ -174,7 +191,7 @@ public class MySQLManager : IDatabaseService
                 INSERT INTO cities (CityName, Longitude, Latitude) 
                 VALUES (@CityName, @Longitude, @Latitude);
                 SELECT LAST_INSERT_ID();";
-            
+
             using var command = new MySqlCommand(query, connection);
             command.Parameters.AddWithValue("@CityName", city.CityName);
             command.Parameters.AddWithValue("@Latitude", city.Latitude);
@@ -212,7 +229,7 @@ public class MySQLManager : IDatabaseService
                 UPDATE cities 
                 SET CityName = @CityName, Latitude = @Latitude, Longitude = @Longitude 
                 WHERE CityId = @CityId;";
-            
+
             using var command = new MySqlCommand(query, connection);
             command.Parameters.AddWithValue("@CityId", updatedCity.CityId);
             command.Parameters.AddWithValue("@CityName", updatedCity.CityName);
@@ -291,16 +308,27 @@ public class MySQLManager : IDatabaseService
             {
                 var command = connection.CreateCommand();
                 command.Transaction = transaction;
-                
-                // INSERT IGNORE will skip duplicates
+
+                // INSERT IGNORE only adds new cities, doesn't update existing
+                // Use ON DUPLICATE KEY UPDATE if you want to update metadata
                 command.CommandText = @"
-                    INSERT IGNORE INTO cities (CityId, CityName, Latitude, Longitude)
-                    VALUES (@CityId, @CityName, @Latitude, @Longitude);";
+                    INSERT INTO cities 
+                    (CityId, CityName, Latitude, Longitude, CountryCode, Country, AdminRegion, Population)
+                    VALUES (@CityId, @CityName, @Latitude, @Longitude, @CountryCode, @Country, @AdminRegion, @Population)
+                    ON DUPLICATE KEY UPDATE
+                        CountryCode = VALUES(CountryCode),
+                        Country = VALUES(Country),
+                        AdminRegion = VALUES(AdminRegion),
+                        Population = VALUES(Population);";
 
                 var idParam = command.Parameters.Add("@CityId", MySqlDbType.VarChar);
                 var nameParam = command.Parameters.Add("@CityName", MySqlDbType.VarChar);
                 var latParam = command.Parameters.Add("@Latitude", MySqlDbType.Double);
                 var lonParam = command.Parameters.Add("@Longitude", MySqlDbType.Double);
+                var countryCodeParam = command.Parameters.Add("@CountryCode", MySqlDbType.VarChar);
+                var countryParam = command.Parameters.Add("@Country", MySqlDbType.VarChar);
+                var adminParam = command.Parameters.Add("@AdminRegion", MySqlDbType.VarChar);
+                var popParam = command.Parameters.Add("@Population", MySqlDbType.Int32);
 
                 foreach (var city in batch)
                 {
@@ -308,21 +336,24 @@ public class MySQLManager : IDatabaseService
                     nameParam.Value = city.CityName;
                     latParam.Value = city.Latitude;
                     lonParam.Value = city.Longitude;
+                    countryCodeParam.Value = (object)city.CountryCode ?? DBNull.Value;
+                    countryParam.Value = (object)city.Country ?? DBNull.Value;
+                    adminParam.Value = (object)city.AdminRegion ?? DBNull.Value;
+                    popParam.Value = city.Population.HasValue ? (object)city.Population.Value : DBNull.Value;
+
                     totalAffected += await command.ExecuteNonQueryAsync();
                 }
 
                 await transaction.CommitAsync();
-                Console.WriteLine($"Batch complete: {i + batch.Count}/{cities.Count} processed. {totalAffected} inserted.");
+                Console.WriteLine($"MySQL Batch: {i + batch.Count}/{cities.Count} processed.");
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                Console.WriteLine($"Error in batch: {ex.Message}");
+                Console.WriteLine($"MySQL batch error: {ex.Message}");
                 throw;
             }
         }
-
-        Console.WriteLine($"Bulk upsert complete. Total {totalAffected} new cities inserted.");
         return totalAffected;
     }
 
