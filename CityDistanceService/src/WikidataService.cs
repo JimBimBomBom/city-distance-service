@@ -11,7 +11,7 @@ public class WikidataService : IWikidataService
 {
     private static readonly HttpClient _httpClient = new HttpClient
     {
-        Timeout = TimeSpan.FromMinutes(5)
+        Timeout = TimeSpan.FromMinutes(10)
     };
 
     static WikidataService()
@@ -27,18 +27,36 @@ public class WikidataService : IWikidataService
         string lastSyncIso = lastSync.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
         string query = $@"
-        SELECT ?city ?label ?lat ?lon ?modified WHERE {{
-            ?city wdt:P625 ?coord .
-            ?city wdt:P31/wdt:P279* wd:Q515 .
-            ?city schema:dateModified ?modified .
-            ?city rdfs:label ?label .
-            
-            FILTER(LANG(?label) = ""{language}"")
-            FILTER(?modified > ""{lastSyncIso}""^^xsd:dateTime)
-            
-            BIND(geof:latitude(?coord) AS ?lat)
-            BIND(geof:longitude(?coord) AS ?lon)
-        }}";
+            SELECT ?city ?label ?lat ?lon ?modified ?countryLabel ?iso2 ?adminLabel ?pop WHERE {{
+                ?city wdt:P625 ?coord .
+                ?city wdt:P31/wdt:P279* wd:Q515 .
+                ?city schema:dateModified ?modified .
+                ?city rdfs:label ?label .
+                
+                # Country and ISO code
+                OPTIONAL {{ 
+                    ?city wdt:P17 ?country . 
+                    ?country rdfs:label ?countryLabel .
+                    ?country wdt:P297 ?iso2 .
+                    FILTER(LANG(?countryLabel) = ""en"")
+                }}
+                
+                # Administrative region (state/province)
+                OPTIONAL {{ 
+                    ?city wdt:P131 ?admin . 
+                    ?admin rdfs:label ?adminLabel .
+                    FILTER(LANG(?adminLabel) = ""{language}"")
+                }}
+                
+                # Population
+                OPTIONAL {{ ?city wdt:P1082 ?pop . }}
+                
+                FILTER(LANG(?label) = ""{language}"")
+                FILTER(?modified > ""{lastSyncIso}""^^xsd:dateTime)
+                
+                BIND(geof:latitude(?coord) AS ?lat)
+                BIND(geof:longitude(?coord) AS ?lon)
+            }}";
 
         var raw = await ExecuteSparqlAsync(query);
         return ParseSparqlResponse(raw);
@@ -92,6 +110,26 @@ public class WikidataService : IWikidataService
                     continue;
                 }
 
+                // Extract optional metadata fields
+                string country = row.TryGetProperty("countryLabel", out var countryProp)
+                    ? countryProp.GetProperty("value").GetString()
+                    : null;
+
+                string countryCode = row.TryGetProperty("iso2", out var iso2Prop)
+                    ? iso2Prop.GetProperty("value").GetString()
+                    : null;
+
+                string adminRegion = row.TryGetProperty("adminLabel", out var adminProp)
+                    ? adminProp.GetProperty("value").GetString()
+                    : null;
+
+                int? population = null;
+                if (row.TryGetProperty("pop", out var popProp) &&
+                    int.TryParse(popProp.GetProperty("value").GetString(), out int pop))
+                {
+                    population = pop;
+                }
+
                 cities.Add(new SparQLCityInfo
                 {
                     WikidataId = id,
@@ -99,6 +137,10 @@ public class WikidataService : IWikidataService
                     AllNames = new List<string> { cityName },
                     Latitude = lat,
                     Longitude = lon,
+                    Country = country,
+                    CountryCode = countryCode,
+                    AdminRegion = adminRegion,
+                    Population = population
                 });
             }
             catch (Exception ex)

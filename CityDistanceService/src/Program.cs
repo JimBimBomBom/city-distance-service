@@ -226,6 +226,21 @@ app.MapGet("/city/{id}", async ([FromRoute] string id, IDatabaseService dbManage
     return await RequestHandler.ReturnCityInfoAsync(id, dbManager);
 }).RequireAuthorization("BasicAuthentication");
 
+app.MapGet("/suggestions", async ([FromQuery] string q, IElasticSearchService esService) =>
+{
+    if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+    {
+        return Results.BadRequest("Query must be at least 2 characters");
+    }
+
+    // var suggestions = await esService.GetCitySuggestionsAsync(q);
+    var suggestions = await RequestHandler.GetCitySuggestionsAsync(q, esService);
+    return Results.Ok(new { 
+        Data = suggestions,
+        Message = "Here are city suggestions matching your search"
+    });
+}).AllowAnonymous();
+
 // Trigger Wikidata sync - uses RequestHandler
 app.MapPost("/wikidata/sync", async (ICityDataService cityService) =>
 {
