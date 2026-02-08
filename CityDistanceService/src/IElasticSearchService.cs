@@ -18,7 +18,7 @@ public interface IElasticSearchService
 
     Task<string?> GetBestCityIdAsync(string cityName);
 
-    Task<IEnumerable<string>> GetCitySuggestionsAsync(string partialName);
+    Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName);
 
     Task BulkUpsertCitiesAsync(List<SparQLCityInfo> cities);
 

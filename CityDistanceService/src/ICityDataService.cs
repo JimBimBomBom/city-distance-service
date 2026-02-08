@@ -7,7 +7,7 @@ public interface ICityDataService
 
     Task<CityInfo?> FindCityByNameAsync(string cityName);
 
-    Task<IEnumerable<string>> GetCitySuggestionsAsync(string partialName);
+    Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName);
 
     Task<CityInfo> AddCityAsync(NewCityInfo newCity);
 
@@ -34,14 +34,7 @@ public class CityDataService : ICityDataService
 
     public async Task<int> SyncCitiesFromWikidataAsync()
     {
-        var languages = new[]
-        {
-            "en", "sk", //"de", "fr", "it", "es",
-            // "pt", "nl", "sv", "no", "da", "fi",
-            // "pl", "cs", "hu", "ro", "el", "bg",
-            // "hr", "sr", "sl", "et", "lv", "lt",
-            // "ru", "uk", "tr", "zh", "ja",
-        };
+        var languages = new[] { "en", "sk" };
 
         Console.WriteLine("=================================================");
         Console.WriteLine("Starting Wikidata city synchronization");
@@ -150,7 +143,7 @@ public class CityDataService : ICityDataService
         }
     }
 
-    public async Task<IEnumerable<string>> GetCitySuggestionsAsync(string partialName)
+    public async Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName)
     {
         try
         {

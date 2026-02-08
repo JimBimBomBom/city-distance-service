@@ -12,24 +12,26 @@ public static class RequestHandler
 
     // Calculate distance between two cities using city names
     public static async Task<IResult> ProcessCityDistanceAsync(
-        CitiesDistanceRequest request, 
+        CitiesDistanceRequest request,
         ICityDataService cityService)
     {
         try
         {
             var distance = await DistanceCalculationService.CalculateDistanceAsync(
-                request.City1Name, 
-                request.City2Name, 
+                request.City1Name,
+                request.City2Name,
                 cityService);
 
             if (distance == -1)
             {
-                return Results.BadRequest(new { 
-                    Error = "One or both cities could not be found within our database." 
+                return Results.BadRequest(new
+                {
+                    Error = "One or both cities could not be found within our database."
                 });
             }
 
-            return Results.Ok(new { 
+            return Results.Ok(new
+            {
                 City1 = request.City1Name,
                 City2 = request.City2Name,
                 DistanceKm = Math.Round(distance, 2),
@@ -43,20 +45,33 @@ public static class RequestHandler
         }
     }
 
+    // function to server /suggestions endpoint - returns list of city suggestions from esService.GetCitySuggestionsAsync
+    public static async Task<List<CitySuggestion>> GetCitySuggestionsAsync(string cityNamePartial, IElasticSearchService esService)
+    {
+        var suggestions = await esService.GetCitySuggestionsAsync(cityNamePartial);
+        Console.WriteLine("Returned suggestions: ", suggestions.Count, " for query: ", cityNamePartial);
+        foreach(var suggestion in suggestions)
+        {
+            Console.WriteLine($"Suggestion: {suggestion.Name} (ID: {suggestion.Id}) (Country: {suggestion.Country}) (Population: {suggestion.Population}) (Flag: {suggestion.Flag})");
+        }
+
+        return suggestions;
+    }
+
     // Get city info by ID
     public static async Task<IResult> ReturnCityInfoAsync(string cityId, IDatabaseService dbManager)
     {
         try
         {
             var cityInfo = await dbManager.GetCity(cityId);
-            
+
             if (cityInfo == null)
             {
                 return Results.NotFound(new { Error = "No city with given ID was found" });
             }
 
             return Results.Ok(new ApiResponse<CityInfo>(
-                cityInfo, 
+                cityInfo,
                 "Here is the info for the requested City"
             ));
         }
@@ -68,9 +83,7 @@ public static class RequestHandler
     }
 
     // Search for cities by name (uses Elasticsearch for suggestions)
-    public static async Task<IResult> ValidateAndReturnCitySuggestionsAsync(
-        string cityName, 
-        ICityDataService cityService)
+    public static async Task<IResult> ValidateAndReturnCitySuggestionsAsync(string cityName, ICityDataService cityService)
     {
         try
         {
@@ -85,14 +98,14 @@ public static class RequestHandler
 
             if (!suggestionList.Any())
             {
-                return Results.Ok(new ApiResponse<List<string>>(
-                    suggestionList, 
+                return Results.Ok(new ApiResponse<List<CitySuggestion>>(
+                    suggestionList,
                     "No cities found matching your search"
                 ));
             }
 
-            return Results.Ok(new ApiResponse<List<string>>(
-                suggestionList, 
+            return Results.Ok(new ApiResponse<List<CitySuggestion>>(
+                suggestionList,
                 "Here are city suggestions matching your search"
             ));
         }
@@ -105,7 +118,7 @@ public static class RequestHandler
 
     // Find a specific city by name (returns full CityInfo)
     public static async Task<IResult> FindCityByNameAsync(
-        string cityName, 
+        string cityName,
         ICityDataService cityService)
     {
         try
@@ -124,7 +137,7 @@ public static class RequestHandler
             }
 
             return Results.Ok(new ApiResponse<CityInfo>(
-                cityInfo, 
+                cityInfo,
                 "City found successfully"
             ));
         }
@@ -137,7 +150,7 @@ public static class RequestHandler
 
     // Add a new city (updates both DB and ES)
     public static async Task<IResult> PostCityInfoAsync(
-        NewCityInfo city, 
+        NewCityInfo city,
         ICityDataService cityService)
     {
         try
@@ -146,15 +159,16 @@ public static class RequestHandler
 
             if (addedCity == null)
             {
-                return Results.BadRequest(new { 
-                    Error = "Failed to add city to database, or city already exists." 
+                return Results.BadRequest(new
+                {
+                    Error = "Failed to add city to database, or city already exists."
                 });
             }
 
             return Results.Created(
                 $"/city/{addedCity.CityId}",
                 new ApiResponse<CityInfo>(
-                    addedCity, 
+                    addedCity,
                     "Your city has successfully been added to our database."
                 )
             );
@@ -168,7 +182,7 @@ public static class RequestHandler
 
     // Update an existing city (updates both DB and ES)
     public static async Task<IResult> UpdateCityInfoAsync(
-        CityInfo city, 
+        CityInfo city,
         ICityDataService cityService)
     {
         try
@@ -176,7 +190,7 @@ public static class RequestHandler
             var updatedCity = await cityService.UpdateCityAsync(city);
 
             return Results.Ok(new ApiResponse<CityInfo>(
-                updatedCity, 
+                updatedCity,
                 "City has been successfully updated."
             ));
         }
@@ -189,14 +203,14 @@ public static class RequestHandler
 
     // Delete a city
     public static async Task<IResult> DeleteCityAsync(
-        string cityId, 
+        string cityId,
         IDatabaseService dbManager,
         ICityDataService cityService)
     {
         try
         {
             var cityInfo = await dbManager.GetCity(cityId);
-            
+
             if (cityInfo == null)
             {
                 return Results.NotFound(new { Error = "No city with given ID was found" });
@@ -204,7 +218,8 @@ public static class RequestHandler
 
             await cityService.DeleteCityAsync(cityId);
 
-            return Results.Ok(new { 
+            return Results.Ok(new
+            {
                 Message = "City has been successfully deleted.",
                 DeletedCity = cityInfo
             });
@@ -223,8 +238,9 @@ public static class RequestHandler
         {
             Console.WriteLine("Starting Wikidata sync via RequestHandler...");
             int updatedCount = await cityService.SyncCitiesFromWikidataAsync();
-            
-            return Results.Ok(new { 
+
+            return Results.Ok(new
+            {
                 Message = "Successfully completed Wikidata sync",
                 RecordsAffected = updatedCount,
                 Timestamp = DateTime.UtcNow
@@ -233,8 +249,9 @@ public static class RequestHandler
         catch (Exception ex)
         {
             Console.WriteLine($"Error in UpdateCityDatabaseAsync: {ex.Message}");
-            return Results.BadRequest(new { 
-                Error = $"Error updating city database: {ex.Message}" 
+            return Results.BadRequest(new
+            {
+                Error = $"Error updating city database: {ex.Message}"
             });
         }
     }
