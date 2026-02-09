@@ -168,3 +168,27 @@ public class AddCityMetadata : Migration
         Delete.Column("Population").FromTable("cities");
     }
 }
+
+[Migration(8)]
+public class RemoveSyncTable : Migration
+{
+    public override void Up()
+    {
+        Delete.Table("sync_state");
+    }
+
+    public override void Down()
+    {
+        Create.Table("sync_state")
+            .WithColumn("SyncKey").AsString(50).PrimaryKey()
+            .WithColumn("LastSync").AsDateTime().NotNullable();
+
+        // Insert initial row
+        Insert.IntoTable("sync_state")
+            .Row(new
+            {
+                SyncKey = "CitySync",
+                LastSync = new DateTime(2000, 1, 1)
+            });
+    }
+}

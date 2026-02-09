@@ -357,59 +357,6 @@ public class MySQLManager : IDatabaseService
         return totalAffected;
     }
 
-    public async Task<DateTime> GetLastSyncAsync()
-    {
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT LastSync FROM sync_state WHERE SyncKey = 'CitySync'";
-
-            var result = await cmd.ExecuteScalarAsync();
-
-            if (result == null || result == DBNull.Value)
-            {
-                Console.WriteLine("No last sync found, defaulting to 2000-01-01.");
-                return new DateTime(2000, 1, 1);
-            }
-
-            return (DateTime)result;
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"MySQL Error: {ex.Message}");
-            // Return default if table doesn't exist yet
-            return new DateTime(2000, 1, 1);
-        }
-    }
-
-    public async Task UpdateLastSyncAsync(DateTime newTimestamp)
-    {
-        try
-        {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var cmd = connection.CreateCommand();
-            cmd.CommandText = @"
-                INSERT INTO sync_state (SyncKey, LastSync)
-                VALUES ('CitySync', @ts)
-                ON DUPLICATE KEY UPDATE LastSync = @ts;";
-
-            cmd.Parameters.AddWithValue("@ts", newTimestamp);
-
-            await cmd.ExecuteNonQueryAsync();
-            Console.WriteLine($"Last sync updated to {newTimestamp:yyyy-MM-dd HH:mm:ss}");
-        }
-        catch (MySqlException ex)
-        {
-            Console.WriteLine($"MySQL Error: {ex.Message}");
-            throw;
-        }
-    }
-
     // Private helper method
     private async Task<CityInfo?> GetCityByName(string cityName, MySqlConnection connection)
     {
