@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 public interface IWikidataService
 {
-    Task<List<SparQLCityInfo>> FetchCitiesAsync(DateTime lastSync, string language);
+    Task<List<SparQLCityInfo>> FetchCitiesAsync(string language);
 }
 
 public class WikidataService : IWikidataService
@@ -22,10 +22,8 @@ public class WikidataService : IWikidataService
         _httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/sparql-results+json");
     }
 
-    public async Task<List<SparQLCityInfo>> FetchCitiesAsync(DateTime lastSync, string language)
+    public async Task<List<SparQLCityInfo>> FetchCitiesAsync(string language)
     {
-        string lastSyncIso = lastSync.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
         string query = $@"
             SELECT ?city ?label ?lat ?lon ?modified ?countryLabel ?iso2 ?adminLabel ?pop WHERE {{
                 ?city wdt:P625 ?coord .
@@ -52,7 +50,6 @@ public class WikidataService : IWikidataService
                 OPTIONAL {{ ?city wdt:P1082 ?pop . }}
                 
                 FILTER(LANG(?label) = ""{language}"")
-                FILTER(?modified > ""{lastSyncIso}""^^xsd:dateTime)
                 
                 BIND(geof:latitude(?coord) AS ?lat)
                 BIND(geof:longitude(?coord) AS ?lon)

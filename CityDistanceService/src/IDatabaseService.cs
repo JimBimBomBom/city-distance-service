@@ -16,7 +16,4 @@ public interface IDatabaseService
 
     Task<int> BulkUpsertCitiesAsync(List<SparQLCityInfo> cities);
 
-    Task<DateTime> GetLastSyncAsync();
-
-    Task UpdateLastSyncAsync(DateTime newTimestamp);
 }
