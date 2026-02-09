@@ -53,7 +53,8 @@ public class WikidataService : IWikidataService
                 
                 BIND(geof:latitude(?coord) AS ?lat)
                 BIND(geof:longitude(?coord) AS ?lon)
-            }}";
+            }}
+            LIMIT 10000";
 
         var raw = await ExecuteSparqlAsync(query);
         return ParseSparqlResponse(raw);
