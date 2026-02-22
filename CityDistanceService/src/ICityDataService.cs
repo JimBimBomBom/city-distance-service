@@ -40,9 +40,6 @@ public class CityDataService : ICityDataService
         Console.WriteLine("Starting Wikidata city synchronization");
         Console.WriteLine("=================================================");
 
-        var lastSync = await _dbManager.GetLastSyncAsync();
-        Console.WriteLine($"Last sync was: {lastSync:yyyy-MM-dd HH:mm:ss}");
-
         int totalAffected = 0;
         var processedCityIds = new HashSet<string>();
 
@@ -52,7 +49,7 @@ public class CityDataService : ICityDataService
             {
                 Console.WriteLine($"\n--- Processing Language: {lang} ---");
 
-                var cities = await _wikidataService.FetchCitiesAsync(lastSync, lang);
+                var cities = await _wikidataService.FetchCitiesAsync(lang);
 
                 if (cities.Count == 0)
                 {
@@ -96,14 +93,9 @@ public class CityDataService : ICityDataService
             await Task.Delay(30000);
         }
 
-        // Update sync timestamp
-        var newSyncTime = DateTime.UtcNow;
-        await _dbManager.UpdateLastSyncAsync(newSyncTime);
-
         Console.WriteLine("\n=================================================");
         Console.WriteLine($"Sync complete!");
         Console.WriteLine($"Total MySQL records affected: {totalAffected}");
-        Console.WriteLine($"New sync timestamp: {newSyncTime:yyyy-MM-dd HH:mm:ss}");
         Console.WriteLine("=================================================");
 
         return totalAffected;
