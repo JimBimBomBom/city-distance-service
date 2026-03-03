@@ -99,7 +99,9 @@ public class MySQLManager : IDatabaseService
             await connection.OpenAsync();
 
             var parameters = cityIds.Select((id, index) => $"@CityId{index}").ToList();
-            var query = $"SELECT * FROM cities WHERE CityId IN ({string.Join(",", parameters)});";
+            var query = $@"SELECT CityId, CityName, Latitude, Longitude,
+                     CountryCode, Country, AdminRegion, Population
+                     FROM cities WHERE CityId IN ({string.Join(",", parameters)});";
             using var command = new MySqlCommand(query, connection);
 
             for (int i = 0; i < cityIds.Count; i++)
@@ -116,6 +118,14 @@ public class MySQLManager : IDatabaseService
                     CityName = reader.GetString(reader.GetOrdinal("CityName")),
                     Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
                     Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                    CountryCode = reader.IsDBNull(reader.GetOrdinal("CountryCode"))
+                        ? null : reader.GetString(reader.GetOrdinal("CountryCode")),
+                    Country = reader.IsDBNull(reader.GetOrdinal("Country"))
+                        ? null : reader.GetString(reader.GetOrdinal("Country")),
+                    AdminRegion = reader.IsDBNull(reader.GetOrdinal("AdminRegion"))
+                        ? null : reader.GetString(reader.GetOrdinal("AdminRegion")),
+                    Population = reader.IsDBNull(reader.GetOrdinal("Population"))
+                        ? null : reader.GetInt32(reader.GetOrdinal("Population"))
                 });
             }
 

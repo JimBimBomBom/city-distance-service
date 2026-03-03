@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "Distância calculada com sucesso.",
+  "city_not_found": "Uma ou ambas as cidades não foram encontradas.",
+  "invalid_query": "Consulta de pesquisa inválida.",
+  "no_suggestions": "Nenhuma cidade encontrada correspondendo à sua pesquisa.",
+  "suggestions_found": "Aqui estão sugestões de cidades correspondentes à sua pesquisa.",
+  "city_found": "Cidade encontrada com sucesso.",
+  "city_added": "A cidade foi adicionada com sucesso à nossa base de dados.",
+  "city_updated": "A cidade foi atualizada com sucesso.",
+  "city_deleted": "A cidade foi eliminada com sucesso.",
+  "city_already_exists": "A cidade já existe ou não pôde ser adicionada.",
+  "unit_km": "km",
+  "unit_miles": "mi",
+  "distance_format": "{0} {1} entre {2} e {3}",
+  "internal_error": "Ocorreu um erro inesperado. Por favor, tente novamente mais tarde."
+}

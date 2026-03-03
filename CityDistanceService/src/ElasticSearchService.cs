@@ -2,6 +2,8 @@ using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using Elastic.Clients.Elasticsearch.IndexManagement;
 using Elastic.Clients.Elasticsearch.Mapping;
+using Microsoft.VisualBasic;
+using System.Security.AccessControl;
 
 public class ElasticSearchService : IElasticSearchService
 {
@@ -44,7 +46,10 @@ public class ElasticSearchService : IElasticSearchService
             .Mappings(m => m
                 .Properties<CityDoc>(p => p
                     .Keyword(d => d.CityId)
-                    .Text(d => d.CityNames, t => t
+                    // cityNames is an object with dynamic keys — ES handles this as "object" type
+                    .Object(d => d.CityNames, o => o.Enabled(true))
+                    // allNames is what we actually search against
+                    .Text(d => d.AllNames, t => t
                         .Analyzer("city_analyzer")
                         .Fields(f => f
                             .Text("_2gram", t2 => t2.Analyzer("standard"))
@@ -53,8 +58,8 @@ public class ElasticSearchService : IElasticSearchService
                     )
                     .GeoPoint(d => d.Location)
                     .Keyword(d => d.CountryCode)
-                    .Keyword(d => d.Country)
-                    .Keyword(d => d.AdminRegion)
+                    .Object(d => d.Country, o => o.Enabled(true))
+                    .Object(d => d.AdminRegion, o => o.Enabled(true))
                     .IntegerNumber(d => d.Population)
                 )
             )
@@ -92,7 +97,7 @@ public class ElasticSearchService : IElasticSearchService
         return response.Documents.FirstOrDefault()?.CityId;
     }
 
-    public async Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName)
+    public async Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName, string language)
     {
         var response = await _client.SearchAsync<CityDoc>(s => s
             .Index(IndexName)
@@ -101,7 +106,7 @@ public class ElasticSearchService : IElasticSearchService
                     .Should(
                         // Exact match - highest priority
                         sh => sh.Match(m => m
-                            .Field(f => f.CityNames)
+                            .Field(f => f.AllNames)
                             .Query(partialName)
                             .Boost(10)
                         ),
@@ -109,12 +114,12 @@ public class ElasticSearchService : IElasticSearchService
                         sh => sh.MultiMatch(m => m
                             .Query(partialName)
                             .Type(TextQueryType.BoolPrefix)
-                            .Fields(new[] { "cityNames", "cityNames._2gram", "cityNames._3gram" })
+                            .Fields(new[] { "allNames", "allNames._2gram", "allNames._3gram" })
                             .Boost(2)
                         ),
                         // Fuzzy match - handles typos
                         sh => sh.Match(m => m
-                            .Field(f => f.CityNames)
+                            .Field(f => f.AllNames)
                             .Query(partialName)
                             .Fuzziness(new Fuzziness("AUTO"))
                             .Boost(1)
@@ -136,16 +141,37 @@ public class ElasticSearchService : IElasticSearchService
         }
 
         return response.Documents
-            .Select(d => new CitySuggestion
-            {
-                Id = d.CityId,
-                Name = d.CityNames.FirstOrDefault() ?? "Unknown",
-                CountryCode = d.CountryCode,
-                Country = d.Country,
-                AdminRegion = d.AdminRegion,
-                Population = d.Population
-            })
-            .ToList();
+        .Select(d => new CitySuggestion
+        {
+            Id = d.CityId,
+            // Return the name in the requested language, fall back to English, then any name
+            Name = d.CityNames.GetValueOrDefault(language)
+                ?? d.CityNames.GetValueOrDefault(Constants.DefaultLanguage)
+                ?? d.AllNames.FirstOrDefault()
+                ?? "Unknown",
+            CountryCode = d.CountryCode,
+            Country = d.Country.GetValueOrDefault(language)
+                ?? d.Country.GetValueOrDefault(Constants.DefaultLanguage)
+                ?? "",
+            AdminRegion = d.AdminRegion.GetValueOrDefault(language)
+                ?? d.AdminRegion.GetValueOrDefault(Constants.DefaultLanguage)
+                ?? "",
+            Population = d.Population
+        })
+        .ToList();
+    }
+
+    public async Task<CityDoc?> GetCityDocByIdAsync(string cityId)
+    {
+        var response = await _client.GetAsync<CityDoc>(IndexName, cityId);
+
+        if (!response.IsValidResponse || response.Source == null)
+        {
+            Console.WriteLine($"ES Get by ID not found: {cityId}");
+            return null;
+        }
+
+        return response.Source;
     }
 
     public async Task BulkUpsertCitiesAsync(List<SparQLCityInfo> cities)
@@ -166,19 +192,35 @@ public class ElasticSearchService : IElasticSearchService
 
             try
             {
-                var cityDocs = cities.Select(city => new CityDoc
+                var cityDocs = batch.Select(city =>
                 {
-                    CityId = city.WikidataId,
-                    CityNames = city.AllNames,
-                    Location = GeoLocation.LatitudeLongitude(new LatLonGeoLocation
+                    var doc = new CityDoc
                     {
-                        Lat = city.Latitude,
-                        Lon = city.Longitude,
-                    }),
-                    CountryCode = city.CountryCode,
-                    Country = city.Country,
-                    AdminRegion = city.AdminRegion,
-                    Population = city.Population
+                        CityId = city.WikidataId,
+                        CityNames = new Dictionary<string, string>(),    // Build the dictionary
+                        AllNames = new(), 
+                        Location = GeoLocation.LatitudeLongitude(new LatLonGeoLocation
+                        {
+                            Lat = city.Latitude,
+                            Lon = city.Longitude,
+                        }),
+                        CountryCode = city.CountryCode,
+                        Country = new Dictionary<string, string>(),
+                        AdminRegion = new Dictionary<string, string>(),
+                        Population = city.Population
+                    };
+
+                    // Populate language-keyed dictionaries
+                    if (!string.IsNullOrEmpty(city.Language) && !string.IsNullOrEmpty(city.CityName))
+                        doc.CityNames[city.Language] = city.CityName;
+
+                    if (!string.IsNullOrEmpty(city.Language) && !string.IsNullOrEmpty(city.Country))
+                        doc.Country[city.Language] = city.Country;
+
+                    if (!string.IsNullOrEmpty(city.Language) && !string.IsNullOrEmpty(city.AdminRegion))
+                        doc.AdminRegion[city.Language] = city.AdminRegion;
+
+                    return doc;
                 }).ToList();
 
                 var response = await _client.BulkAsync(b => b
@@ -187,31 +229,52 @@ public class ElasticSearchService : IElasticSearchService
                         .Id(cityDoc.CityId)
                         .Script(s => s
                             .Source(@"
-                                // Merge city names
+                                // Merge cityNames dictionary
                                 if (ctx._source.cityNames == null) {
-                                    ctx._source.cityNames = [];
-                                }
-                                for (name in params.newNames) {
-                                    if (!ctx._source.cityNames.contains(name)) {
-                                        ctx._source.cityNames.add(name)
+                                    ctx._source.cityNames = params.cityNames;
+                                } else {
+                                    for (entry in params.cityNames.entrySet()) {
+                                        ctx._source.cityNames[entry.getKey()] = entry.getValue();
                                     }
                                 }
-                                
-                                // Update metadata
+
+                                // Rebuild allNames from cityNames values
+                                def names = new HashSet();
+                                for (entry in ctx._source.cityNames.entrySet()) {
+                                    names.add(entry.getValue());
+                                }
+                                ctx._source.allNames = new ArrayList(names);
+
+                                // Update other metadata
                                 ctx._source.location = params.location;
                                 ctx._source.countryCode = params.countryCode;
-                                ctx._source.country = params.country;
-                                ctx._source.adminRegion = params.adminRegion;
+
+                                if (ctx._source.country == null) {
+                                    ctx._source.country = params.country;
+                                } else {
+                                    for (entry in params.country.entrySet()) {
+                                        ctx._source.country[entry.getKey()] = entry.getValue();
+                                    }
+                                }
+
+                                if (ctx._source.adminRegion == null) {
+                                    ctx._source.adminRegion = params.adminRegion;
+                                } else {
+                                    for (entry in params.adminRegion.entrySet()) {
+                                        ctx._source.adminRegion[entry.getKey()] = entry.getValue();
+                                    }
+                                }
+
                                 ctx._source.population = params.population;
                             ")
                             .Params(p => p
-                                .Add("newNames", cityDoc.CityNames)
+                                .Add("cityNames", cityDoc.CityNames)           // was "newNames"
                                 .Add("location", cityDoc.Location)
                                 .Add("countryCode", cityDoc.CountryCode ?? "")
-                                .Add("country", cityDoc.Country ?? "")
-                                .Add("adminRegion", cityDoc.AdminRegion ?? "")
+                                .Add("country", cityDoc.Country)                // pass dict, not string
+                                .Add("adminRegion", cityDoc.AdminRegion)        // pass dict, not string
                                 .Add("population", cityDoc.Population ?? 0)
-                            )
+)
                         )
                         .Upsert(cityDoc)
                     )

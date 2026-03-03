@@ -1,0 +1,23 @@
+[
+  { "code": "en",    "name": "English",        "countryCode": "GB", "useImperial": false },
+  { "code": "en-US", "name": "English (US)",   "countryCode": "US", "useImperial": true  },
+  { "code": "cs",    "name": "Čeština",        "countryCode": "CZ", "useImperial": false },
+  { "code": "sk",    "name": "Slovenčina",     "countryCode": "SK", "useImperial": false },
+  { "code": "de",    "name": "Deutsch",        "countryCode": "DE", "useImperial": false },
+  { "code": "fr",    "name": "Français",       "countryCode": "FR", "useImperial": false },
+  { "code": "es",    "name": "Español",        "countryCode": "ES", "useImperial": false },
+  { "code": "it",    "name": "Italiano",       "countryCode": "IT", "useImperial": false },
+  { "code": "pt",    "name": "Português",      "countryCode": "PT", "useImperial": false },
+  { "code": "pl",    "name": "Polski",         "countryCode": "PL", "useImperial": false },
+  { "code": "nl",    "name": "Nederlands",     "countryCode": "NL", "useImperial": false },
+  { "code": "ru",    "name": "Русский",        "countryCode": "RU", "useImperial": false },
+  { "code": "ja",    "name": "日本語",           "countryCode": "JP", "useImperial": false },
+  { "code": "zh",    "name": "中文",             "countryCode": "CN", "useImperial": false },
+  { "code": "ar",    "name": "العربية",         "countryCode": "SA", "useImperial": false },
+  { "code": "ko",    "name": "한국어",            "countryCode": "KR", "useImperial": false },
+  { "code": "sv",    "name": "Svenska",        "countryCode": "SE", "useImperial": false },
+  { "code": "tr",    "name": "Türkçe",         "countryCode": "TR", "useImperial": false },
+  { "code": "fi",    "name": "Suomi",          "countryCode": "FI", "useImperial": false },
+  { "code": "hu",    "name": "Magyar",         "countryCode": "HU", "useImperial": false },
+  { "code": "no",    "name": "Norsk",          "countryCode": "NO", "useImperial": false }
+]

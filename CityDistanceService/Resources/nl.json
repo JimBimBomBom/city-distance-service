@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "Afstand succesvol berekend.",
+  "city_not_found": "Een of beide steden konden niet worden gevonden.",
+  "invalid_query": "Ongeldige zoekopdracht.",
+  "no_suggestions": "Geen steden gevonden die overeenkomen met uw zoekopdracht.",
+  "suggestions_found": "Hier zijn stadsuggesties die overeenkomen met uw zoekopdracht.",
+  "city_found": "Stad succesvol gevonden.",
+  "city_added": "De stad is succesvol toegevoegd aan onze database.",
+  "city_updated": "De stad is succesvol bijgewerkt.",
+  "city_deleted": "De stad is succesvol verwijderd.",
+  "city_already_exists": "De stad bestaat al of kon niet worden toegevoegd.",
+  "unit_km": "km",
+  "unit_miles": "mi",
+  "distance_format": "{0} {1} tussen {2} en {3}",
+  "internal_error": "Er is een onverwachte fout opgetreden. Probeer het later opnieuw."
+}

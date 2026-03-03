@@ -1,4 +1,4 @@
-// Program.cs - Updated dependency injection registration
+// Program.cs
 using FluentMigrator.Runner;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
@@ -22,10 +22,18 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MaxRequestBodySize = 52428800; // 50 MB
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowGitHubPages", policy =>
+        policy.WithOrigins("https://jimbimbombom.github.io")
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
+
 builder.Services.AddAuthentication("BasicAuthentication")
     .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 
-if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) || 
+if (string.IsNullOrEmpty(configuration["AUTH_USERNAME"]) ||
     string.IsNullOrEmpty(configuration["AUTH_PASSWORD"]))
 {
     Console.WriteLine("Basic authentication username or password not set.");
@@ -36,7 +44,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("BasicAuthentication", policy =>
         policy.Requirements.Add(new BasicAuthorizationRequirement(
-            configuration["AUTH_USERNAME"], 
+            configuration["AUTH_USERNAME"],
             configuration["AUTH_PASSWORD"])));
 });
 
@@ -46,38 +54,32 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc($"{Constants.Version}", new OpenApiInfo
     {
-        Version = $"{Constants.Version}",
-        Title = "City Distance Service",
+        Version     = $"{Constants.Version}",
+        Title       = "City Distance Service",
         Description = "A service to manage city information and calculate distances.",
     });
-
     options.AddSecurityDefinition("basic", new OpenApiSecurityScheme
     {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "basic",
-        In = ParameterLocation.Header,
+        Name        = "Authorization",
+        Type        = SecuritySchemeType.Http,
+        Scheme      = "basic",
+        In          = ParameterLocation.Header,
         Description = "Basic Authorization header.",
     });
-    
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "basic",
-                },
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "basic" }
             },
             Array.Empty<string>()
         },
     });
 });
 
-// ========== Elasticsearch Configuration ==========
-var esUrl = builder.Configuration["Elasticsearch:Url"] ?? "http://elasticsearch:9200";
+// Elasticsearch
+var esUrl      = builder.Configuration["Elasticsearch:Url"]      ?? "http://elasticsearch:9200";
 var esPassword = builder.Configuration["Elasticsearch:Password"] ?? "testPassword123";
 
 var settings = new ElasticsearchClientSettings(new Uri(esUrl))
@@ -85,10 +87,9 @@ var settings = new ElasticsearchClientSettings(new Uri(esUrl))
     .DefaultIndex("cities")
     .RequestTimeout(TimeSpan.FromMinutes(5));
 
-var esClient = new ElasticsearchClient(settings);
-builder.Services.AddSingleton(esClient);
+builder.Services.AddSingleton(new ElasticsearchClient(settings));
 
-// ========== Database Configuration ==========
+// Database
 if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 {
     Console.WriteLine("Database connection string not set.");
@@ -97,15 +98,15 @@ if (string.IsNullOrEmpty(configuration["DATABASE_CONNECTION_STRING"]))
 
 var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 
-// ========== Service Registration ==========
-builder.Services.AddScoped<IDatabaseService>(provider => 
-    new MySQLManager(connectionString));
-
+// Services
+builder.Services.AddScoped<IDatabaseService>(_ => new MySQLManager(connectionString));
 builder.Services.AddScoped<IElasticSearchService, ElasticSearchService>();
-
 builder.Services.AddSingleton<IWikidataService, WikidataService>();
-
 builder.Services.AddScoped<ICityDataService, CityDataService>();
+
+var resourcesPath = Path.Combine(AppContext.BaseDirectory, "Resources");
+builder.Services.AddSingleton<ILocalizationService>(
+    new LocalizationService(resourcesPath, defaultLang: "en"));
 
 // FluentMigrator
 builder.Services.AddFluentMigratorCore()
@@ -115,7 +116,6 @@ builder.Services.AddFluentMigratorCore()
         .ScanIn(typeof(Program).Assembly).For.Migrations())
     .AddLogging(lb => lb.AddFluentMigratorConsole());
 
-// Background sync service (if you have one)
 builder.Services.AddHostedService<WikidataSyncService>();
 
 // FluentValidation
@@ -128,32 +128,28 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 app.UseRouting();
+app.UseCors("AllowGitHubPages");      // must be before auth
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseCors(builder =>
-    builder.WithOrigins("https://jimbimbombom.github.io")
-           .AllowAnyMethod()
-           .AllowAnyHeader());
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json", 
+    c.SwaggerEndpoint($"/swagger/{Constants.Version}/swagger.json",
         "City Distance Service " + Constants.Version);
     c.RoutePrefix = "swagger";
 });
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
+app.UseMiddleware<LocaleMiddleware>();
 
-// Run migrations
+// Migrations
 try
 {
     RetryHelper.RetryOnException(10, TimeSpan.FromSeconds(10), () =>
     {
         using var scope = app.Services.CreateScope();
-        var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
-        runner.MigrateUp();
+        scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp();
     });
 }
 catch (Exception ex)
@@ -165,148 +161,128 @@ catch (Exception ex)
 try
 {
     await RetryHelper.RetryOnExceptionAsync(
-        maxRetries: 10,
-        delay: TimeSpan.FromSeconds(10),
-        operation: async () =>
+        maxRetries:    10,
+        delay:         TimeSpan.FromSeconds(10),
+        operation:     async () =>
         {
             using var scope = app.Services.CreateScope();
-            var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
-            await esService.EnsureIndexExistsAsync();
-            Console.WriteLine("Elasticsearch index check completed successfully.");
+            await scope.ServiceProvider.GetRequiredService<IElasticSearchService>().EnsureIndexExistsAsync();
         },
         operationName: "Elasticsearch index creation"
     );
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"WARNING: Could not connect to Elasticsearch after multiple retries: {ex.Message}");
-    Console.WriteLine("Application will continue, but search functionality may not work until Elasticsearch is available.");
-    Console.WriteLine("You can manually trigger index creation by restarting the service once Elasticsearch is ready.");
+    Console.WriteLine($"WARNING: Elasticsearch unavailable: {ex.Message}");
 }
 
-Console.WriteLine("Application started successfully!");
-
-Console.WriteLine("App version: " + Constants.Version);
+Console.WriteLine("Application started. Version: " + Constants.Version);
 
 app.MapControllers();
 
-// ========== Endpoints ==========
-app.MapGet("/health_check", () => 
-{
-    return Results.Ok(new { Status = "Healthy", Timestamp = DateTime.UtcNow });
-}).AllowAnonymous();
+// Endpoints
 
-// Version endpoint
-app.MapGet("/version", () => 
-{
-    return Results.Ok(new { Version = Constants.Version, Timestamp = DateTime.UtcNow });
-}).AllowAnonymous();
+app.MapGet("/health_check", () =>
+    Results.Ok(new { Status = "Healthy", Timestamp = DateTime.UtcNow })
+).AllowAnonymous();
 
-// Database health check - uses RequestHandler
+app.MapGet("/version", () =>
+    Results.Ok(new { Version = Constants.Version })
+).AllowAnonymous();
+
+app.MapGet("/languages", (ILocalizationService localization) =>
+    Results.Ok(localization.AvailableLanguages)
+).AllowAnonymous();
+
 app.MapGet("/db_health_check", async (IDatabaseService dbManager) =>
+    await RequestHandler.TestConnection(dbManager)
+).AllowAnonymous();
+
+app.MapGet("/suggestions", async (
+    HttpContext ctx,
+    [FromQuery] string q,
+    IElasticSearchService esService,
+    ILocalizationService localization) =>
 {
-    return await RequestHandler.TestConnection(dbManager);
+    var lang = ctx.GetLanguage();
+    return await RequestHandler.GetCitySuggestionsAsync(q, esService, localization, lang);
 }).AllowAnonymous();
 
-// Search for cities (autocomplete/suggestions) - uses RequestHandler
-app.MapGet("/search/{name}", async ([FromRoute] string name, ICityDataService cityService) =>
-{
-    return await RequestHandler.ValidateAndReturnCitySuggestionsAsync(name, cityService);
-}).AllowAnonymous();
-
-// Find a specific city by name (returns full CityInfo) - uses RequestHandler
-app.MapGet("/find/{name}", async ([FromRoute] string name, ICityDataService cityService) =>
-{
-    return await RequestHandler.FindCityByNameAsync(name, cityService);
-}).AllowAnonymous();
-
-// Get city by ID - uses RequestHandler
-app.MapGet("/city/{id}", async ([FromRoute] string id, IDatabaseService dbManager) =>
-{
-    return await RequestHandler.ReturnCityInfoAsync(id, dbManager);
-}).RequireAuthorization("BasicAuthentication");
-
-app.MapGet("/suggestions", async ([FromQuery] string q, IElasticSearchService esService) =>
-{
-    if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
-    {
-        return Results.BadRequest("Query must be at least 2 characters");
-    }
-
-    // var suggestions = await esService.GetCitySuggestionsAsync(q);
-    var suggestions = await RequestHandler.GetCitySuggestionsAsync(q, esService);
-    return Results.Ok(new { 
-        Data = suggestions,
-        Message = "Here are city suggestions matching your search"
-    });
-}).AllowAnonymous();
-
-// Trigger Wikidata sync - uses RequestHandler
-app.MapPost("/wikidata/sync", async (ICityDataService cityService) =>
-{
-    return await RequestHandler.UpdateCityDatabaseAsync(cityService);
-}).AllowAnonymous(); // Consider adding authorization for production
-
-// Calculate distance between two cities - uses RequestHandler
 app.MapPost("/distance", async (
-    CitiesDistanceRequest request, 
+    HttpContext ctx,
+    CitiesDistanceRequest request,
     ICityDataService cityService,
+    ILocalizationService localization,
     IValidator<CitiesDistanceRequest> validator) =>
 {
     var validationResult = await validator.ValidateAsync(request);
     if (!validationResult.IsValid)
-    {
         return Results.BadRequest(new { Errors = validationResult.Errors });
-    }
 
-    return await RequestHandler.ProcessCityDistanceAsync(request, cityService);
+    var lang = ctx.GetLanguage();
+    return await RequestHandler.ProcessCityDistanceAsync(request, cityService, localization, lang);
 })
 .AddFluentValidationAutoValidation()
 .AllowAnonymous();
 
-// Add a new city - uses RequestHandler
-app.MapPost("/city", async (
-    NewCityInfo city, 
+app.MapGet("/city/{id}", async (
+    HttpContext ctx,
+    [FromRoute] string id,
     ICityDataService cityService,
+    ILocalizationService localization) =>
+{
+    var lang = ctx.GetLanguage();
+    return await RequestHandler.ReturnCityInfoAsync(id, cityService, localization, lang);
+}).RequireAuthorization("BasicAuthentication");
+
+app.MapPost("/city", async (
+    HttpContext ctx,
+    NewCityInfo city,
+    ICityDataService cityService,
+    ILocalizationService localization,
     IValidator<NewCityInfo> validator) =>
 {
     var validationResult = await validator.ValidateAsync(city);
     if (!validationResult.IsValid)
-    {
         return Results.BadRequest(new { Errors = validationResult.Errors });
-    }
 
-    return await RequestHandler.PostCityInfoAsync(city, cityService);
+    var lang = ctx.GetLanguage();
+    return await RequestHandler.PostCityInfoAsync(city, cityService, localization, lang);
 })
 .AddFluentValidationAutoValidation()
 .RequireAuthorization("BasicAuthentication");
 
-// Update an existing city - uses RequestHandler
 app.MapPut("/city", async (
-    CityInfo city, 
+    HttpContext ctx,
+    CityInfo city,
     ICityDataService cityService,
+    ILocalizationService localization,
     IValidator<CityInfo> validator) =>
 {
     var validationResult = await validator.ValidateAsync(city);
     if (!validationResult.IsValid)
-    {
         return Results.BadRequest(new { Errors = validationResult.Errors });
-    }
 
-    return await RequestHandler.UpdateCityInfoAsync(city, cityService);
+    var lang = ctx.GetLanguage();
+    return await RequestHandler.UpdateCityInfoAsync(city, cityService, localization, lang);
 })
 .AddFluentValidationAutoValidation()
 .RequireAuthorization("BasicAuthentication");
 
-// Delete a city - uses RequestHandler
 app.MapDelete("/city/{id}", async (
-    [FromRoute] string id, 
+    HttpContext ctx,
+    [FromRoute] string id,
     IDatabaseService dbManager,
-    ICityDataService cityService) =>
+    ICityDataService cityService,
+    ILocalizationService localization) =>
 {
-    return await RequestHandler.DeleteCityAsync(id, dbManager, cityService);
-})
-.RequireAuthorization("BasicAuthentication");
+    var lang = ctx.GetLanguage();
+    return await RequestHandler.DeleteCityAsync(id, dbManager, cityService, localization, lang);
+}).RequireAuthorization("BasicAuthentication");
 
-Console.WriteLine("Successfull startup. Now serving requests.");
+app.MapPost("/wikidata/sync", async (ICityDataService cityService) =>
+    await RequestHandler.UpdateCityDatabaseAsync(cityService)
+).AllowAnonymous();
+
+Console.WriteLine("Now serving requests.");
 app.Run();

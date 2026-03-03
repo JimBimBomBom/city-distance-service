@@ -1,257 +1,250 @@
-// RequestHandler.cs - Refactored to use ICityDataService
-using System.Linq;
-using System.Collections.Generic;
+// RequestHandler.cs
+using System.Security.Cryptography.X509Certificates;
+using FluentValidation;
 
 public static class RequestHandler
 {
-    // Database health check - still uses IDatabaseService directly
+    // ── Health ────────────────────────────────────────────────────────────────
+
     public static async Task<IResult> TestConnection(IDatabaseService dbManager)
     {
         return await dbManager.TestConnection();
     }
 
-    // Calculate distance between two cities using city names
+    // ── Suggestions ───────────────────────────────────────────────────────────
+
+    public static async Task<IResult> GetCitySuggestionsAsync(
+        string query,
+        IElasticSearchService esService,
+        ILocalizationService localization,
+        string lang)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            return Results.BadRequest(new
+            {
+                Error = localization.Get(MsgKey.InvalidQuery, lang)
+            });
+
+        var validationResult = await new StringValidator().ValidateAsync(query);
+        if (!validationResult.IsValid)
+            return Results.BadRequest(new
+            {
+                Error = localization.Get(MsgKey.InvalidQuery, lang)
+            });
+
+        try
+        {
+            var suggestions = await esService.GetCitySuggestionsAsync(query, lang);
+            var message = suggestions.Count > 0
+                ? localization.Get(MsgKey.SuggestionsFound, lang)
+                : localization.Get(MsgKey.NoSuggestions, lang);
+
+            return Results.Ok(new
+            {
+                Data    = suggestions,
+                Message = message
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetCitySuggestionsAsync: {ex.Message}");
+            return Results.Json(new
+            {
+                Error = localization.Get(MsgKey.InternalError, lang),
+                statusCode = 500
+            });
+        }
+    }
+
+    // ── Distance ──────────────────────────────────────────────────────────────
+
     public static async Task<IResult> ProcessCityDistanceAsync(
         CitiesDistanceRequest request,
-        ICityDataService cityService)
+        ICityDataService cityService,
+        ILocalizationService localization,
+        string lang)
     {
         try
         {
-            var distance = await DistanceCalculationService.CalculateDistanceAsync(
+            var distanceKm = await DistanceCalculationService.CalculateDistanceAsync(
                 request.City1Id,
                 request.City2Id,
                 cityService);
 
-            if (distance == -1)
-            {
-                return Results.BadRequest(new
+            if (distanceKm == -1)
+                return Results.NotFound(new
                 {
-                    Error = "One or both cities could not be found within our database."
+                    Error = localization.Get(MsgKey.CityNotFound, lang)
                 });
-            }
+
+            var formatted = localization.FormatDistance(distanceKm, lang);
 
             return Results.Ok(new
             {
-                City1 = request.City1Id,
-                City2 = request.City2Id,
-                DistanceKm = Math.Round(distance, 2),
-                Message = "Distance calculated successfully"
+                Distance = formatted.Distance,
+                Unit     = formatted.Unit,
+                Message  = localization.Get(MsgKey.DistanceCalculated, lang)
             });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in ProcessCityDistanceAsync: {ex.Message}");
-            return Results.BadRequest(new { Error = $"Error calculating distance: {ex.Message}" });
+            return Results.Json(new
+            {
+                Error = localization.Get(MsgKey.InternalError, lang),
+                statusCode = 500
+            });
         }
     }
 
-    // function to server /suggestions endpoint - returns list of city suggestions from esService.GetCitySuggestionsAsync
-    public static async Task<List<CitySuggestion>> GetCitySuggestionsAsync(string cityNamePartial, IElasticSearchService esService)
-    {
-        var suggestions = await esService.GetCitySuggestionsAsync(cityNamePartial);
-        Console.WriteLine("Returned suggestions: ", suggestions.Count, " for query: ", cityNamePartial);
-        foreach(var suggestion in suggestions)
-        {
-            Console.WriteLine($"Suggestion: {suggestion.Name} (ID: {suggestion.Id}) (Country: {suggestion.Country}) (Population: {suggestion.Population}) (Flag: {suggestion.Flag})");
-        }
+    // ── City CRUD ─────────────────────────────────────────────────────────────
 
-        return suggestions;
-    }
-
-    // Get city info by ID
-    public static async Task<IResult> ReturnCityInfoAsync(string cityId, IDatabaseService dbManager)
+    public static async Task<IResult> ReturnCityInfoAsync(
+        string cityId,
+        ICityDataService cityService,
+        ILocalizationService localization,
+        string lang)
     {
         try
         {
-            var cityInfo = await dbManager.GetCity(cityId);
+            var city = await cityService.FindCityByIdAsync(cityId, lang);
+            if (city == null)
+                return Results.NotFound(new
+                {
+                    Error = localization.Get(MsgKey.CityNotFound, lang)
+                });
 
-            if (cityInfo == null)
+            return Results.Ok(new
             {
-                return Results.NotFound(new { Error = "No city with given ID was found" });
-            }
-
-            return Results.Ok(new ApiResponse<CityInfo>(
-                cityInfo,
-                "Here is the info for the requested City"
-            ));
+                Data    = city,
+                Message = localization.Get(MsgKey.CityFound, lang)
+            });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in ReturnCityInfoAsync: {ex.Message}");
-            return Results.BadRequest(new { Error = $"Error retrieving city: {ex.Message}" });
+            return Results.Json(new
+            {
+                Error = localization.Get(MsgKey.InternalError, lang),
+                statusCode = 500
+            });
         }
     }
 
-    // Search for cities by name (uses Elasticsearch for suggestions)
-    public static async Task<IResult> ValidateAndReturnCitySuggestionsAsync(string cityName, ICityDataService cityService)
-    {
-        try
-        {
-            var validationResult = await new StringValidator().ValidateAsync(cityName);
-            if (!validationResult.IsValid)
-            {
-                return Results.BadRequest(new { Error = "Invalid city name parameter." });
-            }
-
-            var suggestions = await cityService.GetCitySuggestionsAsync(cityName);
-            var suggestionList = suggestions.ToList();
-
-            if (!suggestionList.Any())
-            {
-                return Results.Ok(new ApiResponse<List<CitySuggestion>>(
-                    suggestionList,
-                    "No cities found matching your search"
-                ));
-            }
-
-            return Results.Ok(new ApiResponse<List<CitySuggestion>>(
-                suggestionList,
-                "Here are city suggestions matching your search"
-            ));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in ValidateAndReturnCitySuggestionsAsync: {ex.Message}");
-            return Results.BadRequest(new { Error = $"Error searching cities: {ex.Message}" });
-        }
-    }
-
-    // Find a specific city by name (returns full CityInfo)
-    public static async Task<IResult> FindCityByNameAsync(
-        string cityName,
-        ICityDataService cityService)
-    {
-        try
-        {
-            var validationResult = await new StringValidator().ValidateAsync(cityName);
-            if (!validationResult.IsValid)
-            {
-                return Results.BadRequest(new { Error = "Invalid city name parameter." });
-            }
-
-            var cityInfo = await cityService.FindCityByIdAsync(cityName);
-
-            if (cityInfo == null)
-            {
-                return Results.NotFound(new { Error = $"No city found matching: {cityName}" });
-            }
-
-            return Results.Ok(new ApiResponse<CityInfo>(
-                cityInfo,
-                "City found successfully"
-            ));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in FindCityByNameAsync: {ex.Message}");
-            return Results.BadRequest(new { Error = $"Error finding city: {ex.Message}" });
-        }
-    }
-
-    // Add a new city (updates both DB and ES)
     public static async Task<IResult> PostCityInfoAsync(
         NewCityInfo city,
-        ICityDataService cityService)
+        ICityDataService cityService,
+        ILocalizationService localization,
+        string lang)
     {
         try
         {
-            var addedCity = await cityService.AddCityAsync(city);
-
-            if (addedCity == null)
-            {
-                return Results.BadRequest(new
+            var added = await cityService.AddCityAsync(city);
+            if (added == null)
+                return Results.Conflict(new
                 {
-                    Error = "Failed to add city to database, or city already exists."
+                    Error = localization.Get(MsgKey.CityAlreadyExists, lang)
                 });
-            }
 
-            return Results.Created(
-                $"/city/{addedCity.CityId}",
-                new ApiResponse<CityInfo>(
-                    addedCity,
-                    "Your city has successfully been added to our database."
-                )
-            );
+            return Results.Created($"/city/{added.CityId}", new
+            {
+                Data    = added,
+                Message = localization.Get(MsgKey.CityAdded, lang)
+            });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in PostCityInfoAsync: {ex.Message}");
-            return Results.BadRequest(new { Error = $"Error adding city: {ex.Message}" });
+            return Results.Json(new
+            {
+                Error = localization.Get(MsgKey.InternalError, lang),
+                statusCode = 500
+            });
         }
     }
 
-    // Update an existing city (updates both DB and ES)
     public static async Task<IResult> UpdateCityInfoAsync(
         CityInfo city,
-        ICityDataService cityService)
+        ICityDataService cityService,
+        ILocalizationService localization,
+        string lang)
     {
         try
         {
-            var updatedCity = await cityService.UpdateCityAsync(city);
-
-            return Results.Ok(new ApiResponse<CityInfo>(
-                updatedCity,
-                "City has been successfully updated."
-            ));
+            var updated = await cityService.UpdateCityAsync(city);
+            return Results.Ok(new
+            {
+                Data    = updated,
+                Message = localization.Get(MsgKey.CityUpdated, lang)
+            });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in UpdateCityInfoAsync: {ex.Message}");
-            return Results.BadRequest(new { Error = $"Error updating city: {ex.Message}" });
+            return Results.Json(new
+            {
+                Error = localization.Get(MsgKey.InternalError, lang),
+                statusCode = 500
+            });
         }
     }
 
-    // Delete a city
     public static async Task<IResult> DeleteCityAsync(
         string cityId,
         IDatabaseService dbManager,
-        ICityDataService cityService)
+        ICityDataService cityService,
+        ILocalizationService localization,
+        string lang)
     {
         try
         {
-            var cityInfo = await dbManager.GetCity(cityId);
-
-            if (cityInfo == null)
-            {
-                return Results.NotFound(new { Error = "No city with given ID was found" });
-            }
+            var city = await dbManager.GetCity(cityId);
+            if (city == null)
+                return Results.NotFound(new
+                {
+                    Error = localization.Get(MsgKey.CityNotFound, lang)
+                });
 
             await cityService.DeleteCityAsync(cityId);
 
             return Results.Ok(new
             {
-                Message = "City has been successfully deleted.",
-                DeletedCity = cityInfo
+                Message = localization.Get(MsgKey.CityDeleted, lang)
             });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in DeleteCityAsync: {ex.Message}");
-            return Results.BadRequest(new { Error = $"Error deleting city: {ex.Message}" });
+            return Results.Json(new
+            {
+                Error = localization.Get(MsgKey.InternalError, lang),
+                statusCode = 500
+            });
         }
     }
 
-    // Trigger Wikidata sync
+    // ── Wikidata sync ─────────────────────────────────────────────────────────
+
     public static async Task<IResult> UpdateCityDatabaseAsync(ICityDataService cityService)
     {
         try
         {
             Console.WriteLine("Starting Wikidata sync via RequestHandler...");
-            int updatedCount = await cityService.SyncCitiesFromWikidataAsync();
+            int updated = await cityService.SyncCitiesFromWikidataAsync();
 
             return Results.Ok(new
             {
-                Message = "Successfully completed Wikidata sync",
-                RecordsAffected = updatedCount,
-                Timestamp = DateTime.UtcNow
+                RecordsAffected = updated,
+                Timestamp       = DateTime.UtcNow
             });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in UpdateCityDatabaseAsync: {ex.Message}");
-            return Results.BadRequest(new
+            return Results.Json(new
             {
-                Error = $"Error updating city database: {ex.Message}"
+                Error = $"Error updating city database: {ex.Message}",
+                statusCode = 500
             });
         }
     }
