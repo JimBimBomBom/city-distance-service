@@ -2,15 +2,7 @@ using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using Elastic.Clients.Elasticsearch.IndexManagement;
 using Elastic.Clients.Elasticsearch.Mapping;
-
-// public class CityDoc
-// {
-//     public string CityId { get; set; }
-
-//     public List<string> CityNames { get; set; } = new();
-
-//     public GeoLocation Location { get; set; }
-// }
+using System.Security.AccessControl;
 
 public interface IElasticSearchService
 {
@@ -18,7 +10,9 @@ public interface IElasticSearchService
 
     Task<string?> GetBestCityIdAsync(string cityName);
 
-    Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName);
+    Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName, string language);
+
+    Task<CityDoc?> GetCityDocByIdAsync(string cityId);
 
     Task BulkUpsertCitiesAsync(List<SparQLCityInfo> cities);
 

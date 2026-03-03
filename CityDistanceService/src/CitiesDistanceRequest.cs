@@ -9,13 +9,14 @@ public class CityId
 public class CityDoc
 {
     public string CityId { get; set; }
-    public List<string> CityNames { get; set; } = new();  // Multilingual names
+    public Dictionary<string, string> CityNames { get; set; } = new(); // Key: language code (e.g., "en", "cs"), Value: city name in that language
+    public List<string> AllNames { get; set; } = new();  // Holds all city names in list for easy suggestions
     public GeoLocation Location { get; set; }
     
     // Metadata for display and filtering
     public string CountryCode { get; set; }
-    public string Country { get; set; }
-    public string AdminRegion { get; set; }
+    public Dictionary<string, string> Country { get; set; } = new();
+    public Dictionary<string, string> AdminRegion { get; set; } = new();
     public int? Population { get; set; }
 }
 
@@ -23,7 +24,7 @@ public class SparQLCityInfo
 {
     public string WikidataId { get; set; }
     public string CityName { get; set; }
-    public List<string> AllNames { get; set; } = new();
+    public string Language { get; set; }
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     
@@ -107,3 +108,5 @@ public class ApiResponse<T>
         Timestamp = DateTime.UtcNow;
     }
 }
+
+public record DistanceResult(double Distance, string Unit);

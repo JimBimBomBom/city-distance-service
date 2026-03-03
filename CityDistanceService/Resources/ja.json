@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "距離の計算が完了しました。",
+  "city_not_found": "一方または両方の都市が見つかりませんでした。",
+  "invalid_query": "無効な検索クエリです。",
+  "no_suggestions": "検索に一致する都市が見つかりませんでした。",
+  "suggestions_found": "検索に一致する都市の候補です。",
+  "city_found": "都市が正常に見つかりました。",
+  "city_added": "都市がデータベースに正常に追加されました。",
+  "city_updated": "都市が正常に更新されました。",
+  "city_deleted": "都市が正常に削除されました。",
+  "city_already_exists": "都市はすでに存在するか、追加できませんでした。",
+  "unit_km": "km",
+  "unit_miles": "マイル",
+  "distance_format": "{2}と{3}の間の距離は{0}{1}です",
+  "internal_error": "予期しないエラーが発生しました。後でもう一度お試しください。"
+}

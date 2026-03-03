@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "A távolság sikeresen kiszámítva.",
+  "city_not_found": "Az egyik vagy mindkét város nem található.",
+  "invalid_query": "Érvénytelen keresési lekérdezés.",
+  "no_suggestions": "Nem találhatók a keresésnek megfelelő városok.",
+  "suggestions_found": "Íme a keresésnek megfelelő városjavaslatok.",
+  "city_found": "A város sikeresen megtalálva.",
+  "city_added": "A város sikeresen hozzáadva az adatbázisunkhoz.",
+  "city_updated": "A város sikeresen frissítve.",
+  "city_deleted": "A város sikeresen törölve.",
+  "city_already_exists": "A város már létezik, vagy nem sikerült hozzáadni.",
+  "unit_km": "km",
+  "unit_miles": "mérföld",
+  "distance_format": "{0} {1} {2} és {3} között",
+  "internal_error": "Váratlan hiba történt. Kérjük, próbálja újra később."
+}

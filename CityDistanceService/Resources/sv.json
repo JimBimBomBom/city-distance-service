@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "Avstånd beräknat.",
+  "city_not_found": "En eller båda städerna hittades inte.",
+  "invalid_query": "Ogiltig sökfråga.",
+  "no_suggestions": "Inga städer hittades som matchar din sökning.",
+  "suggestions_found": "Här är stadsförslag som matchar din sökning.",
+  "city_found": "Staden hittades.",
+  "city_added": "Staden har lagts till i vår databas.",
+  "city_updated": "Staden har uppdaterats.",
+  "city_deleted": "Staden har tagits bort.",
+  "city_already_exists": "Staden finns redan eller kunde inte läggas till.",
+  "unit_km": "km",
+  "unit_miles": "mi",
+  "distance_format": "{0} {1} mellan {2} och {3}",
+  "internal_error": "Ett oväntat fel inträffade. Försök igen senare."
+}

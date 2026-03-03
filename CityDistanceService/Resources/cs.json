@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "Vzdálenost byla úspěšně vypočítána.",
+  "city_not_found": "Jedno nebo obě města nebyla nalezena.",
+  "invalid_query": "Neplatný vyhledávací dotaz.",
+  "no_suggestions": "Nenalezena žádná města odpovídající vašemu hledání.",
+  "suggestions_found": "Zde jsou návrhy měst odpovídající vašemu hledání.",
+  "city_found": "Město bylo úspěšně nalezeno.",
+  "city_added": "Město bylo úspěšně přidáno do naší databáze.",
+  "city_updated": "Město bylo úspěšně aktualizováno.",
+  "city_deleted": "Město bylo úspěšně odstraněno.",
+  "city_already_exists": "Město již existuje nebo nebylo možné ho přidat.",
+  "unit_km": "km",
+  "unit_miles": "mi",
+  "distance_format": "{0} {1} mezi {2} a {3}",
+  "internal_error": "Došlo k neočekávané chybě. Zkuste to prosím později."
+}

@@ -18,7 +18,6 @@ public static class DistanceCalculationService
             var city1 = await cityService.FindCityByIdAsync(city1Id);
             var city2 = await cityService.FindCityByIdAsync(city2Id);
 
-            Console.WriteLine($"Calculating distance between '{city1.CityName}' and '{city2.CityName}'");
 
             // Step 2: Validate that both cities were found
             if (city1 == null)
@@ -32,6 +31,8 @@ public static class DistanceCalculationService
                 Console.WriteLine($"City not found: {city2.CityName}");
                 return -1;
             }
+
+            Console.WriteLine($"Calculating distance between '{city1.CityName}' and '{city2.CityName}'");
 
             // Step 3: Calculate distance using Haversine formula
             var distance = CalculateHaversineDistance(
