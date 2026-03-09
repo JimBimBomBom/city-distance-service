@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "Avstand beregnet.",
+  "city_not_found": "En eller begge byene ble ikke funnet.",
+  "invalid_query": "Ugyldig søkeforespørsel.",
+  "no_suggestions": "Ingen byer funnet som samsvarer med søket ditt.",
+  "suggestions_found": "Her er byforslag som samsvarer med søket ditt.",
+  "city_found": "Byen ble funnet.",
+  "city_added": "Byen er lagt til i databasen vår.",
+  "city_updated": "Byen er oppdatert.",
+  "city_deleted": "Byen er slettet.",
+  "city_already_exists": "Byen finnes allerede eller kunne ikke legges til.",
+  "unit_km": "km",
+  "unit_miles": "mi",
+  "distance_format": "{0} {1} mellom {2} og {3}",
+  "internal_error": "En uventet feil oppstod. Vennligst prøv igjen senere."
+}

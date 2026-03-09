@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "Etäisyys laskettu onnistuneesti.",
+  "city_not_found": "Yhtä tai molempia kaupunkeja ei löydy.",
+  "invalid_query": "Virheellinen hakukysely.",
+  "no_suggestions": "Hakuasi vastaavia kaupunkeja ei löytynyt.",
+  "suggestions_found": "Tässä ovat hakuasi vastaavat kaupunkiehdotukset.",
+  "city_found": "Kaupunki löytyi onnistuneesti.",
+  "city_added": "Kaupunki lisättiin tietokantaan onnistuneesti.",
+  "city_updated": "Kaupunki päivitettiin onnistuneesti.",
+  "city_deleted": "Kaupunki poistettiin onnistuneesti.",
+  "city_already_exists": "Kaupunki on jo olemassa tai sitä ei voitu lisätä.",
+  "unit_km": "km",
+  "unit_miles": "mi",
+  "distance_format": "{0} {1} välillä {2} ja {3}",
+  "internal_error": "Odottamaton virhe tapahtui. Yritä myöhemmin uudelleen."
+}

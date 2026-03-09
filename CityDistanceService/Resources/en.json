@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "Distance calculated successfully.",
+  "city_not_found": "One or both cities could not be found.",
+  "invalid_query": "Invalid search query.",
+  "no_suggestions": "No cities found matching your search.",
+  "suggestions_found": "Here are city suggestions matching your search.",
+  "city_found": "City found successfully.",
+  "city_added": "City has been successfully added to our database.",
+  "city_updated": "City has been successfully updated.",
+  "city_deleted": "City has been successfully deleted.",
+  "city_already_exists": "City already exists or could not be added.",
+  "unit_km": "km",
+  "unit_miles": "mi",
+  "distance_format": "{0} {1} between {2} and {3}",
+  "internal_error": "An unexpected error occurred. Please try again later."
+}

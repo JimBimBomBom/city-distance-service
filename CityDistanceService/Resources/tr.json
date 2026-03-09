@@ -1,0 +1,16 @@
+{
+  "distance_calculated": "Mesafe başarıyla hesaplandı.",
+  "city_not_found": "Bir veya her iki şehir bulunamadı.",
+  "invalid_query": "Geçersiz arama sorgusu.",
+  "no_suggestions": "Aramanızla eşleşen şehir bulunamadı.",
+  "suggestions_found": "Aramanızla eşleşen şehir önerileri.",
+  "city_found": "Şehir başarıyla bulundu.",
+  "city_added": "Şehir veritabanımıza başarıyla eklendi.",
+  "city_updated": "Şehir başarıyla güncellendi.",
+  "city_deleted": "Şehir başarıyla silindi.",
+  "city_already_exists": "Şehir zaten mevcut veya eklenemedi.",
+  "unit_km": "km",
+  "unit_miles": "mil",
+  "distance_format": "{2} ile {3} arasındaki mesafe {0} {1}",
+  "internal_error": "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+}
