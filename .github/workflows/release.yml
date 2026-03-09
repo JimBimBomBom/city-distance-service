@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  APP_WORKING_DIRECTORY: ./CityDistanceService/
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/city-distance-service
+
+jobs:
+  verify-and-publish:
+    name: Verify & Publish Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from Constants.cs
+        id: get_version
+        run: |
+          APP_VERSION=$(grep -oP 'Version\s*=\s*"\K[^"]*' ./src/Constants.cs)
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "App version: $APP_VERSION"
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Verify tag matches version
+        run: |
+          TAG=${{ github.ref_name }}
+          VERSION=${{ steps.get_version.outputs.app_version }}
+          
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "❌ Version mismatch!"
+            echo "   Tag: $TAG"
+            echo "   Constants.cs Version: $VERSION"
+            echo ""
+            echo "To fix this:"
+            echo "1. Update src/Constants.cs to set Version = \"$TAG\""
+            echo "2. Commit and push the change"
+            echo "3. Create a new tag matching the version"
+            exit 1
+          fi
+          
+          echo "✅ Tag $TAG matches Constants.cs version $VERSION"
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Build application
+        run: dotnet build --configuration Release --no-restore
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -f Dockerfile.App -t app \
+            --build-arg VERSION=${{ steps.get_version.outputs.app_version }} \
+            .
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Tag and push Docker image
+        run: |
+          VERSION=${{ steps.get_version.outputs.app_version }}
+          
+          echo "🏷️ Tagging image..."
+          docker tag app ${{ env.IMAGE_NAME }}:$VERSION
+          docker tag app ${{ env.IMAGE_NAME }}:latest
+          
+          echo "📤 Pushing images to DockerHub..."
+          docker push ${{ env.IMAGE_NAME }}:$VERSION
+          docker push ${{ env.IMAGE_NAME }}:latest
+          
+          echo ""
+          echo "✅ Successfully published:"
+          echo "   - ${{ env.IMAGE_NAME }}:$VERSION"
+          echo "   - ${{ env.IMAGE_NAME }}:latest"
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ steps.get_version.outputs.app_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

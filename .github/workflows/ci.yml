@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - 'v*.*.*'
+  pull_request:
+    branches: [main]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  APP_WORKING_DIRECTORY: ./CityDistanceService/
+
+jobs:
+  build-and-unit-test:
+    name: Build & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Run Unit Tests
+        run: dotnet test --no-build --verbosity normal --configuration Release
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build-and-unit-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Build Docker images
+        env:
+          DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
+          AUTH_USERNAME: ${{ secrets.AUTH_USERNAME }}
+          AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
+          ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
+          ELASTICSEARCH_INDEX: ${{ secrets.ELASTICSEARCH_INDEX }}
+          ELASTICSEARCH_API_KEY: ${{ secrets.ELASTICSEARCH_API_KEY }}
+        run: docker compose up --build -d
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Wait for services to initialize
+        run: sleep 60
+
+      - name: Run Postman integration tests
+        run: newman run ./Integration_tests/Integration.postman_collection.json
+
+      - name: Cleanup services
+        if: always()
+        run: docker compose down
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
