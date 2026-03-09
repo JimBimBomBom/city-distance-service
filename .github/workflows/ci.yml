@@ -53,12 +53,6 @@ jobs:
         run: dotnet restore
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
 
-      - name: Create dummy Caddy env file
-        run: |
-          echo "# Dummy env file for CI" > .caddy.env
-          echo "CF_API_TOKEN=dummy" >> .caddy.env
-        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
-
       - name: Build and start services (without Caddy)
         env:
           DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
@@ -71,7 +65,14 @@ jobs:
         run: sleep 40
 
       - name: Verify services are running
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
         run: |
+          echo "=== Current Directory ==="
+          pwd
+          echo ""
+          echo "=== Files in Directory ==="
+          ls -la
+          echo ""
           echo "=== Docker Compose Status ==="
           docker compose ps
           
@@ -82,7 +83,7 @@ jobs:
           
           echo ""
           echo "=== Container Health Status ==="
-          docker inspect --format='{{.State.Status}} - Health: {{.State.Health.Status}}' city_distance_service_app || docker inspect --format='{{.State.Status}}' city_distance_service_app
+          docker inspect --format='{{.State.Status}} - Health: {{.State.Health.Status}}' city_distance_service_app || docker inspect --format='{{.State.Status}}' city_distance_service_app || echo "Container not found"
           
           echo ""
           echo "=== Testing /health_check endpoint (HTTP on port 8080) ==="
