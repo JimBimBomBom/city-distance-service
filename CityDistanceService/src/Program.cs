@@ -204,7 +204,6 @@ app.MapGet("/suggestions", async (
     IElasticSearchService esService,
     ILocalizationService localization) =>
 {
-    Console.WriteLine($"Selected language: {ctx.GetLanguage()}");
     var lang = ctx.GetLanguage();
     return await RequestHandler.GetCitySuggestionsAsync(q, esService, localization, lang);
 }).AllowAnonymous();
