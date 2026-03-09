@@ -54,18 +54,11 @@ jobs:
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
 
       - name: Build and start services (without Caddy)
-        env:
-          DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
-          AUTH_USERNAME: ${{ secrets.AUTH_USERNAME }}
-          AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
-          ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
-          ELASTICSEARCH_INDEX: ${{ secrets.ELASTICSEARCH_INDEX }}
-          ELASTICSEARCH_API_KEY: ${{ secrets.ELASTICSEARCH_API_KEY }}
-        run: docker compose up --build -d app db elasticsearch
+        run: docker compose up --build -d app
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
 
       - name: Wait for services to initialize
-        run: sleep 60
+        run: sleep 20
 
       - name: Verify services are running
         run: |
