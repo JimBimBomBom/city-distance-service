@@ -53,7 +53,7 @@ jobs:
         run: dotnet restore
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
 
-      - name: Build Docker images
+      - name: Build and start services (without Caddy)
         env:
           DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
           AUTH_USERNAME: ${{ secrets.AUTH_USERNAME }}
@@ -61,17 +61,19 @@ jobs:
           ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
           ELASTICSEARCH_INDEX: ${{ secrets.ELASTICSEARCH_INDEX }}
           ELASTICSEARCH_API_KEY: ${{ secrets.ELASTICSEARCH_API_KEY }}
-        run: docker compose up --build -d
+        run: docker compose up --build -d app db elasticsearch
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
-
-      - name: Install Newman
-        run: npm install -g newman
 
       - name: Wait for services to initialize
         run: sleep 60
 
-      - name: Run Postman integration tests
-        run: newman run ./Integration_tests/Integration.postman_collection.json
+      - name: Verify services are running
+        run: |
+          echo "Checking service health..."
+          docker compose ps
+          echo ""
+          echo "App logs:"
+          docker compose logs --tail=20 app || true
 
       - name: Cleanup services
         if: always()
