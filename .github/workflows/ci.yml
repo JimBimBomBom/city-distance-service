@@ -58,7 +58,10 @@ jobs:
           DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
           AUTH_USERNAME: ${{ secrets.AUTH_USERNAME }}
           AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
-        run: docker compose up --build -d app db elasticsearch
+        run: |
+            echo "# Dummy env file for CI" > .caddy.env
+            echo "CF_API_TOKEN=dummy" >> .caddy.env
+            docker compose up --build -d app db elasticsearch
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
 
       - name: Wait for services to initialize
