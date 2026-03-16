@@ -179,29 +179,26 @@ catch (Exception ex)
 if (isStatelessMode && configuration["WAIT_FOR_ES_INDEX"]?.ToLower() == "true")
 {
     Console.WriteLine("Stateless mode: Building Elasticsearch index from MySQL data...");
-    try
-    {
-        using var scope = app.Services.CreateScope();
-        var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
-        var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
-        
-        // Get all cities from MySQL and index them in ES
-        var allCities = await dbService.GetAllCitiesAsync();
-        Console.WriteLine($"Found {allCities.Count} cities in MySQL to index");
-        
-        if (allCities.Count > 0)
+    await RetryHelper.RetryOnExceptionAsync(
+        maxRetries: 15,
+        delay: TimeSpan.FromSeconds(10),
+        operation: async () =>
         {
-            await esService.BulkIndexCitiesAsync(allCities);
-            Console.WriteLine($"✅ Successfully indexed {allCities.Count} cities in Elasticsearch");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"ERROR: Failed to build ES index: {ex.Message}");
-        // In stateless mode, ES is critical, so we should fail
-        Console.WriteLine("Exiting - Elasticsearch index is required in stateless mode");
-        return;
-    }
+            using var scope = app.Services.CreateScope();
+            var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
+            var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
+
+            var allCities = await dbService.GetAllCitiesAsync();
+            Console.WriteLine($"Found {allCities.Count} cities in MySQL to index");
+
+            if (allCities.Count > 0)
+            {
+                await esService.BulkIndexCitiesAsync(allCities);
+                Console.WriteLine($"Successfully indexed {allCities.Count} cities in Elasticsearch");
+            }
+        },
+        operationName: "ES index build from MySQL"
+    );
 }
 
 // Trigger immediate data gathering if needed
