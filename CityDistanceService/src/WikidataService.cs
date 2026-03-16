@@ -136,7 +136,9 @@ public class WikidataService : IWikidataService
             ?admin rdfs:label ?adminLabel .
         }}
     }}
-            LIMIT 20000";
+    ORDER BY ?city
+    LIMIT {limit}
+    OFFSET {offset}";
     }
 
     // -------------------------------------------------------------------------

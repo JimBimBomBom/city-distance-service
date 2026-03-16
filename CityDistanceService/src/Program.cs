@@ -1,5 +1,4 @@
 // Program.cs
-using FluentMigrator.Runner;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using SharpGrip.FluentValidation.AutoValidation.Endpoints.Extensions;
@@ -8,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -104,19 +104,33 @@ builder.Services.AddScoped<IElasticSearchService, ElasticSearchService>();
 builder.Services.AddSingleton<IWikidataService, WikidataService>();
 builder.Services.AddScoped<ICityDataService, CityDataService>();
 
+// Data generation and reload services
+builder.Services.AddSingleton<DataGenerationService>();
+builder.Services.AddSingleton<IDataReloadService>(sp => 
+{
+    var logger = sp.GetRequiredService<ILogger<DataReloadService>>();
+    var esService = sp.GetRequiredService<IElasticSearchService>();
+    var dbManager = sp.GetRequiredService<IDatabaseService>() as MySQLManager 
+        ?? throw new InvalidOperationException("Expected MySQLManager");
+    return new DataReloadService(logger, connectionString, esService, dbManager);
+});
+
+// Localization
 var resourcesPath = Path.Combine(AppContext.BaseDirectory, "Resources");
 builder.Services.AddSingleton<ILocalizationService>(
     new LocalizationService(resourcesPath, defaultLang: "en"));
 
-// FluentMigrator
-builder.Services.AddFluentMigratorCore()
-    .ConfigureRunner(rb => rb
-        .AddMySql5()
-        .WithGlobalConnectionString(connectionString)
-        .ScanIn(typeof(Program).Assembly).For.Migrations())
-    .AddLogging(lb => lb.AddFluentMigratorConsole());
-
-builder.Services.AddHostedService<WikidataSyncService>();
+// Only add DataGenerationService in non-stateless mode
+var isStatelessMode = configuration["STATELESS_MODE"]?.ToLower() == "true";
+if (!isStatelessMode)
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<DataGenerationService>());
+    Console.WriteLine("DataGenerationService enabled (stateful mode - will fetch from Wikidata)");
+}
+else
+{
+    Console.WriteLine("DataGenerationService disabled (stateless mode - using existing SQL data)");
+}
 
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
@@ -143,21 +157,6 @@ app.UseSwaggerUI(c =>
 app.UseMiddleware<ApplicationVersionMiddleware>();
 app.UseMiddleware<LocaleMiddleware>();
 
-// Migrations
-try
-{
-    RetryHelper.RetryOnException(10, TimeSpan.FromSeconds(10), () =>
-    {
-        using var scope = app.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp();
-    });
-}
-catch (Exception ex)
-{
-    Console.WriteLine("Error running migrations: " + ex.Message);
-    return;
-}
-
 try
 {
     await RetryHelper.RetryOnExceptionAsync(
@@ -174,6 +173,66 @@ try
 catch (Exception ex)
 {
     Console.WriteLine($"WARNING: Elasticsearch unavailable: {ex.Message}");
+}
+
+// In stateless mode, build ES index from MySQL data
+if (isStatelessMode && configuration["WAIT_FOR_ES_INDEX"]?.ToLower() == "true")
+{
+    Console.WriteLine("Stateless mode: Building Elasticsearch index from MySQL data...");
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
+        var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
+        
+        // Get all cities from MySQL and index them in ES
+        var allCities = await dbService.GetAllCitiesAsync();
+        Console.WriteLine($"Found {allCities.Count} cities in MySQL to index");
+        
+        if (allCities.Count > 0)
+        {
+            await esService.BulkIndexCitiesAsync(allCities);
+            Console.WriteLine($"✅ Successfully indexed {allCities.Count} cities in Elasticsearch");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"ERROR: Failed to build ES index: {ex.Message}");
+        // In stateless mode, ES is critical, so we should fail
+        Console.WriteLine("Exiting - Elasticsearch index is required in stateless mode");
+        return;
+    }
+}
+
+// Trigger immediate data gathering if needed
+// This kicks off data generation right away, then monthly schedule takes over
+if (!isStatelessMode)
+{
+    Console.WriteLine("🚀 Triggering immediate data gathering from Wikidata...");
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var dataGenerationService = scope.ServiceProvider.GetRequiredService<DataGenerationService>();
+        
+        // Run data generation immediately (don't await - let it run in background)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await dataGenerationService.GenerateAndStoreDataAsync(CancellationToken.None);
+                Console.WriteLine("✅ Initial data gathering complete. SQL file generated.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Initial data gathering failed: {ex.Message}");
+                Console.WriteLine("Application will continue. Monthly scheduled fetch will retry.");
+            }
+        });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Could not start initial data gathering: {ex.Message}");
+    }
 }
 
 Console.WriteLine("Application started. Version: " + Constants.Version);
@@ -284,6 +343,61 @@ app.MapDelete("/city/{id}", async (
 app.MapPost("/wikidata/sync", async (ICityDataService cityService) =>
     await RequestHandler.UpdateCityDatabaseAsync(cityService)
 ).AllowAnonymous();
+
+// Data endpoint - returns the generated SQL file
+app.MapGet("/data", (DataGenerationService dataService) =>
+{
+    var sqlPath = dataService.GetSqlFilePath();
+    if (sqlPath == null || !File.Exists(sqlPath))
+    {
+        return Results.NotFound(new { Error = "SQL data file not yet generated. Please wait for the next sync cycle." });
+    }
+    
+    var lastUpdated = dataService.GetLastGeneratedAt();
+    var fileName = $"cities_{lastUpdated:yyyyMMdd_HHmmss}.sql";
+    
+    return Results.File(sqlPath, "application/sql", fileName);
+}).AllowAnonymous();
+
+// Admin reload endpoint - private, only accessible from localhost
+app.MapPost("/admin/reload", async (
+    HttpContext context,
+    IDataReloadService reloadService,
+    DataGenerationService dataService) =>
+{
+    // Check if request is from localhost or private network
+    var remoteIp = context.Connection.RemoteIpAddress;
+    if (remoteIp == null)
+    {
+        return Results.StatusCode(403);
+    }
+    
+    // Allow only loopback addresses
+    if (!IPAddress.IsLoopback(remoteIp))
+    {
+        return Results.StatusCode(403);
+    }
+    
+    var sqlPath = dataService.GetSqlFilePath();
+    if (sqlPath == null || !File.Exists(sqlPath))
+    {
+        return Results.BadRequest(new { Error = "No SQL data file available. Please wait for the DataGenerationService to complete." });
+    }
+    
+    try
+    {
+        await reloadService.ReloadFromSqlFileAsync(sqlPath);
+        return Results.Ok(new { 
+            Message = "Data reload initiated successfully",
+            SqlFile = sqlPath,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Data reload failed: {ex.Message}");
+    }
+}).AllowAnonymous();
 
 Console.WriteLine("Now serving requests.");
 app.Run();

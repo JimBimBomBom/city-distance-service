@@ -396,4 +396,60 @@ public class MySQLManager : IDatabaseService
             return null;
         }
     }
+
+    public async Task<List<CityInfo>> GetAllCitiesAsync()
+    {
+        var cities = new List<CityInfo>();
+        
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = @"SELECT CityId, CityName, Latitude, Longitude, 
+                         CountryCode, Country, AdminRegion, Population 
+                         FROM cities;";
+
+            using var command = new MySqlCommand(query, connection);
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                var city = new CityInfo
+                {
+                    CityId = reader.GetString(reader.GetOrdinal("CityId")),
+                    CityName = reader.GetString(reader.GetOrdinal("CityName")),
+                    Latitude = (double)reader.GetDecimal(reader.GetOrdinal("Latitude")),
+                    Longitude = (double)reader.GetDecimal(reader.GetOrdinal("Longitude")),
+                    CountryCode = reader.IsDBNull(reader.GetOrdinal("CountryCode"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("CountryCode")),
+                    Country = reader.IsDBNull(reader.GetOrdinal("Country"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("Country")),
+                    AdminRegion = reader.IsDBNull(reader.GetOrdinal("AdminRegion"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("AdminRegion")),
+                    Population = reader.IsDBNull(reader.GetOrdinal("Population"))
+                        ? null
+                        : reader.GetInt32(reader.GetOrdinal("Population"))
+                };
+                cities.Add(city);
+            }
+
+            Console.WriteLine($"MySQL: Retrieved {cities.Count} cities");
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"MySQL Error in GetAllCitiesAsync: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetAllCitiesAsync: {ex.Message}");
+            throw;
+        }
+
+        return cities;
+    }
 }

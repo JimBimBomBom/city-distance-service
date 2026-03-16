@@ -1,0 +1,10 @@
+# Custom MySQL image with pre-loaded data
+FROM mysql:latest
+
+# Copy initialization scripts (executed in alphabetical order on first startup)
+COPY ./data/01-init-db.sql /docker-entrypoint-initdb.d/01-init-db.sql
+COPY ./data/02-cities.sql /docker-entrypoint-initdb.d/02-cities.sql
+
+# MySQL will automatically execute these SQL files when the container starts
+# Files in /docker-entrypoint-initdb.d/ are executed in alphabetical order
+EXPOSE 3306

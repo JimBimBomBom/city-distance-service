@@ -1,19 +1,5 @@
 services:
-    # app:
-    #     image: jimbimdocker/city-distance-service:latest
-    #     container_name: city_distance_service_app
-    #     env_file: 
-    #         - path: "DefaultAppEnv.env"
-    #           required: true # default env file
-    #         - path: "ProductionAppEnv.env"
-    #           required: false # production env file -> overrides values from DefaultAppEnv.env if set
-    #     ports:
-    #         - "8080:8080"
-    #     depends_on:
-    #         - db
-    #     networks:
-    #         - cdsNetwork
-
+    # Application Service
     app:
         build:
             context: .
@@ -27,16 +13,25 @@ services:
         ports:
             - "8080:8080"
         depends_on:
-          - db
-          - elasticsearch
+            db:
+                condition: service_healthy
+            elasticsearch:
+                condition: service_healthy
         networks:
             - cdsNetwork
-        volumes:
-            - ./data/app/logs:/app/logs
         restart: unless-stopped
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8080/health_check"]
+            interval: 10s
+            timeout: 5s
+            retries: 30
+            start_period: 60s
 
+    # MySQL Database with pre-loaded data
     db:
-        image: mysql:latest
+        build:
+            context: .
+            dockerfile: Dockerfile.MySQL
         container_name: cds_mysql_db
         env_file: 
             - path: "DefaultDatabaseEnv.env"
@@ -45,11 +40,16 @@ services:
               required: false
         networks:
             - cdsNetwork
-        volumes:
-            - ./MySQLInit.sql:/docker-entrypoint-initdb.d/init.sql
-            - ./data/mysql:/var/lib/mysql  # Persistent database storage
         restart: unless-stopped
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            interval: 5s
+            timeout: 3s
+            retries: 20
+            start_period: 30s
+        # No volumes - data is ephemeral, loaded from SQL dump on start
         
+    # Elasticsearch (Stateless - index rebuilt from MySQL on startup)
     elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
         container_name: elasticsearch
@@ -58,7 +58,7 @@ services:
             - node.name=elasticsearch
             - discovery.type=single-node
             - bootstrap.memory_lock=true
-            - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"  # Reduced from 1GB for faster startup
             - xpack.security.enabled=false
             - http.max_content_length=200mb
             - http.cors.enabled=true
@@ -70,14 +70,20 @@ services:
             memlock:
                 soft: -1
                 hard: -1
-        volumes:
-            - ./data/elasticsearch:/usr/share/elasticsearch/data
         ports:
             - "9200:9200"
         networks:
             - cdsNetwork
         restart: unless-stopped
+        healthcheck:
+            test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+            interval: 10s
+            timeout: 5s
+            retries: 15
+            start_period: 40s
+        # No volumes - index is rebuilt from MySQL data on startup
     
+    # Caddy Reverse Proxy
     caddy:
         build: 
             context: .
@@ -91,11 +97,12 @@ services:
             - "8443:8443" 
         volumes:
             - ./Caddyfile:/etc/caddy/Caddyfile
-            - ./data/caddy/data:/data  # SSL certificates and other data
-            - ./data/caddy/config:/config  # Caddy configuration cache
         networks:
             - cdsNetwork
         restart: unless-stopped
+        depends_on:
+            app:
+                condition: service_healthy
 
 networks:
     cdsNetwork: {}

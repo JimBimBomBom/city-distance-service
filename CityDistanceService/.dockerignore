@@ -1,5 +1,44 @@
-.gitignore
-.caddy.env
-data/
-CityDistanceService.Tests/
- 
+# Ignore Git files
+.git
+.gitattributes
+
+# Ignore Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Ignore data directories with runtime files
+data/mysql/
+data/app/
+data/elasticsearch/
+*.sock
+*.socket
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Ignore build artifacts
+bin/
+obj/
+out/
+publish/
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore environment files (these are mounted at runtime)
+*.env
+.env.*
+!.env.example
+
+# Ignore test files
+test-results/
+coverage/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db

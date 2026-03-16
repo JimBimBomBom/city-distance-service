@@ -352,4 +352,101 @@ public class ElasticSearchService : IElasticSearchService
             throw new Exception($"Failed to upsert city to Elasticsearch");
         }
     }
+
+    public async Task BulkIndexCitiesAsync(List<CityInfo> cities)
+    {
+        const int batchSize = 1000;
+        int totalSuccessful = 0;
+        int totalFailed = 0;
+        int totalBatches = (int)Math.Ceiling((double)cities.Count / batchSize);
+
+        Console.WriteLine($"=== Building Elasticsearch Index from MySQL Data ===");
+        Console.WriteLine($"Total cities to index: {cities.Count}");
+        Console.WriteLine($"Batch size: {batchSize}, Total batches: {totalBatches}");
+        Console.WriteLine();
+
+        for (int i = 0; i < cities.Count; i += batchSize)
+        {
+            var batch = cities.Skip(i).Take(batchSize).ToList();
+            int currentBatch = (i / batchSize) + 1;
+
+            try
+            {
+                // Convert CityInfo to CityDoc
+                var cityDocs = batch.Select(city => new CityDoc
+                {
+                    CityId = city.CityId,
+                    CityNames = new Dictionary<string, string> { { "en", city.CityName } },
+                    AllNames = new List<string> { city.CityName },
+                    Location = GeoLocation.LatitudeLongitude(new LatLonGeoLocation
+                    {
+                        Lat = city.Latitude,
+                        Lon = city.Longitude
+                    }),
+                    CountryCode = city.CountryCode ?? "",
+                    Country = !string.IsNullOrEmpty(city.Country) 
+                        ? new Dictionary<string, string> { { "en", city.Country } }
+                        : new(),
+                    AdminRegion = !string.IsNullOrEmpty(city.AdminRegion)
+                        ? new Dictionary<string, string> { { "en", city.AdminRegion } }
+                        : new(),
+                    Population = city.Population ?? 0
+                }).ToList();
+
+                var response = await _client.BulkAsync(b => b
+                    .Index(IndexName)
+                    .IndexMany(cityDocs)
+                );
+
+                if (!response.IsValidResponse)
+                {
+                    if (response.ItemsWithErrors.Any())
+                    {
+                        int batchFailed = response.ItemsWithErrors.Count();
+                        int batchSuccessful = batch.Count - batchFailed;
+
+                        totalSuccessful += batchSuccessful;
+                        totalFailed += batchFailed;
+
+                        Console.WriteLine($"⚠ ES Batch {currentBatch}/{totalBatches}: {batchSuccessful} succeeded, {batchFailed} failed");
+                    }
+                    else
+                    {
+                        totalFailed += batch.Count;
+                        Console.WriteLine($"✗ ES Batch {currentBatch}/{totalBatches} completely failed");
+                    }
+                }
+                else
+                {
+                    totalSuccessful += batch.Count;
+                    Console.WriteLine($"✓ ES Batch {currentBatch}/{totalBatches} completed ({batch.Count} cities)");
+                }
+
+                // Small delay between batches to not overwhelm ES
+                if (i + batchSize < cities.Count)
+                {
+                    await Task.Delay(100);
+                }
+            }
+            catch (Exception ex)
+            {
+                totalFailed += batch.Count;
+                Console.WriteLine($"[ERROR] ES Batch {currentBatch}/{totalBatches} exception: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine($"\n=== Elasticsearch Index Build Summary ===");
+        Console.WriteLine($"Total cities processed: {cities.Count}");
+        Console.WriteLine($"✓ Successfully indexed: {totalSuccessful}");
+        if (totalFailed > 0)
+        {
+            Console.WriteLine($"✗ Failed: {totalFailed}");
+        }
+        Console.WriteLine();
+
+        if (totalFailed > 0)
+        {
+            throw new Exception($"Failed to index {totalFailed} cities in Elasticsearch");
+        }
+    }
 }
