@@ -22,13 +22,13 @@ public static class DistanceCalculationService
             // Step 2: Validate that both cities were found
             if (city1 == null)
             {
-                Console.WriteLine($"City not found: {city1.CityName}");
+                Console.WriteLine($"City not found: {city1Id}");
                 return -1;
             }
 
             if (city2 == null)
             {
-                Console.WriteLine($"City not found: {city2.CityName}");
+                Console.WriteLine($"City not found: {city2Id}");
                 return -1;
             }
 

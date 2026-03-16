@@ -1,5 +1,6 @@
 using Microsoft.VisualBasic;
 using Elastic.Clients.Elasticsearch;
+using System.Diagnostics;
 
 public class CityDataService : ICityDataService
 {
@@ -17,17 +18,44 @@ public class CityDataService : ICityDataService
         _wikidataService = wikidataService;
     }
 
-    public async Task<int> SyncCitiesFromWikidataAsync()
+    public async Task<int> SyncCitiesFromWikidataAsync(
+        TimeSpan? maxDuration = null,
+        int? maxConsecutivePageFailures = null,
+        Action<int>? onPageProcessed = null,
+        CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
+        var maxAllowedDuration = maxDuration ?? TimeSpan.FromHours(4);
+        var allowedPageFailures = maxConsecutivePageFailures ?? 3;
+
         Console.WriteLine("=================================================");
         Console.WriteLine("Starting Wikidata city synchronization");
+        Console.WriteLine($"Max duration: {maxAllowedDuration.TotalHours} hours");
+        Console.WriteLine($"Max consecutive failures: {allowedPageFailures}");
         Console.WriteLine("=================================================");
 
         int totalAffected = 0;
+        int totalPagesProcessed = 0;
         var processedCityIds = new HashSet<string>();
+        int consecutiveFailures = 0;
 
         foreach (var lang in Constants.SupportedLanguages)
         {
+            // Check time limit
+            if (stopwatch.Elapsed > maxAllowedDuration)
+            {
+                Console.WriteLine($"\n[TIMEOUT] Sync has been running for {stopwatch.Elapsed.TotalHours:F1} hours. " +
+                    $"Exceeds max duration of {maxAllowedDuration.TotalHours} hours. Stopping gracefully.");
+                break;
+            }
+
+            // Check cancellation
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine("\n[CANCELLED] Sync was cancelled. Stopping gracefully.");
+                break;
+            }
+
             try
             {
                 Console.WriteLine($"\n--- Processing Language: {lang} ---");
@@ -37,13 +65,13 @@ public class CityDataService : ICityDataService
                 if (cities.Count == 0)
                 {
                     Console.WriteLine($"No updates for {lang}.");
+                    consecutiveFailures = 0;  // Reset on success (even if empty)
                     continue;
                 }
 
                 Console.WriteLine($"Fetched {cities.Count} cities in {lang}.");
 
-                // For English: Add to MySQL )
-                // NOTE: For now we only store English city names which could mean some ES cities will not be found within DB
+                // For English: Add to MySQL
                 if (lang == "en")
                 {
                     Console.WriteLine("Adding English cities to MySQL database...");
@@ -63,22 +91,50 @@ public class CityDataService : ICityDataService
                 Console.WriteLine($"Updating Elasticsearch with {lang} city names...");
                 await _esService.BulkUpsertCitiesAsync(cities);
                 Console.WriteLine($"Updated Elasticsearch with {cities.Count} city names.");
+
+                // Reset failure counter on success
+                consecutiveFailures = 0;
             }
             catch (Exception ex)
             {
-                // Log error but continue with next language
+                consecutiveFailures++;
                 Console.WriteLine($"[ERROR] Failed processing {lang}: {ex.GetType().Name} - {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
+                Console.WriteLine($"Consecutive failures: {consecutiveFailures}/{allowedPageFailures}");
+
+                if (consecutiveFailures >= allowedPageFailures)
+                {
+                    Console.WriteLine($"\n[CIRCUIT BREAKER] Too many consecutive failures ({consecutiveFailures}). " +
+                        $"Aborting sync to prevent resource exhaustion.");
+                    break;
+                }
             }
 
-            // Rate limiting - be nice to Wikidata
-            Console.WriteLine($"Waiting 30 seconds before processing next language...");
-            await Task.Delay(10000);
+            totalPagesProcessed++;
+            onPageProcessed?.Invoke(totalPagesProcessed);
+
+            // Rate limiting - be nice to Wikidata (10 seconds between languages)
+            Console.WriteLine($"Waiting 10 seconds before processing next language...");
+            await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
         }
 
+        stopwatch.Stop();
+
         Console.WriteLine("\n=================================================");
-        Console.WriteLine($"Sync complete!");
+        Console.WriteLine($"Sync complete! Duration: {stopwatch.Elapsed}");
         Console.WriteLine($"Total MySQL records affected: {totalAffected}");
+        Console.WriteLine($"Total pages processed: {totalPagesProcessed}");
+        if (consecutiveFailures >= allowedPageFailures)
+        {
+            Console.WriteLine($"Status: ABORTED (circuit breaker triggered)");
+        }
+        else if (stopwatch.Elapsed > maxAllowedDuration)
+        {
+            Console.WriteLine($"Status: TIMEOUT (max duration reached)");
+        }
+        else
+        {
+            Console.WriteLine($"Status: SUCCESS");
+        }
         Console.WriteLine("=================================================");
 
         return totalAffected;

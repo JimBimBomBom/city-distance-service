@@ -1,0 +1,170 @@
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - 'v*.*.*'
+  pull_request:
+    branches: [main]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  APP_WORKING_DIRECTORY: ./CityDistanceService/
+
+jobs:
+  build-and-unit-test:
+    name: Build & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Run Unit Tests
+        run: dotnet test --no-build --verbosity normal --configuration Release
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build-and-unit-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Build and start services
+        env:
+          DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
+          AUTH_USERNAME: ${{ secrets.AUTH_USERNAME }}
+          AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
+          STATELESS_MODE: true
+          WAIT_FOR_ES_INDEX: true
+        run: |
+            echo "# Dummy env file for CI" > .caddy.env
+            echo "CF_API_TOKEN=dummy" >> .caddy.env
+            
+            # Build MySQL image with SQL files
+            echo "Building MySQL image with SQL files..."
+            ls -la data/
+            
+            # Build with no cache to ensure fresh SQL files
+            docker compose build --no-cache db
+            
+            # Start database and elasticsearch first
+            echo "Starting database and elasticsearch..."
+            docker compose up -d db elasticsearch
+            
+            # Debug: Check containers are running
+            echo "=== Container Status ==="
+            docker compose ps
+            
+            # Debug: Check MySQL logs
+            echo "=== MySQL Logs (first 30 lines) ==="
+            docker compose logs --tail=30 db
+            
+            # Wait for MySQL to fully initialize with database
+            echo "Waiting for MySQL to initialize database..."
+            for i in {1..30}; do
+              if docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SELECT 1;" 2>/dev/null; then
+                echo "✅ MySQL database is ready!"
+                break
+              fi
+              echo "⏳ Attempt $i/30 - MySQL still initializing..."
+              docker compose ps
+              sleep 2
+            done
+            
+            # Check if database was created
+            echo "Checking database status..."
+            docker compose ps
+            echo "=== MySQL Container Logs ==="
+            docker compose logs db
+            docker compose exec db mysql -uroot -pchangeme -e "SHOW DATABASES;"
+            docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SHOW TABLES;"
+            
+            # Start the application
+            echo "Starting application..."
+            docker compose up -d app
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+
+      - name: Wait for app to start
+        run: sleep 30
+
+      - name: Verify services are running
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+        run: |
+          echo "=== Docker Compose Status ==="
+          docker compose ps
+          
+          echo ""
+          echo "=== App Container Logs (last 50 lines) ==="
+          APP_LOGS=$(docker compose logs --tail=50 app 2>&1 || true)
+          echo "$APP_LOGS"
+          
+          echo ""
+          echo "=== Container Health Status ==="
+          docker inspect --format='{{.State.Status}} - Health: {{.State.Health.Status}}' city_distance_service_app || docker inspect --format='{{.State.Status}}' city_distance_service_app || echo "Container not found"
+          
+          echo ""
+          echo "=== Testing /health_check endpoint (HTTP on port 8080) ==="
+          # Try to reach the app directly without Caddy
+          for i in {1..10}; do
+            echo "Attempt $i..."
+            if curl -sf http://localhost:8080/health_check; then
+              echo ""
+              echo "✅ Health check PASSED"
+              exit 0
+            fi
+            sleep 3
+          done
+          
+          echo ""
+          echo "❌ Health check FAILED - App did not become healthy"
+          echo "Final app logs:"
+          docker compose logs --tail=30 app || true
+          exit 1
+
+      - name: Test API endpoints
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}
+        run: |
+          echo "=== Testing API endpoints ==="
+          
+          # Test version endpoint
+          echo "Testing /version..."
+          curl -s http://localhost:8080/version | jq .
+          
+          # Test cities endpoint (should return test data)
+          echo ""
+          echo "Testing cities data..."
+          curl -s http://localhost:8080/db_health_check | jq .
+          
+          echo ""
+          echo "✅ API tests completed"
+
+      - name: Cleanup services
+        if: always()
+        run: docker compose down
+        working-directory: ${{ env.APP_WORKING_DIRECTORY }}

@@ -4,7 +4,11 @@ using Microsoft.VisualBasic;
 
 public interface ICityDataService
 {
-    Task<int> SyncCitiesFromWikidataAsync();
+    Task<int> SyncCitiesFromWikidataAsync(
+        TimeSpan? maxDuration = null,
+        int? maxConsecutivePageFailures = null,
+        Action<int>? onPageProcessed = null,
+        CancellationToken cancellationToken = default);
 
     Task<CityInfo?> FindCityByIdAsync(string cityName);
 
