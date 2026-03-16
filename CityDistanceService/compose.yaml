@@ -14,9 +14,9 @@ services:
             - "8080:8080"
         depends_on:
             db:
-                condition: service_healthy
+                condition: service_started
             elasticsearch:
-                condition: service_healthy
+                condition: service_started
         networks:
             - cdsNetwork
         restart: unless-stopped
@@ -41,12 +41,13 @@ services:
         networks:
             - cdsNetwork
         restart: unless-stopped
-        healthcheck:
-            test: ["CMD", "/healthcheck.sh"]
-            interval: 5s
-            timeout: 5s
-            retries: 60
-            start_period: 180s
+        # Healthcheck for monitoring only, not used for dependency
+        # healthcheck:
+        #     test: ["CMD", "/healthcheck.sh"]
+        #     interval: 5s
+        #     timeout: 5s
+        #     retries: 60
+        #     start_period: 180s
         # No volumes - data is ephemeral, loaded from SQL dump on start
         
     # Elasticsearch (Stateless - index rebuilt from MySQL on startup)

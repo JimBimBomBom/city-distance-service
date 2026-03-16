@@ -71,21 +71,33 @@ jobs:
             # Build with no cache to ensure fresh SQL files
             docker compose build --no-cache db
             
-            # Start services
-            docker compose up -d app db elasticsearch
+            # Start database and elasticsearch first
+            echo "Starting database and elasticsearch..."
+            docker compose up -d db elasticsearch
             
-            # Wait for MySQL to initialize
-            echo "Waiting for MySQL to initialize..."
-            sleep 10
+            # Wait for MySQL to fully initialize with database
+            echo "Waiting for MySQL to initialize database..."
+            for i in {1..60}; do
+              if docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SELECT 1;" 2>/dev/null; then
+                echo "✅ MySQL database is ready!"
+                break
+              fi
+              echo "⏳ Attempt $i/60 - MySQL still initializing..."
+              sleep 5
+            done
             
             # Check if database was created
-            echo "Checking if database was created..."
-            docker compose exec db mysql -uroot -pchangeme -e "SHOW DATABASES;" || true
-            docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SHOW TABLES;" || true
+            echo "Checking database status..."
+            docker compose exec db mysql -uroot -pchangeme -e "SHOW DATABASES;"
+            docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SHOW TABLES;"
+            
+            # Start the application
+            echo "Starting application..."
+            docker compose up -d app
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
 
-      - name: Wait for services to initialize
-        run: sleep 40
+      - name: Wait for app to start
+        run: sleep 30
 
       - name: Verify services are running
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
