@@ -5,6 +5,11 @@ FROM mysql:latest
 COPY ./data/01-init-db.sql /docker-entrypoint-initdb.d/01-init-db.sql
 COPY ./data/02-cities.sql /docker-entrypoint-initdb.d/02-cities.sql
 
+# Create healthcheck script
+RUN echo '#!/bin/bash\n\
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "USE CityDistanceService; SELECT 1;" > /dev/null 2>&1\n\
+exit $?' > /healthcheck.sh && chmod +x /healthcheck.sh
+
 # MySQL will automatically execute these SQL files when the container starts
 # Files in /docker-entrypoint-initdb.d/ are executed in alphabetical order
 EXPOSE 3306
