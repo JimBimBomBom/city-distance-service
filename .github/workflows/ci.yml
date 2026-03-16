@@ -75,19 +75,31 @@ jobs:
             echo "Starting database and elasticsearch..."
             docker compose up -d db elasticsearch
             
+            # Debug: Check containers are running
+            echo "=== Container Status ==="
+            docker compose ps
+            
+            # Debug: Check MySQL logs
+            echo "=== MySQL Logs (first 30 lines) ==="
+            docker compose logs --tail=30 db
+            
             # Wait for MySQL to fully initialize with database
             echo "Waiting for MySQL to initialize database..."
-            for i in {1..60}; do
+            for i in {1..30}; do
               if docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SELECT 1;" 2>/dev/null; then
                 echo "✅ MySQL database is ready!"
                 break
               fi
-              echo "⏳ Attempt $i/60 - MySQL still initializing..."
-              sleep 5
+              echo "⏳ Attempt $i/30 - MySQL still initializing..."
+              docker compose ps
+              sleep 2
             done
             
             # Check if database was created
             echo "Checking database status..."
+            docker compose ps
+            echo "=== MySQL Container Logs ==="
+            docker compose logs db
             docker compose exec db mysql -uroot -pchangeme -e "SHOW DATABASES;"
             docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SHOW TABLES;"
             
