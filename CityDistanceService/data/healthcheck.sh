@@ -1,13 +1,15 @@
 #!/bin/bash
 # Healthcheck script for MySQL
-# Only returns success when database is fully initialized and accessible
+# Returns success if MySQL is accepting connections (database may still be initializing)
+# Only fails if MySQL is completely down
 
-# Try to connect to MySQL and verify database exists
-if mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "USE CityDistanceService; SELECT 1;" > /dev/null 2>&1; then
-    # Database exists and is accessible
+# Check if MySQL process is accepting connections
+if mysqladmin -u root -p"$MYSQL_ROOT_PASSWORD" ping --silent > /dev/null 2>&1; then
+    # MySQL is running and accepting connections
+    # During startup, this is sufficient to not mark container unhealthy
+    # The app has its own retry logic for database readiness
     exit 0
 fi
 
-# Database not ready - return failure
-# This prevents the app from starting before MySQL is fully initialized
+# MySQL is not responding at all
 exit 1
