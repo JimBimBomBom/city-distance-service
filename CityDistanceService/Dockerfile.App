@@ -23,8 +23,5 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Create data directory for SQL file storage
 RUN mkdir -p /app/data
 
-# Expose port 8080 for the app.
-EXPOSE 8080
-
 # Start the app.
 ENTRYPOINT ["dotnet", "CityDistanceService.dll"]

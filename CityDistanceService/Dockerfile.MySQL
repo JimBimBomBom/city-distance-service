@@ -17,5 +17,3 @@ ENTRYPOINT ["docker-entrypoint-wrapper.sh"]
 
 # Preserve the base image's default command
 CMD ["mysqld"]
-
-EXPOSE 3306
