@@ -9,6 +9,13 @@ COPY ./data/02-cities.sql /docker-entrypoint-initdb.d/02-cities.sql
 COPY ./data/healthcheck.sh /healthcheck.sh
 RUN chmod +x /healthcheck.sh
 
+# Copy custom entrypoint to cleanup stale socket files
+COPY ./data/mysql-entrypoint.sh /mysql-entrypoint.sh
+RUN chmod +x /mysql-entrypoint.sh
+
+# Use custom entrypoint to cleanup stale sockets before starting MySQL
+ENTRYPOINT ["/mysql-entrypoint.sh"]
+
 # MySQL will automatically execute these SQL files when the container starts
 # Files in /docker-entrypoint-initdb.d/ are executed in alphabetical order
 EXPOSE 3306

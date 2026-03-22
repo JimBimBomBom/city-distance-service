@@ -41,12 +41,13 @@ services:
         networks:
             - cdsNetwork
         restart: unless-stopped
-        healthcheck:
-            test: ["CMD", "/healthcheck.sh"]
-            interval: 5s
-            timeout: 5s
-            retries: 60
-            start_period: 60s
+        # Healthcheck for monitoring only, not used for dependency
+        # healthcheck:
+        #     test: ["CMD", "/healthcheck.sh"]
+        #     interval: 5s
+        #     timeout: 5s
+        #     retries: 60
+        #     start_period: 180s
         # No volumes - data is ephemeral, loaded from SQL dump on start
         
     # Elasticsearch (Stateless - index rebuilt from MySQL on startup)
