@@ -41,7 +41,7 @@ jobs:
 
       - name: Setup Elasticsearch
         run: |
-          docker run -d --name elasticsearch \
+          docker run -d --name cds-elasticsearch \
             -p 9200:9200 \
             -e "discovery.type=single-node" \
             -e "xpack.security.enabled=false" \

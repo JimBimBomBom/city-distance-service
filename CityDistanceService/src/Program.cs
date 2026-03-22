@@ -79,7 +79,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Elasticsearch
-var esUrl      = builder.Configuration["Elasticsearch:Url"]      ?? "http://elasticsearch:9200";
+var esUrl      = builder.Configuration["Elasticsearch:Url"]      ?? "http://cds-elasticsearch:9200";
 var esPassword = builder.Configuration["Elasticsearch:Password"] ?? "testPassword123";
 
 var settings = new ElasticsearchClientSettings(new Uri(esUrl))
@@ -100,9 +100,9 @@ var connectionString = configuration["DATABASE_CONNECTION_STRING"];
 
 // Services
 builder.Services.AddScoped<IDatabaseService>(_ => new MySQLManager(connectionString));
-builder.Services.AddScoped<IElasticSearchService, ElasticSearchService>();
 builder.Services.AddSingleton<IWikidataService, WikidataService>();
 builder.Services.AddScoped<ICityDataService, CityDataService>();
+builder.Services.AddScoped<IElasticSearchService, ElasticSearchService>();
 
 // Data generation and reload services
 builder.Services.AddSingleton<DataGenerationService>();

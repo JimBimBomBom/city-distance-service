@@ -8,9 +8,7 @@ docker-compose*
 .dockerignore
 
 # Ignore data directories with runtime files
-data/mysql/
 data/app/
-data/elasticsearch/
 *.sock
 *.socket
 

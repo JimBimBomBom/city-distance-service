@@ -1,6 +1,6 @@
 services:
     # Application Service
-    app:
+    cds-app:
         build:
             context: .
             dockerfile: Dockerfile.App
@@ -13,9 +13,9 @@ services:
         ports:
             - "8080:8080"
         depends_on:
-            db:
-                condition: service_healthy
-            elasticsearch:
+            cds-db:
+                condition: service_started
+            cds-elasticsearch:
                 condition: service_healthy
         networks:
             - cdsNetwork
@@ -28,7 +28,7 @@ services:
             start_period: 60s
 
     # MySQL Database with pre-loaded data
-    db:
+    cds-db:
         build:
             context: .
             dockerfile: Dockerfile.MySQL
@@ -50,7 +50,7 @@ services:
         # No volumes - data is ephemeral, loaded from SQL dump on start
         
     # Elasticsearch (Stateless - index rebuilt from MySQL on startup)
-    elasticsearch:
+    cds-elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
         container_name: elasticsearch
         environment:
@@ -100,9 +100,6 @@ services:
         networks:
             - cdsNetwork
         restart: unless-stopped
-        depends_on:
-            app:
-                condition: service_healthy
 
 networks:
     cdsNetwork: {}
