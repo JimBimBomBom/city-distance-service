@@ -71,11 +71,11 @@ jobs:
             ls -la data/
             
             # Build with no cache to ensure fresh SQL files
-            docker compose build --no-cache db
+            docker compose build --no-cache cds-db
             
             # Start database and elasticsearch first
             echo "Starting database and elasticsearch..."
-            docker compose up -d db elasticsearch
+            docker compose up -d cds-db cds-elasticsearch
             
             # Debug: Check containers are running
             echo "=== Container Status ==="
@@ -83,12 +83,12 @@ jobs:
             
             # Debug: Check MySQL logs
             echo "=== MySQL Logs (first 30 lines) ==="
-            docker compose logs --tail=30 db
+            docker compose logs --tail=30 cds-db
             
             # Wait for MySQL to fully initialize with database
             echo "Waiting for MySQL to initialize database..."
             for i in {1..30}; do
-              if docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SELECT 1;" 2>/dev/null; then
+              if docker compose exec cds-db mysql -uroot -pchangeme -e "USE CityDistanceService; SELECT 1;" 2>/dev/null; then
                 echo "✅ MySQL database is ready!"
                 break
               fi
@@ -101,13 +101,13 @@ jobs:
             echo "Checking database status..."
             docker compose ps
             echo "=== MySQL Container Logs ==="
-            docker compose logs db
-            docker compose exec db mysql -uroot -pchangeme -e "SHOW DATABASES;"
-            docker compose exec db mysql -uroot -pchangeme -e "USE CityDistanceService; SHOW TABLES;"
+            docker compose logs cds-db
+            docker compose exec cds-db mysql -uroot -pchangeme -e "SHOW DATABASES;"
+            docker compose exec cds-db mysql -uroot -pchangeme -e "USE CityDistanceService; SHOW TABLES;"
             
             # Start the application
             echo "Starting application..."
-            docker compose up -d app
+            docker compose up -d cds-app
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
 
       - name: Wait for app to start
@@ -121,7 +121,7 @@ jobs:
           
           echo ""
           echo "=== App Container Logs (last 50 lines) ==="
-          APP_LOGS=$(docker compose logs --tail=50 app 2>&1 || true)
+          APP_LOGS=$(docker compose logs --tail=50 cds-app 2>&1 || true)
           echo "$APP_LOGS"
           
           echo ""
@@ -144,7 +144,7 @@ jobs:
           echo ""
           echo "❌ Health check FAILED - App did not become healthy"
           echo "Final app logs:"
-          docker compose logs --tail=30 app || true
+          docker compose logs --tail=30 cds-app || true
           exit 1
 
       - name: Test API endpoints

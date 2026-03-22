@@ -81,8 +81,8 @@ jobs:
           VERSION=${{ steps.get_version.outputs.app_version }}
           
           echo "🏷️ Tagging image..."
-          docker tag app ${{ env.IMAGE_NAME }}:$VERSION
-          docker tag app ${{ env.IMAGE_NAME }}:latest
+          docker tag cds-app ${{ env.IMAGE_NAME }}:$VERSION
+          docker tag cds-app ${{ env.IMAGE_NAME }}:latest
           
           echo "📤 Pushing images to DockerHub..."
           docker push ${{ env.IMAGE_NAME }}:$VERSION
