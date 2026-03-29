@@ -10,7 +10,7 @@ public interface IWikidataService
 
 public class WikidataService : IWikidataService
 {
-    private const int PageSize = 20000;
+    private const int PageSize = 5000;
     private const int MaxPages = 40;
     private const int MaxRetries = 5;
     
@@ -22,11 +22,15 @@ public class WikidataService : IWikidataService
     
     // Base delay for exponential backoff on retries
     private static readonly TimeSpan RetryBaseDelay = TimeSpan.FromSeconds(2);
+    
+    // Global semaphore to ensure only 1 concurrent request to Wikidata at a time
+    // This is critical to avoid being rate-limited by Wikidata's API
+    private static readonly SemaphoreSlim _globalWikidataSemaphore = new SemaphoreSlim(1, 1);
 
     private static readonly HttpClient _httpClient = new HttpClient
     {
-        // Per-request timeout; shorter than before so a hung request fails fast.
-        Timeout = TimeSpan.FromSeconds(60)
+        // Longer timeout for large SPARQL queries - Wikidata can be slow for 20k cities
+        Timeout = TimeSpan.FromSeconds(300)
     };
 
     static WikidataService()
@@ -38,6 +42,22 @@ public class WikidataService : IWikidataService
     }
 
     public async Task<List<SparQLCityInfo>> FetchCitiesAsync(string language)
+    {
+        // Wait for global semaphore to ensure only 1 Wikidata request at a time
+        // This prevents overwhelming Wikidata's API and getting rate limited
+        await _globalWikidataSemaphore.WaitAsync();
+        
+        try
+        {
+            return await FetchCitiesInternalAsync(language);
+        }
+        finally
+        {
+            _globalWikidataSemaphore.Release();
+        }
+    }
+    
+    private async Task<List<SparQLCityInfo>> FetchCitiesInternalAsync(string language)
     {
         var allCities = new List<SparQLCityInfo>();
         var seenIds = new HashSet<string>();   // dedup guard – OFFSET can overlap on live data

@@ -23,6 +23,10 @@ public class DataGenerationService : BackgroundService
     private string _generatedSqlPath;
     private DateTime _lastGeneratedAt = DateTime.MinValue;
     private readonly object _lock = new();
+    
+    // Global semaphore to ensure only one data gathering operation runs at a time
+    // This prevents parallel execution from multiple triggers (hosted service + manual calls)
+    private static readonly SemaphoreSlim _globalSemaphore = new SemaphoreSlim(1, 1);
 
     public DataGenerationService(
         ILogger<DataGenerationService> logger,
@@ -83,11 +87,15 @@ public class DataGenerationService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Wait for the global semaphore to ensure only one data gathering runs at a time
+            _logger.LogInformation("Waiting to acquire global lock for data generation cycle...");
+            await _globalSemaphore.WaitAsync(stoppingToken);
+            
             try
             {
-                _logger.LogInformation("Starting Wikidata fetch and SQL generation at {Time}", DateTime.UtcNow);
+                _logger.LogInformation("Global lock acquired. Starting data generation at {Time}", DateTime.UtcNow);
                 
-                await GenerateAndStoreDataAsync(stoppingToken);
+                await GenerateAndStoreDataInternalAsync(stoppingToken);
                 
                 _logger.LogInformation("Data generation complete. Sleeping for {Days} days until next sync.", 
                     _syncInterval.TotalDays);
@@ -102,6 +110,11 @@ public class DataGenerationService : BackgroundService
                 _logger.LogError(ex, "Error during data generation. Will retry in {Days} days.", 
                     _syncInterval.TotalDays);
             }
+            finally
+            {
+                _globalSemaphore.Release();
+                _logger.LogInformation("Global lock released.");
+            }
 
             await Task.Delay(_syncInterval, stoppingToken);
         }
@@ -111,10 +124,34 @@ public class DataGenerationService : BackgroundService
 
     public async Task GenerateAndStoreDataAsync(CancellationToken cancellationToken)
     {
+        // Wait for the global semaphore to ensure only one data gathering operation runs at a time
+        _logger.LogInformation("Waiting to acquire global lock for data generation...");
+        await _globalSemaphore.WaitAsync(cancellationToken);
+        
+        try
+        {
+            _logger.LogInformation("Global lock acquired. Starting data generation.");
+            await GenerateAndStoreDataInternalAsync(cancellationToken);
+        }
+        finally
+        {
+            _globalSemaphore.Release();
+            _logger.LogInformation("Global lock released. Data generation complete.");
+        }
+    }
+    
+    private async Task GenerateAndStoreDataInternalAsync(CancellationToken cancellationToken)
+    {
         var allCities = new List<SparQLCityInfo>();
         
         // Get all available language codes from localization service
-        var languageCodes = _localizationService.AvailableLanguages.Select(l => l.Code).ToList();
+        // Filter to only base 2-letter codes (remove regional variants like "en-US")
+        // and remove duplicates
+        var languageCodes = _localizationService.AvailableLanguages
+            .Select(l => l.Code.Split('-')[0].ToLowerInvariant())  // Extract base code (en from en-US)
+            .Distinct()  // Remove duplicates
+            .ToList();
+        
         _logger.LogInformation("Starting Wikidata fetch for {Count} languages: {Languages}", 
             languageCodes.Count, string.Join(", ", languageCodes));
         
