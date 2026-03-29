@@ -104,7 +104,7 @@ builder.Services.AddSingleton<IWikidataService, WikidataService>();
 builder.Services.AddScoped<ICityDataService, CityDataService>();
 builder.Services.AddScoped<IElasticSearchService, ElasticSearchService>();
 
-// Data generation and reload services
+// Data generation and reload services - always enabled
 builder.Services.AddSingleton<DataGenerationService>();
 builder.Services.AddSingleton<IDataReloadService>(sp => 
 {
@@ -114,23 +114,13 @@ builder.Services.AddSingleton<IDataReloadService>(sp =>
         ?? throw new InvalidOperationException("Expected MySQLManager");
     return new DataReloadService(logger, connectionString, esService, dbManager);
 });
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DataGenerationService>());
+Console.WriteLine("DataGenerationService enabled - will fetch from Wikidata on startup, then monthly");
 
 // Localization
 var resourcesPath = Path.Combine(AppContext.BaseDirectory, "Resources");
 builder.Services.AddSingleton<ILocalizationService>(
     new LocalizationService(resourcesPath, defaultLang: "en"));
-
-// Only add DataGenerationService in non-stateless mode
-var isStatelessMode = configuration["STATELESS_MODE"]?.ToLower() == "true";
-if (!isStatelessMode)
-{
-    builder.Services.AddHostedService(sp => sp.GetRequiredService<DataGenerationService>());
-    Console.WriteLine("DataGenerationService enabled (stateful mode - will fetch from Wikidata)");
-}
-else
-{
-    Console.WriteLine("DataGenerationService disabled (stateless mode - using existing SQL data)");
-}
 
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
@@ -157,8 +147,10 @@ app.UseSwaggerUI(c =>
 app.UseMiddleware<ApplicationVersionMiddleware>();
 app.UseMiddleware<LocaleMiddleware>();
 
+// Startup sequence: ES index -> Load MySQL -> Check for SQL file -> Load if exists
 try
 {
+    // Step 1: Ensure ES index exists
     await RetryHelper.RetryOnExceptionAsync(
         maxRetries:    10,
         delay:         TimeSpan.FromSeconds(10),
@@ -175,62 +167,57 @@ catch (Exception ex)
     Console.WriteLine($"WARNING: Elasticsearch unavailable: {ex.Message}");
 }
 
-// In stateless mode, build ES index from MySQL data
-if (isStatelessMode && configuration["WAIT_FOR_ES_INDEX"]?.ToLower() == "true")
-{
-    Console.WriteLine("Stateless mode: Building Elasticsearch index from MySQL data...");
-    await RetryHelper.RetryOnExceptionAsync(
-        maxRetries: 15,
-        delay: TimeSpan.FromSeconds(10),
-        operation: async () =>
+// Step 2: Bulk-load MySQL cities into ES (seed data)
+Console.WriteLine("Building Elasticsearch index from MySQL seed data...");
+await RetryHelper.RetryOnExceptionAsync(
+    maxRetries: 15,
+    delay: TimeSpan.FromSeconds(10),
+    operation: async () =>
+    {
+        using var scope = app.Services.CreateScope();
+        var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
+        var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
+
+        var allCities = await dbService.GetAllCitiesAsync();
+        Console.WriteLine($"Found {allCities.Count} cities in MySQL (seed data) to index");
+
+        if (allCities.Count > 0)
         {
-            using var scope = app.Services.CreateScope();
-            var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
-            var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
+            await esService.BulkIndexCitiesAsync(allCities);
+            Console.WriteLine($"Successfully indexed {allCities.Count} seed cities in Elasticsearch");
+        }
+    },
+    operationName: "ES index build from MySQL seed data"
+);
 
-            var allCities = await dbService.GetAllCitiesAsync();
-            Console.WriteLine($"Found {allCities.Count} cities in MySQL to index");
-
-            if (allCities.Count > 0)
-            {
-                await esService.BulkIndexCitiesAsync(allCities);
-                Console.WriteLine($"Successfully indexed {allCities.Count} cities in Elasticsearch");
-            }
-        },
-        operationName: "ES index build from MySQL"
-    );
-}
-
-// Trigger immediate data gathering if needed
-// This kicks off data generation right away, then monthly schedule takes over
-if (!isStatelessMode)
+// Step 3: Check if there's an existing SQL file from previous DataGenerationService runs
+// If yes, load it immediately (so we have more than just seed cities at startup)
+var sqlFilePath = "/app/data/cities.sql";
+if (File.Exists(sqlFilePath))
 {
-    Console.WriteLine("🚀 Triggering immediate data gathering from Wikidata...");
+    Console.WriteLine($"Found existing generated SQL file at {sqlFilePath}. Loading now...");
     try
     {
         using var scope = app.Services.CreateScope();
-        var dataGenerationService = scope.ServiceProvider.GetRequiredService<DataGenerationService>();
-        
-        // Run data generation immediately (don't await - let it run in background)
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await dataGenerationService.GenerateAndStoreDataAsync(CancellationToken.None);
-                Console.WriteLine("✅ Initial data gathering complete. SQL file generated.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"⚠️ Initial data gathering failed: {ex.Message}");
-                Console.WriteLine("Application will continue. Monthly scheduled fetch will retry.");
-            }
-        });
+        var reloadService = scope.ServiceProvider.GetRequiredService<IDataReloadService>();
+        await reloadService.ReloadFromSqlFileAsync(sqlFilePath);
+        Console.WriteLine("✅ Existing SQL file loaded successfully. Data is available now.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"⚠️ Could not start initial data gathering: {ex.Message}");
+        Console.WriteLine($"⚠️ Failed to load existing SQL file: {ex.Message}");
+        Console.WriteLine("Application will continue with seed data. DataGenerationService will fetch fresh data.");
     }
 }
+else
+{
+    Console.WriteLine("No existing generated SQL file found. Running with seed data only.");
+    Console.WriteLine("DataGenerationService will fetch from Wikidata and generate the SQL file.");
+}
+
+// Step 4: DataGenerationService is already registered as IHostedService
+// It will start automatically and fetch from Wikidata (takes ~30-60 min for 20 languages)
+// Then it will generate the SQL file and reload MySQL + ES
 
 Console.WriteLine("Application started. Version: " + Constants.Version);
 
@@ -336,10 +323,6 @@ app.MapDelete("/city/{id}", async (
     var lang = ctx.GetLanguage();
     return await RequestHandler.DeleteCityAsync(id, dbManager, cityService, localization, lang);
 }).RequireAuthorization("BasicAuthentication");
-
-app.MapPost("/wikidata/sync", async (ICityDataService cityService) =>
-    await RequestHandler.UpdateCityDatabaseAsync(cityService)
-).AllowAnonymous();
 
 // Data endpoint - returns the generated SQL file
 app.MapGet("/data", (DataGenerationService dataService) =>
