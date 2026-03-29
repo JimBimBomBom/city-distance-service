@@ -11,15 +11,22 @@ public interface IWikidataService
 public class WikidataService : IWikidataService
 {
     private const int PageSize = 20000;
-
     private const int MaxPages = 40;
-
-    private static readonly TimeSpan PageDelay = TimeSpan.FromSeconds(10);
+    private const int MaxRetries = 5;
+    
+    // Delay between pages within the same language
+    private static readonly TimeSpan PageDelay = TimeSpan.FromSeconds(5);
+    
+    // Delay between different languages (to avoid rate limiting)
+    private static readonly TimeSpan LanguageDelay = TimeSpan.FromSeconds(30);
+    
+    // Base delay for exponential backoff on retries
+    private static readonly TimeSpan RetryBaseDelay = TimeSpan.FromSeconds(2);
 
     private static readonly HttpClient _httpClient = new HttpClient
     {
         // Per-request timeout; shorter than before so a hung request fails fast.
-        Timeout = TimeSpan.FromMinutes(3)
+        Timeout = TimeSpan.FromSeconds(60)
     };
 
     static WikidataService()
@@ -36,6 +43,7 @@ public class WikidataService : IWikidataService
         var seenIds = new HashSet<string>();   // dedup guard – OFFSET can overlap on live data
         int offset = 0;
         int pageNumber = 0;
+        int consecutiveFailures = 0;
 
         Console.WriteLine($"[{language}] Starting paginated fetch (page size: {PageSize})...");
 
@@ -44,21 +52,57 @@ public class WikidataService : IWikidataService
             pageNumber++;
             Console.WriteLine($"[{language}] Fetching page {pageNumber} (offset {offset})...");
 
-            List<SparQLCityInfo> page;
+            List<SparQLCityInfo>? page = null;
+            bool pageSuccess = false;
 
-            try
+            // Retry loop for this page
+            for (int retry = 0; retry < MaxRetries && !pageSuccess; retry++)
             {
-                var query = BuildQuery(language, PageSize, offset);
-                var raw = await ExecuteSparqlAsync(query, language, pageNumber);
-                page = ParseSparqlResponse(raw, language);
+                if (retry > 0)
+                {
+                    // Exponential backoff with jitter: delay = base * 2^retry + random(0-1000ms)
+                    var jitter = new Random().Next(0, 1000);
+                    var delayMs = (int)(RetryBaseDelay.TotalMilliseconds * Math.Pow(2, retry - 1)) + jitter;
+                    Console.WriteLine($"[{language}] Page {pageNumber} retry {retry}/{MaxRetries} - waiting {delayMs}ms before retry...");
+                    await Task.Delay(delayMs);
+                }
+
+                try
+                {
+                    var query = BuildQuery(language, PageSize, offset);
+                    var raw = await ExecuteSparqlAsync(query, language, pageNumber);
+                    page = ParseSparqlResponse(raw, language);
+                    pageSuccess = true;
+                    consecutiveFailures = 0; // Reset on success
+                }
+                catch (Exception ex) when (retry < MaxRetries - 1)
+                {
+                    Console.WriteLine($"[{language}] Page {pageNumber} attempt {retry + 1} failed: {ex.Message}");
+                    // Will retry
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[{language}] Page {pageNumber} failed after {MaxRetries} attempts: {ex.Message}");
+                    consecutiveFailures++;
+                    
+                    // If we've had too many consecutive page failures, stop this language
+                    if (consecutiveFailures >= 3)
+                    {
+                        Console.WriteLine($"[{language}] Too many consecutive failures ({consecutiveFailures}). Stopping pagination.");
+                        return allCities;
+                    }
+                    
+                    // Move to next page offset even after failure (don't get stuck)
+                    offset += PageSize;
+                    break;
+                }
             }
-            catch (Exception ex)
+
+            if (!pageSuccess || page == null)
             {
-                // A single page failure should not abort the whole language run.
-                // Log and stop paginating – we keep whatever we collected so far.
-                Console.WriteLine($"[{language}] Page {pageNumber} failed: {ex.Message}. " +
-                                  $"Stopping pagination, keeping {allCities.Count} cities collected so far.");
-                break;
+                // Page failed even after retries - continue to next page
+                offset += PageSize;
+                continue;
             }
 
             // Deduplicate before adding (live Wikidata edits can cause boundary rows to shift)
@@ -86,7 +130,7 @@ public class WikidataService : IWikidataService
 
             offset += PageSize;
 
-            // Be a good citizen – pause before the next request
+            // Be a good citizen – pause before the next page
             Console.WriteLine($"[{language}] Waiting {PageDelay.TotalSeconds}s before next page...");
             await Task.Delay(PageDelay);
         }
@@ -98,6 +142,11 @@ public class WikidataService : IWikidataService
         }
 
         Console.WriteLine($"[{language}] Fetch complete. Total unique cities: {allCities.Count}");
+        
+        // Wait between languages to avoid rate limiting
+        Console.WriteLine($"[{language}] Waiting {LanguageDelay.TotalSeconds}s before next language...");
+        await Task.Delay(LanguageDelay);
+        
         return allCities;
     }
 
@@ -158,9 +207,21 @@ public class WikidataService : IWikidataService
         Console.WriteLine($"[{language}] Page {pageNumber} – HTTP {(int)response.StatusCode} {response.StatusCode}");
 
         if (!response.IsSuccessStatusCode)
+        {
+            // If rate limited or gateway timeout, throw with specific message for retry logic
+            if ((int)response.StatusCode == 429)
+            {
+                throw new Exception($"Rate limited (HTTP 429). Body: {raw[..Math.Min(200, raw.Length)]}");
+            }
+            else if ((int)response.StatusCode == 504)
+            {
+                throw new Exception($"Gateway timeout (HTTP 504). Body: {raw[..Math.Min(200, raw.Length)]}");
+            }
+            
             throw new Exception(
                 $"Wikidata returned HTTP {(int)response.StatusCode}. " +
                 $"Body: {raw[..Math.Min(500, raw.Length)]}");
+        }
 
         // Wikidata can embed raw control characters (e.g. 0x0D carriage returns) inside
         // JSON string values, which System.Text.Json strictly rejects. Strip them out.

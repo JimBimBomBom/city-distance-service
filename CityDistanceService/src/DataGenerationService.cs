@@ -16,6 +16,7 @@ public class DataGenerationService : BackgroundService
     private readonly ILogger<DataGenerationService> _logger;
     private readonly IWikidataService _wikidataService;
     private readonly IDataReloadService _reloadService;
+    private readonly ILocalizationService _localizationService;
     private readonly TimeSpan _syncInterval;
     private readonly string _dataDirectory;
 
@@ -26,11 +27,13 @@ public class DataGenerationService : BackgroundService
     public DataGenerationService(
         ILogger<DataGenerationService> logger,
         IWikidataService wikidataService,
-        IDataReloadService reloadService)
+        IDataReloadService reloadService,
+        ILocalizationService localizationService)
     {
         _logger = logger;
         _wikidataService = wikidataService;
         _reloadService = reloadService;
+        _localizationService = localizationService;
         
         // Get interval from environment variable (default: 30 days)
         var intervalDays = 30;
@@ -110,9 +113,16 @@ public class DataGenerationService : BackgroundService
     {
         var allCities = new List<SparQLCityInfo>();
         
+        // Get all available language codes from localization service
+        var languageCodes = _localizationService.AvailableLanguages.Select(l => l.Code).ToList();
+        _logger.LogInformation("Starting Wikidata fetch for {Count} languages: {Languages}", 
+            languageCodes.Count, string.Join(", ", languageCodes));
+        
         // Fetch cities from all supported languages
-        foreach (var lang in Constants.SupportedLanguages)
+        for (int i = 0; i < languageCodes.Count; i++)
         {
+            var lang = languageCodes[i];
+            
             if (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Data generation cancelled during language fetch.");
@@ -130,11 +140,8 @@ public class DataGenerationService : BackgroundService
                     _logger.LogInformation("Fetched {Count} cities for {Language}", cities.Count, lang);
                 }
                 
-                // Rate limiting - wait 10 seconds between languages
-                if (lang != Constants.SupportedLanguages.Last())
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
-                }
+                // Note: WikidataService already has rate limiting built-in (30s delay after each language)
+                // No additional delay needed here
             }
             catch (Exception ex)
             {

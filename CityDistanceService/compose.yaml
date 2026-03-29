@@ -1,5 +1,4 @@
 services:
-    # Application Service
     cds-app:
         build:
             context: .
@@ -27,7 +26,6 @@ services:
             retries: 30
             start_period: 60s
 
-    # MySQL Database with pre-loaded data
     cds-db:
         build:
             context: .
@@ -41,14 +39,6 @@ services:
         networks:
             - cdsNetwork
         restart: unless-stopped
-        # Healthcheck for monitoring only, not used for dependency
-        # healthcheck:
-        #     test: ["CMD", "/healthcheck.sh"]
-        #     interval: 5s
-        #     timeout: 5s
-        #     retries: 60
-        #     start_period: 180s
-        # No volumes - data is ephemeral, loaded from SQL dump on start
         
     # Elasticsearch (Stateless - index rebuilt from MySQL on startup)
     cds-elasticsearch:
@@ -82,7 +72,6 @@ services:
             timeout: 5s
             retries: 15
             start_period: 40s
-        # No volumes - index is rebuilt from MySQL data on startup
     
     # Caddy Reverse Proxy
     caddy:

@@ -222,30 +222,4 @@ public static class RequestHandler
             });
         }
     }
-
-    // ── Wikidata sync ─────────────────────────────────────────────────────────
-
-    public static async Task<IResult> UpdateCityDatabaseAsync(ICityDataService cityService)
-    {
-        try
-        {
-            Console.WriteLine("Starting Wikidata sync via RequestHandler...");
-            int updated = await cityService.SyncCitiesFromWikidataAsync();
-
-            return Results.Ok(new
-            {
-                RecordsAffected = updated,
-                Timestamp       = DateTime.UtcNow
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in UpdateCityDatabaseAsync: {ex.Message}");
-            return Results.Json(new
-            {
-                Error = $"Error updating city database: {ex.Message}",
-                statusCode = 500
-            });
-        }
-    }
 }

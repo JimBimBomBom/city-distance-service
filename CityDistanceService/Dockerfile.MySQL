@@ -8,4 +8,12 @@ COPY ./data/02-cities.sql /docker-entrypoint-initdb.d/02-cities.sql
 COPY ./data/healthcheck.sh /healthcheck.sh
 RUN chmod +x /healthcheck.sh
 
-EXPOSE 3306
+# Copy entrypoint wrapper script to handle stale socket files on container restart
+COPY ./data/docker-entrypoint-wrapper.sh /usr/local/bin/docker-entrypoint-wrapper.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-wrapper.sh
+
+# Override the default entrypoint with our wrapper
+ENTRYPOINT ["docker-entrypoint-wrapper.sh"]
+
+# Preserve the base image's default command
+CMD ["mysqld"]

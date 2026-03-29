@@ -71,7 +71,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -f Dockerfile.App -t app \
+          docker build -f Dockerfile.App -t cds-app \
             --build-arg VERSION=${{ steps.get_version.outputs.app_version }} \
             .
         working-directory: ${{ env.APP_WORKING_DIRECTORY }}
