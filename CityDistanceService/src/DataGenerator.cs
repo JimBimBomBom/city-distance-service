@@ -163,22 +163,39 @@ public class DataGenerator
                 return;
             }
 
-            // Load existing cities from current SQL file if it exists (for merging)
-            var existingCities = LoadExistingCitiesFromSqlFile();
-            _logger.LogInformation("Loaded {Count} existing cities from current SQL file", existingCities.Count);
-
-            var allCities = new List<SparQLCityInfo>(existingCities);
-            int newCitiesCount = 0;
+            // Work on a fresh SQL file for this cycle, separate from the live one.
+            // This way the live cities.sql stays available for download throughout the run.
+            var cycleFile = Path.Combine(_dataDirectory, "cities_inprogress.sql");
             
-            // Fetch cities for each language
+            // Start with a copy of the existing SQL file so previous cycles are not lost.
+            var finalPath = Path.Combine(_dataDirectory, "cities.sql");
+            if (File.Exists(finalPath))
+            {
+                File.Copy(finalPath, cycleFile, overwrite: true);
+                _logger.LogInformation("Copied existing SQL file as base for this cycle ({Bytes} bytes)", new FileInfo(cycleFile).Length);
+            }
+            else
+            {
+                // Write header only
+                await File.WriteAllTextAsync(cycleFile,
+                    $"-- Auto-generated SQL file from Wikidata\n" +
+                    $"-- Cycle started: {DateTime.UtcNow:u}\n" +
+                    $"-- Format: INSERT ... ON DUPLICATE KEY UPDATE\n\n" +
+                    $"USE CityDistanceService;\n\n");
+            }
+
+            int totalNew = 0;
+            int languagesCompleted = 0;
+
+            // Fetch each language and immediately append to the cycle file
             for (int i = 0; i < languageCodes.Count; i++)
             {
                 var lang = languageCodes[i];
                 
                 if (_generationCts.Token.IsCancellationRequested)
                 {
-                    _logger.LogInformation("Data generation cancelled during language fetch.");
-                    return;
+                    _logger.LogInformation("Data generation cancelled before language {Language}.", lang);
+                    break;
                 }
 
                 try
@@ -190,44 +207,47 @@ public class DataGenerator
                     
                     if (cities.Count > 0)
                     {
-                        // Merge new cities with existing (by WikidataId)
-                        var existingIds = new HashSet<string>(allCities.Select(c => c.WikidataId));
-                        foreach (var city in cities)
-                        {
-                            if (!existingIds.Contains(city.WikidataId))
-                            {
-                                allCities.Add(city);
-                                newCitiesCount++;
-                            }
-                        }
+                        // Append this language's cities as upsert batches to the cycle file
+                        await AppendCitiesToFileAsync(cycleFile, cities, lang);
+                        totalNew += cities.Count;
+                        languagesCompleted++;
                         
-                        _logger.LogInformation("Fetched {Count} cities for {Language}, {NewCount} new unique", 
-                            cities.Count, lang, newCitiesCount);
+                        _logger.LogInformation(
+                            "[{Progress}/{Total}] {Language} done: {Count} cities written to file. Running total: {Total2}",
+                            i + 1, languageCodes.Count, lang, cities.Count, totalNew);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[{Progress}/{Total}] {Language}: no cities returned, skipping.",
+                            i + 1, languageCodes.Count, lang);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to fetch cities for language {Language}. Continuing...", lang);
+                    _logger.LogError(ex, "Failed to fetch cities for language {Language}. Continuing with next language.", lang);
                 }
             }
 
-            if (allCities.Count == 0)
+            if (totalNew == 0)
             {
-                _logger.LogWarning("No cities available. Skipping SQL generation.");
+                _logger.LogWarning("No new cities fetched in this cycle. Keeping existing SQL file.");
+                if (File.Exists(cycleFile)) File.Delete(cycleFile);
                 return;
             }
 
-            // Generate SQL file with merged data
-            var sqlPath = await GenerateSqlFileAsync(allCities);
+            // Atomically replace the live file with the completed cycle file
+            if (File.Exists(finalPath)) File.Delete(finalPath);
+            File.Move(cycleFile, finalPath);
             
             lock (_lock)
             {
-                _generatedSqlPath = sqlPath;
+                _generatedSqlPath = finalPath;
                 _lastGeneratedAt = DateTime.UtcNow;
             }
 
-            _logger.LogInformation("SQL file generated: {Path} ({Count} total records, {NewCount} new)", 
-                sqlPath, allCities.Count, newCitiesCount);
+            _logger.LogInformation(
+                "Cycle complete. {Languages}/{Total} languages, {Cities} cities written to {Path}",
+                languagesCompleted, languageCodes.Count, totalNew, finalPath);
             
             // Signal the app to reload with retry logic
             await SignalAppToReloadAsync();
@@ -246,61 +266,24 @@ public class DataGenerator
         }
     }
 
-    private List<SparQLCityInfo> LoadExistingCitiesFromSqlFile()
+    /// <summary>
+    /// Appends a language's cities as INSERT ... ON DUPLICATE KEY UPDATE batches to the given file.
+    /// </summary>
+    private static async Task AppendCitiesToFileAsync(string filePath, List<SparQLCityInfo> cities, string language)
     {
-        var cities = new List<SparQLCityInfo>();
+        const int batchSize = 1000;
         
-        if (_generatedSqlPath == null || !File.Exists(_generatedSqlPath))
+        await using var writer = new StreamWriter(filePath, append: true, Encoding.UTF8);
+        await writer.WriteLineAsync($"-- Language: {language} ({cities.Count} cities, written {DateTime.UtcNow:u})");
+        
+        for (int i = 0; i < cities.Count; i += batchSize)
         {
-            return cities;
+            var batch = cities.Skip(i).Take(batchSize).ToList();
+            await WriteBatchInsertAsync(writer, batch);
+            await writer.WriteLineAsync();
         }
         
-        try
-        {
-            // Parse the SQL file to extract city data
-            // This is a simple parser that looks for INSERT statement VALUES
-            var lines = File.ReadAllLines(_generatedSqlPath);
-            
-            foreach (var line in lines)
-            {
-                var trimmed = line.Trim();
-                if (!trimmed.StartsWith("('") || !trimmed.Contains("', '"))
-                    continue;
-                
-                // Parse: ('Q123', 'City Name', 12.34567890, 67.89012345, 'CC', 'Country', 'Region', 12345),
-                try
-                {
-                    var values = trimmed.TrimStart('(').TrimEnd(',', ')').Split("', ");
-                    if (values.Length >= 4)
-                    {
-                        var wikidataId = values[0].Trim('\'');
-                        var cityName = values[1].Trim('\'');
-                        
-                        if (double.TryParse(values[2], out double lat) && 
-                            double.TryParse(values[3], out double lon))
-                        {
-                            cities.Add(new SparQLCityInfo
-                            {
-                                WikidataId = wikidataId,
-                                CityName = cityName,
-                                Latitude = lat,
-                                Longitude = lon
-                            });
-                        }
-                    }
-                }
-                catch
-                {
-                    // Skip malformed lines
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to parse existing SQL file. Starting fresh.");
-        }
-        
-        return cities;
+        await writer.FlushAsync();
     }
 
     private async Task SignalAppToReloadAsync()
@@ -386,65 +369,6 @@ public class DataGenerator
                 _appLanguagesEndpoint);
             return new List<string>();
         }
-    }
-
-    private async Task<string> GenerateSqlFileAsync(List<SparQLCityInfo> cities)
-    {
-        var tempPath = Path.Combine(_dataDirectory, $"cities_{DateTime.UtcNow:yyyyMMdd_HHmmss}.sql");
-        var finalPath = Path.Combine(_dataDirectory, "cities.sql");
-
-        try
-        {
-            await using var writer = new StreamWriter(tempPath, false, Encoding.UTF8);
-            
-            // Write header
-            await writer.WriteLineAsync("-- Auto-generated SQL file from Wikidata");
-            await writer.WriteLineAsync($"-- Generated at: {DateTime.UtcNow:u}");
-            await writer.WriteLineAsync($"-- Total records: {cities.Count}");
-            await writer.WriteLineAsync("-- Format: INSERT ... ON DUPLICATE KEY UPDATE");
-            await writer.WriteLineAsync();
-            await writer.WriteLineAsync("USE CityDistanceService;");
-            await writer.WriteLineAsync();
-
-            // Group cities by their ID for upsert logic
-            var uniqueCities = cities
-                .GroupBy(c => c.WikidataId)
-                .Select(g => g.First())
-                .ToList();
-
-            // Write batch inserts with ON DUPLICATE KEY UPDATE
-            const int batchSize = 1000;
-            for (int i = 0; i < uniqueCities.Count; i += batchSize)
-            {
-                var batch = uniqueCities.Skip(i).Take(batchSize).ToList();
-                await WriteBatchInsertAsync(writer, batch);
-                
-                if (i + batchSize < uniqueCities.Count)
-                {
-                    await writer.WriteLineAsync();
-                }
-            }
-
-            await writer.FlushAsync();
-        }
-        catch
-        {
-            // Clean up temp file on error
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
-            throw;
-        }
-
-        // Atomic rename
-        if (File.Exists(finalPath))
-        {
-            File.Delete(finalPath);
-        }
-        File.Move(tempPath, finalPath);
-
-        return finalPath;
     }
 
     private static async Task WriteBatchInsertAsync(StreamWriter writer, List<SparQLCityInfo> cities)
