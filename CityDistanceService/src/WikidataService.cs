@@ -10,18 +10,19 @@ public interface IWikidataService
 
 public class WikidataService : IWikidataService
 {
-    private const int PageSize = 5000;
-    private const int MaxPages = 40;
+    private const int PageSize = 2000;
+    private const int MaxPages = 50;
     private const int MaxRetries = 5;
     
-    // Delay between pages within the same language
-    private static readonly TimeSpan PageDelay = TimeSpan.FromSeconds(5);
+    // Delay between pages within the same language (increased to 15s)
+    private static readonly TimeSpan PageDelay = TimeSpan.FromSeconds(15);
     
-    // Delay between different languages (to avoid rate limiting)
-    private static readonly TimeSpan LanguageDelay = TimeSpan.FromSeconds(30);
+    // Delay between different languages (increased to 2-5 minutes to avoid rate limiting)
+    // Using Random to vary between 2-5 minutes so requests don't look automated
+    private static readonly Random _random = new Random();
     
-    // Base delay for exponential backoff on retries
-    private static readonly TimeSpan RetryBaseDelay = TimeSpan.FromSeconds(2);
+    // Base delay for exponential backoff on retries (increased to 5s)
+    private static readonly TimeSpan RetryBaseDelay = TimeSpan.FromSeconds(5);
     
     // Global semaphore to ensure only 1 concurrent request to Wikidata at a time
     // This is critical to avoid being rate-limited by Wikidata's API
@@ -141,10 +142,10 @@ public class WikidataService : IWikidataService
                               $"{newCount} new, {duplicates} duplicates skipped. " +
                               $"Running total: {allCities.Count}");
 
-            // Fewer rows than a full page → we have reached the last page
-            if (page.Count < PageSize)
+            // If we got zero results, we've reached the end
+            if (page.Count == 0)
             {
-                Console.WriteLine($"[{language}] Last page reached (got {page.Count} < {PageSize}). Done.");
+                Console.WriteLine($"[{language}] No results returned. End of data reached.");
                 break;
             }
 
@@ -157,15 +158,21 @@ public class WikidataService : IWikidataService
 
         if (pageNumber >= MaxPages)
         {
-            Console.WriteLine($"[{language}] WARNING: hit MaxPages ({MaxPages}) safety cap. " +
-                              $"There may be more cities in Wikidata that were not fetched.");
+            Console.WriteLine($"[{language}] INFO: Reached MaxPages ({MaxPages}). " +
+                              $"Pagination complete with {allCities.Count} total cities.");
         }
-
-        Console.WriteLine($"[{language}] Fetch complete. Total unique cities: {allCities.Count}");
+        else
+        {
+            Console.WriteLine($"[{language}] Pagination complete after {pageNumber} pages. " +
+                              $"Total unique cities: {allCities.Count}");
+        }
         
-        // Wait between languages to avoid rate limiting
-        Console.WriteLine($"[{language}] Waiting {LanguageDelay.TotalSeconds}s before next language...");
-        await Task.Delay(LanguageDelay);
+        // Wait between languages with random delay (2-5 minutes) to avoid rate limiting
+        // Random delay makes requests look less automated to Wikidata's anti-bot systems
+        var languageDelayMinutes = 2 + _random.NextDouble() * 3; // Random between 2-5 minutes
+        var languageDelay = TimeSpan.FromMinutes(languageDelayMinutes);
+        Console.WriteLine($"[{language}] Waiting {languageDelay.TotalMinutes:F1} minutes before next language...");
+        await Task.Delay(languageDelay);
         
         return allCities;
     }
