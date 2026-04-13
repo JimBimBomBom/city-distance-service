@@ -21,7 +21,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MaxRequestBodySize = 52428800; // 50 MB
 });
 
-// Add CORS to handle requests from GitHub Pages (backup for CDN misconfiguration)
+// Add CORS to handle requests from GitHub Pages
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("GitHubPages", policy =>
@@ -105,7 +105,7 @@ builder.Services.AddScoped<IDatabaseService>(_ => new MySQLManager(connectionStr
 builder.Services.AddScoped<ICityDataService, CityDataService>();
 builder.Services.AddSingleton<IElasticSearchService, ElasticSearchService>();
 
-// File data import service
+// File data import service - loads JSON/CSV at startup
 var dataFilesPath = configuration["DATA_FILES_PATH"] ?? "/app/output";
 builder.Services.AddSingleton<FileDataImportService>(_ => 
     new FileDataImportService(dataFilesPath, 
