@@ -21,5 +21,5 @@ cds.moojtube.com:8443 {
     @preflight method OPTIONS
     respond @preflight 204
 
-    reverse_proxy city_distance_service_cds-app:8080
+    reverse_proxy cds-app:8080
 }
