@@ -93,33 +93,5 @@ services:
             - cdsNetwork
         restart: unless-stopped
 
-    # Data Generator Service - fetches Wikidata and serves SQL via HTTP
-    cds-datagenerator:
-        build:
-            context: .
-            dockerfile: Dockerfile.DataGenerator
-        container_name: city_distance_data_generator
-        env_file: 
-            - path: "DefaultDataGeneratorEnv.env"
-              required: false
-        environment:
-            - APP_LANGUAGES_ENDPOINT=http://cds-app:8080/languages
-            - APP_RELOAD_ENDPOINT=http://cds-app:8080/admin/reload-from-generator
-            - DATA_DIRECTORY=/app/data
-        # Port 5000 is internal only - no host mapping needed
-        # App accesses generator via Docker network (cdsNetwork)
-        depends_on:
-            cds-app:
-                condition: service_started
-        networks:
-            - cdsNetwork
-        restart: unless-stopped
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:5000/health_check"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-            start_period: 60s
-
 networks:
     cdsNetwork: {}
