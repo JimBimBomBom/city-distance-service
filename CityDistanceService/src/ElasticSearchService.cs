@@ -104,20 +104,20 @@ public class ElasticSearchService : IElasticSearchService
             .Query(q => q
                 .Bool(b => b
                     .Should(
-                        // Exact match - highest priority
+                        // Exact / full-token match — highest priority
                         sh => sh.Match(m => m
                             .Field(f => f.AllNames)
                             .Query(partialName)
                             .Boost(10)
                         ),
-                        // Prefix match - good for autocomplete
+                        // Prefix match — good for autocomplete
                         sh => sh.MultiMatch(m => m
                             .Query(partialName)
                             .Type(TextQueryType.BoolPrefix)
                             .Fields(new[] { "allNames", "allNames._2gram", "allNames._3gram" })
                             .Boost(2)
                         ),
-                        // Fuzzy match - handles typos
+                        // Fuzzy match — handles typos, lowest priority
                         sh => sh.Match(m => m
                             .Field(f => f.AllNames)
                             .Query(partialName)
@@ -127,9 +127,11 @@ public class ElasticSearchService : IElasticSearchService
                     )
                 )
             )
+            // Sort purely by text-relevance score so the closest match is always first.
+            // Population is intentionally excluded from sorting to prevent large cities
+            // from appearing above closer string matches.
             .Sort(sort => sort
                 .Score(new ScoreSort { Order = SortOrder.Desc })
-                .Field(f => f.Population, new FieldSort { Order = SortOrder.Desc, Missing = 0 })
             )
             .Size(10)
         );

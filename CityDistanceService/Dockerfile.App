@@ -20,8 +20,5 @@ COPY --from=build-env /app/out .
 # Install curl for healthcheck support
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Create data directory for SQL file storage
-RUN mkdir -p /app/data
-
 # Start the app.
 ENTRYPOINT ["dotnet", "CityDistanceService.dll"]
