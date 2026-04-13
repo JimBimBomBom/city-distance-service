@@ -21,13 +21,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MaxRequestBodySize = 52428800; // 50 MB
 });
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowGitHubPages", policy =>
-        policy.WithOrigins("https://jimbimbombom.github.io")
-              .AllowAnyMethod()
-              .AllowAnyHeader());
-});
+// CORS is handled by the Caddy reverse proxy — no app-level CORS needed.
 
 builder.Services.AddAuthentication("BasicAuthentication")
     .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
@@ -123,7 +117,6 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 app.UseRouting();
-app.UseCors("AllowGitHubPages");      // must be before auth
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -9,16 +9,17 @@ cds.moojtube.com:8443 {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }
 
-    @cors_preflight method OPTIONS
-    handle @cors_preflight {
-        header Access-Control-Allow-Origin "https://jimbimbombom.github.io"
-        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-        header Access-Control-Allow-Headers "*"
-        header Access-Control-Max-Age "86400"
-        respond 204
+    # Add CORS headers to every response
+    header {
+        Access-Control-Allow-Origin  "https://jimbimbombom.github.io"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, Accept-Language"
+        Access-Control-Max-Age       "86400"
     }
 
-    header Access-Control-Allow-Origin "https://jimbimbombom.github.io"
+    # Short-circuit OPTIONS preflight requests immediately — never forward to app
+    @preflight method OPTIONS
+    respond @preflight 204
 
     reverse_proxy city_distance_service_cds-app:8080
 }
