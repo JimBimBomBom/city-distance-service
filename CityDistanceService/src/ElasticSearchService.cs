@@ -102,49 +102,34 @@ public class ElasticSearchService : IElasticSearchService
         var response = await _client.SearchAsync<CityDoc>(s => s
             .Index(IndexName)
             .Query(q => q
-                .FunctionScore(fs => fs
-                    // Text relevance query — this is the primary ranking signal
-                    .Query(inner => inner
-                        .Bool(b => b
-                            .Should(
-                                // Exact match - highest priority
-                                sh => sh.Match(m => m
-                                    .Field(f => f.AllNames)
-                                    .Query(partialName)
-                                    .Boost(10)
-                                ),
-                                // Prefix match - good for autocomplete
-                                sh => sh.MultiMatch(m => m
-                                    .Query(partialName)
-                                    .Type(TextQueryType.BoolPrefix)
-                                    .Fields(new[] { "allNames", "allNames._2gram", "allNames._3gram" })
-                                    .Boost(2)
-                                ),
-                                // Fuzzy match - handles typos
-                                sh => sh.Match(m => m
-                                    .Field(f => f.AllNames)
-                                    .Query(partialName)
-                                    .Fuzziness(new Fuzziness("AUTO"))
-                                    .Boost(1)
-                                )
-                            )
+                .Bool(b => b
+                    .Should(
+                        // Exact / full-token match — highest priority
+                        sh => sh.Match(m => m
+                            .Field(f => f.AllNames)
+                            .Query(partialName)
+                            .Boost(10)
+                        ),
+                        // Prefix match — good for autocomplete
+                        sh => sh.MultiMatch(m => m
+                            .Query(partialName)
+                            .Type(TextQueryType.BoolPrefix)
+                            .Fields(new[] { "allNames", "allNames._2gram", "allNames._3gram" })
+                            .Boost(2)
+                        ),
+                        // Fuzzy match — handles typos, lowest priority
+                        sh => sh.Match(m => m
+                            .Field(f => f.AllNames)
+                            .Query(partialName)
+                            .Fuzziness(new Fuzziness("AUTO"))
+                            .Boost(1)
                         )
                     )
-                    // Population provides a mild logarithmic boost.
-                    // log1p(population) keeps small cities from scoring 0 and
-                    // limits large cities from dominating over closer text matches.
-                    .Functions(fn => fn
-                        .FieldValueFactor(fvf => fvf
-                            .Field("population")
-                            .Factor(0.1)
-                            .Modifier(FieldValueFactorModifier.Log1P)
-                            .Missing(0)
-                        )
-                    )
-                    .ScoreMode(FunctionScoreMode.Sum)
-                    .BoostMode(FunctionBoostMode.Sum)
                 )
             )
+            // Sort purely by text-relevance score so the closest match is always first.
+            // Population is intentionally excluded from sorting to prevent large cities
+            // from appearing above closer string matches.
             .Sort(sort => sort
                 .Score(new ScoreSort { Order = SortOrder.Desc })
             )
