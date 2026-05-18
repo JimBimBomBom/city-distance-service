@@ -2,6 +2,7 @@ using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using Elastic.Clients.Elasticsearch.IndexManagement;
 using Elastic.Clients.Elasticsearch.Mapping;
+using Elastic.Clients.Elasticsearch.Core.Search;
 
 public class ElasticSearchService : IElasticSearchService
 {
@@ -76,7 +77,7 @@ public class ElasticSearchService : IElasticSearchService
 
     public async Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName, string language)
     {
-        var response = await _client.SearchAsync<CityDoc>(s => s
+        var searchRequest = new SearchRequestDescriptor<CityDoc>()
             .Index(IndexName)
             .Query(q => q
                 .Bool(b => b
@@ -104,14 +105,59 @@ public class ElasticSearchService : IElasticSearchService
                     )
                 )
             )
-            // Sort purely by text-relevance score so the closest match is always first.
-            // Population is intentionally excluded from sorting to prevent large cities
-            // from appearing above closer string matches.
-            .Sort(sort => sort
-                .Score(new ScoreSort { Order = SortOrder.Desc })
-            )
-            .Size(10)
-        );
+            .Size(10);
+
+        // Apply multi-level sorting using SortOptions
+        var sortOptions = new List<SortOptions>
+        {
+            // Primary: Exact match gets a massive boost
+            SortOptions.Script(new ScriptSort
+            {
+                Script = new Script
+                {
+                    Source = @"
+                        // Check if any name is an exact match (case-insensitive)
+                        String query = params.query.toLowerCase();
+                        for (name in doc['allNames']) {
+                            if (name.toLowerCase() == query) {
+                                return 1000; // Massive bonus for exact match
+                            }
+                        }
+                        return 0;
+                    ",
+                    Params = new Dictionary<string, object> { { "query", partialName } }
+                },
+                Type = ScriptSortType.Number,
+                Order = SortOrder.Desc
+            }),
+            // Secondary: Text relevance score
+            SortOptions.Score(new ScoreSort { Order = SortOrder.Desc }),
+            // Tertiary: Population boost (cities with population rank higher, null/0 gets penalty)
+            SortOptions.Script(new ScriptSort
+            {
+                Script = new Script
+                {
+                    Source = @"
+                        // Boost by population, penalize missing population data
+                        if (doc['population'].size() == 0) {
+                            return -1000; // Heavy penalty for missing population
+                        }
+                        def pop = doc['population'].value;
+                        if (pop == null || pop == 0) {
+                            return -1000; // Heavy penalty for null/0 population
+                        }
+                        // Log scale for population to prevent megacities from dominating entirely
+                        return Math.log10(pop) * 10;
+                    ",
+                },
+                Type = ScriptSortType.Number,
+                Order = SortOrder.Desc
+            })
+        };
+
+        searchRequest.Sort(sortOptions);
+
+        var response = await _client.SearchAsync<CityDoc>(searchRequest);
 
         if (!response.IsValidResponse)
         {
