@@ -1,10 +1,4 @@
 using Elastic.Clients.Elasticsearch;
-using FluentValidation;
-
-public class CityId
-{
-    public string Id { get; set; }
-}
 
 public class CityDoc
 {
@@ -92,21 +86,6 @@ public class CitiesDistanceRequest
 {
     public string City1Id { get; set; }
     public string City2Id { get; set; }
-}
-
-// API Response wrapper class
-public class ApiResponse<T>
-{
-    public T Data { get; set; }
-    public string Message { get; set; }
-    public DateTime Timestamp { get; set; }
-
-    public ApiResponse(T data, string message)
-    {
-        Data = data;
-        Message = message;
-        Timestamp = DateTime.UtcNow;
-    }
 }
 
 public record DistanceResult(double Distance, string Unit);

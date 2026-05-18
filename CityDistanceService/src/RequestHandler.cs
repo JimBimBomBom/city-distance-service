@@ -1,5 +1,4 @@
 // RequestHandler.cs
-using System.Security.Cryptography.X509Certificates;
 using FluentValidation;
 
 public static class RequestHandler

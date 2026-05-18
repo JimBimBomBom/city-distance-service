@@ -15,7 +15,4 @@ public interface IDatabaseService
     Task<Coordinates?> GetCityCoordinates(string cityId);
 
     Task<int> BulkUpsertCitiesAsync(List<SparQLCityInfo> cities);
-
-    Task<List<CityInfo>> GetAllCitiesAsync();
-
 }

@@ -12,7 +12,7 @@ services:
         ports:
             - "8080:8080"
         volumes:
-            - ./output:/app/output:ro
+            - ./cities_data:/cities_data:ro
         depends_on:
             cds-db:
                 condition: service_started

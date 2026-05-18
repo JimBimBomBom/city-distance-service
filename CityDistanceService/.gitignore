@@ -2,6 +2,8 @@
 **/caddy_config/
 **/esdata/
 
+/cities_data
+
 .caddy.env
 DefaultAppEnv.env
 DefaultDatabaseEnv.env

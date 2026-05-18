@@ -105,10 +105,10 @@ builder.Services.AddScoped<IDatabaseService>(_ => new MySQLManager(connectionStr
 builder.Services.AddScoped<ICityDataService, CityDataService>();
 builder.Services.AddSingleton<IElasticSearchService, ElasticSearchService>();
 
-// File data import service - loads JSON/CSV at startup
-var dataFilesPath = configuration["DATA_FILES_PATH"] ?? "/app/output";
-builder.Services.AddSingleton<FileDataImportService>(_ => 
-    new FileDataImportService(dataFilesPath, 
+// File data import service - loads JSON/CSV at startup from /cities_data
+var dataFilesPath = configuration["DATA_FILES_PATH"] ?? "/cities_data";
+builder.Services.AddSingleton<FileDataImportService>(_ =>
+    new FileDataImportService(dataFilesPath,
         _.GetRequiredService<ILogger<FileDataImportService>>()));
 
 // Localization

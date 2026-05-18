@@ -21,15 +21,6 @@ public class NewCityInfoValidator : AbstractValidator<NewCityInfo>
     }
 }
 
-public class CoordinatesValidator : AbstractValidator<Coordinates>
-{
-    public CoordinatesValidator()
-    {
-        RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
-        RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
-    }
-}
-
 public class CitiesDistanceRequestValidator : AbstractValidator<CitiesDistanceRequest>
 {
     public CitiesDistanceRequestValidator()
@@ -49,21 +40,5 @@ public class StringValidator : AbstractValidator<string>
             .MinimumLength(1).WithMessage("Value must be at least 1 character")
             .MaximumLength(100).WithMessage("Value cannot exceed 100 characters")
             .Matches(@"^[a-zA-Z0-9\s\-\.]+$").WithMessage("Value contains invalid characters");
-    }
-}
-
-public class CityIdValidator : AbstractValidator<CityId>
-{
-    public CityIdValidator()
-    {
-        RuleFor(x => x.Id).NotEmpty();
-    }
-}
-
-public class IdValidator : AbstractValidator<int>
-{
-    public IdValidator()
-    {
-        RuleFor(x => x).GreaterThan(0);
     }
 }
