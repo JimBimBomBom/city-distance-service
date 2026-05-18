@@ -194,6 +194,10 @@ try
     {
         await esService.BulkUpsertCitiesAsync(allCities);
         Console.WriteLine($"Indexed {allCities.Count} city language variants in Elasticsearch");
+
+        // Verify the index has documents
+        var docCount = await esService.GetDocumentCountAsync();
+        Console.WriteLine($"Elasticsearch index now contains {docCount} documents");
     }
     else
     {
@@ -227,6 +231,25 @@ app.MapGet("/languages", (FileDataImportService fileImporter) =>
 app.MapGet("/db_health_check", async (IDatabaseService dbManager) =>
     await RequestHandler.TestConnection(dbManager)
 ).AllowAnonymous();
+
+app.MapGet("/es_health_check", async (IElasticSearchService esService) =>
+{
+    try
+    {
+        var count = await esService.GetDocumentCountAsync();
+        return Results.Ok(new
+        {
+            Status = "Healthy",
+            DocumentCount = count,
+            IndexName = "cities",
+            Timestamp = DateTime.UtcNow
+        });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Elasticsearch health check failed: {ex.Message}");
+    }
+}).AllowAnonymous();
 
 app.MapGet("/suggestions", async (
     HttpContext ctx,

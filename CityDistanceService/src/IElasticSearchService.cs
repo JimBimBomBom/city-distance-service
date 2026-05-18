@@ -14,4 +14,6 @@ public interface IElasticSearchService
     Task BulkUpsertCitiesAsync(List<SparQLCityInfo> cities);
 
     Task UpsertCityAsync(CityDoc city);
+
+    Task<long> GetDocumentCountAsync();
 }

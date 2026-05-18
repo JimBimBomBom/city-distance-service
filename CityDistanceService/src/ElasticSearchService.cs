@@ -77,113 +77,180 @@ public class ElasticSearchService : IElasticSearchService
 
     public async Task<List<CitySuggestion>> GetCitySuggestionsAsync(string partialName, string language)
     {
-        var searchRequest = new SearchRequestDescriptor<CityDoc>()
-            .Index(IndexName)
-            .Query(q => q
-                .Bool(b => b
-                    .Should(
-                        // Exact / full-token match — highest priority
-                        sh => sh.Match(m => m
-                            .Field(f => f.AllNames)
-                            .Query(partialName)
-                            .Boost(10)
-                        ),
-                        // Prefix match — good for autocomplete
-                        sh => sh.MultiMatch(m => m
-                            .Query(partialName)
-                            .Type(TextQueryType.BoolPrefix)
-                            .Fields(new[] { "allNames", "allNames._2gram", "allNames._3gram" })
-                            .Boost(2)
-                        ),
-                        // Fuzzy match — handles typos, lowest priority
-                        sh => sh.Match(m => m
-                            .Field(f => f.AllNames)
-                            .Query(partialName)
-                            .Fuzziness(new Fuzziness("AUTO"))
-                            .Boost(1)
-                        )
+        try
+        {
+            // First try a simple match query to ensure basic search works
+            var simpleResponse = await _client.SearchAsync<CityDoc>(s => s
+                .Index(IndexName)
+                .Query(q => q
+                    .Match(m => m
+                        .Field(f => f.AllNames)
+                        .Query(partialName)
                     )
                 )
-            )
-            .Size(10);
+                .Size(10)
+            );
 
-        // Apply multi-level sorting using SortOptions
-        var sortOptions = new List<SortOptions>
-        {
-            // Primary: Exact match gets a massive boost
-            SortOptions.Script(new ScriptSort
+            if (simpleResponse.IsValidResponse && simpleResponse.Documents.Count > 0)
             {
-                Script = new Script
+                Console.WriteLine($"Simple search found {simpleResponse.Documents.Count} results for '{partialName}'");
+            }
+            else if (!simpleResponse.IsValidResponse)
+            {
+                Console.WriteLine($"Simple search error: {simpleResponse.DebugInformation}");
+            }
+
+            // Now do the advanced search with proper sorting
+            var searchRequest = new SearchRequestDescriptor<CityDoc>()
+                .Index(IndexName)
+                .Query(q => q
+                    .Bool(b => b
+                        .Should(
+                            // Exact match on city name
+                            sh => sh.MatchPhrase(m => m
+                                .Field(f => f.AllNames)
+                                .Query(partialName)
+                                .Boost(100)
+                            ),
+                            // Prefix match — good for autocomplete
+                            sh => sh.MultiMatch(m => m
+                                .Query(partialName)
+                                .Type(TextQueryType.BoolPrefix)
+                                .Fields(new[] { "allNames", "allNames._2gram", "allNames._3gram" })
+                                .Boost(10)
+                            ),
+                            // Standard match
+                            sh => sh.Match(m => m
+                                .Field(f => f.AllNames)
+                                .Query(partialName)
+                                .Boost(5)
+                            ),
+                            // Fuzzy match — handles typos
+                            sh => sh.Match(m => m
+                                .Field(f => f.AllNames)
+                                .Query(partialName)
+                                .Fuzziness(new Fuzziness("AUTO"))
+                                .Boost(1)
+                            )
+                        )
+                        .MinimumShouldMatch(1)
+                    )
+                )
+                .Size(50);
+
+            // Apply multi-level sorting using SortOptions
+            var sortOptions = new List<SortOptions>
+            {
+                // Primary: Exact match gets a massive boost
+                SortOptions.Script(new ScriptSort
                 {
-                    Source = @"
-                        // Check if any name is an exact match (case-insensitive)
-                        String query = params.query.toLowerCase();
-                        for (name in doc['allNames']) {
-                            if (name.toLowerCase() == query) {
-                                return 1000; // Massive bonus for exact match
+                    Script = new Script
+                    {
+                        Source = @"
+                            // Check if any name is an exact match (case-insensitive)
+                            String query = params.query.toLowerCase();
+                            for (name in doc['allNames']) {
+                                if (name.toLowerCase() == query) {
+                                    return 1000; // Massive bonus for exact match
+                                }
                             }
-                        }
-                        return 0;
-                    ",
-                    Params = new Dictionary<string, object> { { "query", partialName } }
-                },
-                Type = ScriptSortType.Number,
-                Order = SortOrder.Desc
-            }),
-            // Secondary: Text relevance score
-            SortOptions.Score(new ScoreSort { Order = SortOrder.Desc }),
-            // Tertiary: Population boost (cities with population rank higher, null/0 gets penalty)
-            SortOptions.Script(new ScriptSort
-            {
-                Script = new Script
+                            return 0;
+                        ",
+                        Params = new Dictionary<string, object> { { "query", partialName } }
+                    },
+                    Type = ScriptSortType.Number,
+                    Order = SortOrder.Desc
+                }),
+                // Secondary: Text relevance score
+                SortOptions.Score(new ScoreSort { Order = SortOrder.Desc }),
+                // Tertiary: Population boost (cities with population rank higher, null/0 gets penalty)
+                SortOptions.Script(new ScriptSort
                 {
-                    Source = @"
-                        // Boost by population, penalize missing population data
-                        if (doc['population'].size() == 0) {
-                            return -1000; // Heavy penalty for missing population
-                        }
-                        def pop = doc['population'].value;
-                        if (pop == null || pop == 0) {
-                            return -1000; // Heavy penalty for null/0 population
-                        }
-                        // Log scale for population to prevent megacities from dominating entirely
-                        return Math.log10(pop) * 10;
-                    ",
-                },
-                Type = ScriptSortType.Number,
-                Order = SortOrder.Desc
+                    Script = new Script
+                    {
+                        Source = @"
+                            // Boost by population, penalize missing population data
+                            if (doc['population'].size() == 0) {
+                                return -1000; // Heavy penalty for missing population
+                            }
+                            def pop = doc['population'].value;
+                            if (pop == null || pop == 0) {
+                                return -1000; // Heavy penalty for null/0 population
+                            }
+                            // Log scale for population to prevent megacities from dominating entirely
+                            return Math.log10(pop) * 10;
+                        ",
+                    },
+                    Type = ScriptSortType.Number,
+                    Order = SortOrder.Desc
+                })
+            };
+
+            searchRequest.Sort(sortOptions);
+
+            var response = await _client.SearchAsync<CityDoc>(searchRequest);
+
+            if (!response.IsValidResponse)
+            {
+                Console.WriteLine($"ES Search Error: {response.DebugInformation}");
+                
+                // Fallback to simple search if advanced search fails
+                if (simpleResponse.IsValidResponse)
+                {
+                    Console.WriteLine("Using fallback simple search results");
+                    return simpleResponse.Documents
+                        .Select(d => new CitySuggestion
+                        {
+                            Id = d.CityId,
+                            Name = d.CityNames.GetValueOrDefault(language)
+                                ?? d.CityNames.GetValueOrDefault(Constants.DefaultLanguage)
+                                ?? d.AllNames.FirstOrDefault()
+                                ?? "Unknown",
+                            CountryCode = d.CountryCode,
+                            Country = d.Country.GetValueOrDefault(language)
+                                ?? d.Country.GetValueOrDefault(Constants.DefaultLanguage)
+                                ?? "",
+                            AdminRegion = d.AdminRegion.GetValueOrDefault(language)
+                                ?? d.AdminRegion.GetValueOrDefault(Constants.DefaultLanguage)
+                                ?? "",
+                            Population = d.Population
+                        })
+                        .Take(10)
+                        .ToList();
+                }
+                
+                return new List<CitySuggestion>();
+            }
+
+            Console.WriteLine($"Advanced search found {response.Documents.Count} results for '{partialName}'");
+
+            return response.Documents
+            .Select(d => new CitySuggestion
+            {
+                Id = d.CityId,
+                // Return the name in the requested language, fall back to English, then any name
+                Name = d.CityNames.GetValueOrDefault(language)
+                    ?? d.CityNames.GetValueOrDefault(Constants.DefaultLanguage)
+                    ?? d.AllNames.FirstOrDefault()
+                    ?? "Unknown",
+                CountryCode = d.CountryCode,
+                Country = d.Country.GetValueOrDefault(language)
+                    ?? d.Country.GetValueOrDefault(Constants.DefaultLanguage)
+                    ?? "",
+                AdminRegion = d.AdminRegion.GetValueOrDefault(language)
+                    ?? d.AdminRegion.GetValueOrDefault(Constants.DefaultLanguage)
+                    ?? "",
+                Population = d.Population
             })
-        };
-
-        searchRequest.Sort(sortOptions);
-
-        var response = await _client.SearchAsync<CityDoc>(searchRequest);
-
-        if (!response.IsValidResponse)
+            .Take(10)
+            .ToList();
+        }
+        catch (Exception ex)
         {
-            Console.WriteLine($"ES Search Error: {response.DebugInformation}");
+            Console.WriteLine($"Exception in GetCitySuggestionsAsync: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             return new List<CitySuggestion>();
         }
-
-        return response.Documents
-        .Select(d => new CitySuggestion
-        {
-            Id = d.CityId,
-            // Return the name in the requested language, fall back to English, then any name
-            Name = d.CityNames.GetValueOrDefault(language)
-                ?? d.CityNames.GetValueOrDefault(Constants.DefaultLanguage)
-                ?? d.AllNames.FirstOrDefault()
-                ?? "Unknown",
-            CountryCode = d.CountryCode,
-            Country = d.Country.GetValueOrDefault(language)
-                ?? d.Country.GetValueOrDefault(Constants.DefaultLanguage)
-                ?? "",
-            AdminRegion = d.AdminRegion.GetValueOrDefault(language)
-                ?? d.AdminRegion.GetValueOrDefault(Constants.DefaultLanguage)
-                ?? "",
-            Population = d.Population
-        })
-        .ToList();
     }
 
     public async Task<CityDoc?> GetCityDocByIdAsync(string cityId)
@@ -197,6 +264,25 @@ public class ElasticSearchService : IElasticSearchService
         }
 
         return response.Source;
+    }
+
+    public async Task<long> GetDocumentCountAsync()
+    {
+        try
+        {
+            var response = await _client.CountAsync<CityDoc>(c => c.Indices(IndexName));
+            if (response.IsValidResponse)
+            {
+                return response.Count;
+            }
+            Console.WriteLine($"Count error: {response.DebugInformation}");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception getting document count: {ex.Message}");
+            return 0;
+        }
     }
 
     public async Task BulkUpsertCitiesAsync(List<SparQLCityInfo> cities)
@@ -359,6 +445,10 @@ public class ElasticSearchService : IElasticSearchService
         {
             Console.WriteLine($"✗ Failed: {totalFailed}");
         }
+
+        // Verify document count in index
+        var count = await GetDocumentCountAsync();
+        Console.WriteLine($"Total documents in index '{IndexName}': {count}");
     }
 
     public async Task UpsertCityAsync(CityDoc city)
