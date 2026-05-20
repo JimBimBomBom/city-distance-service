@@ -19,6 +19,13 @@ builder.Services.AddControllers();
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.Limits.MaxRequestBodySize = 52428800; // 50 MB
+    
+    // In development, use HTTP only to avoid SSL issues
+    if (builder.Environment.IsDevelopment())
+    {
+        serverOptions.ListenAnyIP(5000);
+        Console.WriteLine("Development mode: Listening on HTTP port 5000");
+    }
 });
 
 // Add CORS to handle requests from GitHub Pages
@@ -83,11 +90,23 @@ builder.Services.AddSwaggerGen(options =>
 // Elasticsearch
 var esUrl      = builder.Configuration["Elasticsearch:Url"]      ?? "http://cds-elasticsearch:9200";
 var esPassword = builder.Configuration["Elasticsearch:Password"] ?? "testPassword123";
+var esSkipSsl  = builder.Configuration.GetValue<bool>("Elasticsearch:SkipSslVerification");
+
+Console.WriteLine($"Configuring Elasticsearch client...");
+Console.WriteLine($"  URL: {esUrl}");
+Console.WriteLine($"  Skip SSL Verification: {esSkipSsl}");
 
 var settings = new ElasticsearchClientSettings(new Uri(esUrl))
     .Authentication(new BasicAuthentication("elastic", esPassword))
     .DefaultIndex("cities")
     .RequestTimeout(TimeSpan.FromMinutes(5));
+
+// Skip SSL certificate validation for development (e.g., self-signed certs)
+if (esSkipSsl || builder.Environment.IsDevelopment())
+{
+    settings = settings.ServerCertificateValidationCallback((sender, certificate, chain, sslPolicyErrors) => true);
+    Console.WriteLine("  SSL certificate validation disabled for development");
+}
 
 builder.Services.AddSingleton(new ElasticsearchClient(settings));
 
@@ -144,73 +163,81 @@ app.UseMiddleware<LocaleMiddleware>();
 // Startup sequence
 Console.WriteLine("=== Starting City Distance Service ===");
 Console.WriteLine("Loading data from: {0}", dataFilesPath);
+Console.WriteLine("Application starting. Version: " + Constants.Version);
 
-// Step 1: Ensure ES index exists
-try
+// Start background initialization - don't block startup
+_ = Task.Run(async () =>
 {
-    await RetryHelper.RetryOnExceptionAsync(
-        maxRetries:    10,
-        delay:         TimeSpan.FromSeconds(10),
-        operation:     async () =>
-        {
-            using var scope = app.Services.CreateScope();
-            await scope.ServiceProvider.GetRequiredService<IElasticSearchService>().EnsureIndexExistsAsync();
-        },
-        operationName: "Elasticsearch index creation"
-    );
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"WARNING: Elasticsearch unavailable: {ex.Message}");
-}
-
-// Step 2: Load data from JSON files and import to databases
-try
-{
-    using var scope = app.Services.CreateScope();
-    var fileImporter = scope.ServiceProvider.GetRequiredService<FileDataImportService>();
-    var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
-    var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
-
-    // Phase 1: Import English cities to MySQL (source of truth)
-    Console.WriteLine("Importing English cities to MySQL...");
-    var englishCities = await fileImporter.LoadEnglishCitiesAsync();
+    // Wait a bit for app to start accepting requests
+    await Task.Delay(2000);
     
-    if (englishCities.Count > 0)
+    try
     {
-        await dbService.BulkUpsertCitiesAsync(englishCities);
-        Console.WriteLine($"Imported {englishCities.Count} English cities to MySQL");
+        using var scope = app.Services.CreateScope();
+        var fileImporter = scope.ServiceProvider.GetRequiredService<FileDataImportService>();
+        var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
+        var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
+
+        // Phase 1: Import English cities to MySQL (source of truth)
+        Console.WriteLine("[Background] Importing English cities to MySQL...");
+        var englishCities = await fileImporter.LoadEnglishCitiesAsync();
+        
+        if (englishCities.Count > 0)
+        {
+            await dbService.BulkUpsertCitiesAsync(englishCities);
+            Console.WriteLine($"[Background] Imported {englishCities.Count} English cities to MySQL");
+        }
+        else
+        {
+            Console.WriteLine("[Background] Warning: No English cities loaded");
+        }
+
+        // Phase 2: Ensure ES index exists (with retries)
+        Console.WriteLine("[Background] Ensuring Elasticsearch index exists...");
+        try
+        {
+            await RetryHelper.RetryOnExceptionAsync(
+                maxRetries:    10,
+                delay:         TimeSpan.FromSeconds(10),
+                operation:     async () =>
+                {
+                    await esService.EnsureIndexExistsAsync();
+                },
+                operationName: "Elasticsearch index creation"
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Background] WARNING: Elasticsearch unavailable: {ex.Message}");
+            return; // Skip ES indexing if ES is not available
+        }
+
+        // Phase 3: Build Elasticsearch index with all language variants
+        Console.WriteLine("[Background] Loading all language variants for Elasticsearch...");
+        var allCities = await fileImporter.LoadAllLanguageVariantsAsync();
+
+        if (allCities.Count > 0)
+        {
+            await esService.BulkUpsertCitiesAsync(allCities);
+            Console.WriteLine($"[Background] Indexed {allCities.Count} city language variants in Elasticsearch");
+
+            // Verify the index has documents
+            var docCount = await esService.GetDocumentCountAsync();
+            Console.WriteLine($"[Background] Elasticsearch index now contains {docCount} documents");
+        }
+        else
+        {
+            Console.WriteLine("[Background] Warning: No cities loaded from files");
+        }
+        
+        Console.WriteLine("[Background] Data import completed successfully");
     }
-    else
+    catch (Exception ex)
     {
-        Console.WriteLine("Warning: No English cities loaded - using existing MySQL data");
+        Console.WriteLine($"[Background] ERROR during data import: {ex.Message}");
+        Console.WriteLine($"[Background] Stack trace: {ex.StackTrace}");
     }
-
-    // Phase 2: Build Elasticsearch index with all language variants
-    Console.WriteLine("Loading all language variants for Elasticsearch...");
-    var allCities = await fileImporter.LoadAllLanguageVariantsAsync();
-
-    if (allCities.Count > 0)
-    {
-        await esService.BulkUpsertCitiesAsync(allCities);
-        Console.WriteLine($"Indexed {allCities.Count} city language variants in Elasticsearch");
-
-        // Verify the index has documents
-        var docCount = await esService.GetDocumentCountAsync();
-        Console.WriteLine($"Elasticsearch index now contains {docCount} documents");
-    }
-    else
-    {
-        Console.WriteLine("Warning: No cities loaded from files - will use existing database data");
-    }
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"ERROR during data import: {ex.Message}");
-    Console.WriteLine("Application will continue with existing database data");
-}
-
-Console.WriteLine("Application started. Version: " + Constants.Version);
+});
 
 app.MapControllers();
 
@@ -225,8 +252,10 @@ app.MapGet("/version", () =>
 ).AllowAnonymous();
 
 app.MapGet("/languages", (FileDataImportService fileImporter) =>
-    Results.Ok(fileImporter.LoadedLanguages.Select(code => new { code }))
-).AllowAnonymous();
+{
+    var languages = fileImporter.GetAvailableLanguages();
+    return Results.Ok(languages.Select(code => new { code }));
+}).AllowAnonymous();
 
 app.MapGet("/db_health_check", async (IDatabaseService dbManager) =>
     await RequestHandler.TestConnection(dbManager)

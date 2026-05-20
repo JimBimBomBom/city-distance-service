@@ -289,134 +289,88 @@ public class ElasticSearchService : IElasticSearchService
     {
         if (!cities.Any()) return;
 
-        const int batchSize = 500;
-        int totalBatches = (int)Math.Ceiling(cities.Count / (double)batchSize);
-        int totalSuccessful = 0;
-        int totalFailed = 0;
-
-        Console.WriteLine($"Processing {cities.Count} cities in {totalBatches} batches of {batchSize}...");
-
-        for (int i = 0; i < cities.Count; i += batchSize)
-        {
-            var batch = cities.Skip(i).Take(batchSize).ToList();
-            int currentBatch = (i / batchSize) + 1;
-
-            try
+        // Group by WikidataId and merge all language variants into a single CityDoc.
+        // This avoids relying on Painless scripts to merge dictionaries at index time.
+        var cityDocs = cities
+            .GroupBy(c => c.WikidataId)
+            .Select(g =>
             {
-                var cityDocs = batch.Select(city =>
+                var first = g.First();
+                var doc = new CityDoc
                 {
-                    var doc = new CityDoc
+                    CityId = first.WikidataId,
+                    CityNames = new Dictionary<string, string>(),
+                    AllNames = new List<string>(),
+                    Location = GeoLocation.LatitudeLongitude(new LatLonGeoLocation
                     {
-                        CityId = city.WikidataId,
-                        CityNames = new Dictionary<string, string>(),    // Build the dictionary
-                        AllNames = new(), 
-                        Location = GeoLocation.LatitudeLongitude(new LatLonGeoLocation
-                        {
-                            Lat = city.Latitude,
-                            Lon = city.Longitude,
-                        }),
-                        CountryCode = city.CountryCode,
-                        Country = new Dictionary<string, string>(),
-                        AdminRegion = new Dictionary<string, string>(),
-                        Population = city.Population
-                    };
+                        Lat = first.Latitude,
+                        Lon = first.Longitude,
+                    }),
+                    CountryCode = first.CountryCode,
+                    Country = new Dictionary<string, string>(),
+                    AdminRegion = new Dictionary<string, string>(),
+                    Population = first.Population
+                };
 
-                    // Populate language-keyed dictionaries
+                foreach (var city in g)
+                {
                     if (!string.IsNullOrEmpty(city.Language) && !string.IsNullOrEmpty(city.CityName))
+                    {
                         doc.CityNames[city.Language] = city.CityName;
+                        if (!doc.AllNames.Contains(city.CityName))
+                            doc.AllNames.Add(city.CityName);
+                    }
 
                     if (!string.IsNullOrEmpty(city.Language) && !string.IsNullOrEmpty(city.Country))
                         doc.Country[city.Language] = city.Country;
 
                     if (!string.IsNullOrEmpty(city.Language) && !string.IsNullOrEmpty(city.AdminRegion))
                         doc.AdminRegion[city.Language] = city.AdminRegion;
+                }
 
-                    return doc;
-                }).ToList();
+                return doc;
+            })
+            .ToList();
 
+        const int batchSize = 500;
+        int totalBatches = (int)Math.Ceiling(cityDocs.Count / (double)batchSize);
+        int totalSuccessful = 0;
+        int totalFailed = 0;
+
+        Console.WriteLine($"Processing {cityDocs.Count} unique cities in {totalBatches} batches of {batchSize}...");
+
+        for (int i = 0; i < cityDocs.Count; i += batchSize)
+        {
+            var batch = cityDocs.Skip(i).Take(batchSize).ToList();
+            int currentBatch = (i / batchSize) + 1;
+
+            try
+            {
                 var response = await _client.BulkAsync(b => b
                     .Index(IndexName)
-                    .UpdateMany(cityDocs, (descriptor, cityDoc) => descriptor
-                        .Id(cityDoc.CityId)
-                        .Script(s => s
-                            .Source(@"
-                                // Merge cityNames dictionary
-                                if (ctx._source.cityNames == null) {
-                                    ctx._source.cityNames = params.cityNames;
-                                } else {
-                                    for (entry in params.cityNames.entrySet()) {
-                                        ctx._source.cityNames[entry.getKey()] = entry.getValue();
-                                    }
-                                }
-
-                                // Rebuild allNames from cityNames values
-                                def names = new HashSet();
-                                for (entry in ctx._source.cityNames.entrySet()) {
-                                    names.add(entry.getValue());
-                                }
-                                ctx._source.allNames = new ArrayList(names);
-
-                                // Update other metadata
-                                ctx._source.location = params.location;
-                                ctx._source.countryCode = params.countryCode;
-
-                                if (ctx._source.country == null) {
-                                    ctx._source.country = params.country;
-                                } else {
-                                    for (entry in params.country.entrySet()) {
-                                        ctx._source.country[entry.getKey()] = entry.getValue();
-                                    }
-                                }
-
-                                if (ctx._source.adminRegion == null) {
-                                    ctx._source.adminRegion = params.adminRegion;
-                                } else {
-                                    for (entry in params.adminRegion.entrySet()) {
-                                        ctx._source.adminRegion[entry.getKey()] = entry.getValue();
-                                    }
-                                }
-
-                                ctx._source.population = params.population;
-                            ")
-                            .Params(p => p
-                                .Add("cityNames", cityDoc.CityNames)           // was "newNames"
-                                .Add("location", cityDoc.Location)
-                                .Add("countryCode", cityDoc.CountryCode ?? "")
-                                .Add("country", cityDoc.Country)                // pass dict, not string
-                                .Add("adminRegion", cityDoc.AdminRegion)        // pass dict, not string
-                                .Add("population", cityDoc.Population ?? 0)
-)
-                        )
-                        .Upsert(cityDoc)
-                    )
+                    .IndexMany(batch, (descriptor, doc) => descriptor.Id(doc.CityId))
                 );
 
-                if (!response.IsValidResponse)
+                if (response.Errors)
                 {
-                    // Check if there are partial failures
-                    if (response.ItemsWithErrors.Any())
+                    int batchFailed = response.ItemsWithErrors.Count();
+                    int batchSuccessful = batch.Count - batchFailed;
+
+                    totalSuccessful += batchSuccessful;
+                    totalFailed += batchFailed;
+
+                    Console.WriteLine($"⚠ ES Batch {currentBatch}/{totalBatches}: {batchSuccessful} succeeded, {batchFailed} failed");
+
+                    foreach (var item in response.ItemsWithErrors.Take(5))
                     {
-                        int batchFailed = response.ItemsWithErrors.Count();
-                        int batchSuccessful = batch.Count - batchFailed;
-
-                        totalSuccessful += batchSuccessful;
-                        totalFailed += batchFailed;
-
-                        Console.WriteLine($"⚠ ES Batch {currentBatch}/{totalBatches}: {batchSuccessful} succeeded, {batchFailed} failed");
-
-                        // Log first few errors
-                        foreach (var item in response.ItemsWithErrors.Take(3))
-                        {
-                            Console.WriteLine($"  Error on city {item.Id}: {item.Error?.Reason}");
-                        }
+                        Console.WriteLine($"  Error on city {item.Id}: {item.Error?.Reason}");
                     }
-                    else
-                    {
-                        // Complete batch failure
-                        totalFailed += batch.Count;
-                        Console.WriteLine($"✗ ES Batch {currentBatch}/{totalBatches} completely failed");
-                        Console.WriteLine($"  Debug Info: {response.DebugInformation}");
-                    }
+                }
+                else if (!response.IsValidResponse)
+                {
+                    totalFailed += batch.Count;
+                    Console.WriteLine($"✗ ES Batch {currentBatch}/{totalBatches} completely failed");
+                    Console.WriteLine($"  Debug Info: {response.DebugInformation}");
                 }
                 else
                 {
@@ -424,8 +378,7 @@ public class ElasticSearchService : IElasticSearchService
                     Console.WriteLine($"✓ ES Batch {currentBatch}/{totalBatches} completed ({batch.Count} cities)");
                 }
 
-                // Small delay between batches
-                if (i + batchSize < cities.Count)
+                if (i + batchSize < cityDocs.Count)
                 {
                     await Task.Delay(200);
                 }
@@ -434,19 +387,17 @@ public class ElasticSearchService : IElasticSearchService
             {
                 totalFailed += batch.Count;
                 Console.WriteLine($"[ERROR] ES Batch {currentBatch}/{totalBatches} exception: {ex.Message}");
-                // Continue with next batch instead of throwing
             }
         }
 
         Console.WriteLine($"\n=== Elasticsearch Summary ===");
-        Console.WriteLine($"Total cities processed: {cities.Count}");
+        Console.WriteLine($"Total unique cities processed: {cityDocs.Count}");
         Console.WriteLine($"✓ Successfully indexed: {totalSuccessful}");
         if (totalFailed > 0)
         {
             Console.WriteLine($"✗ Failed: {totalFailed}");
         }
 
-        // Verify document count in index
         var count = await GetDocumentCountAsync();
         Console.WriteLine($"Total documents in index '{IndexName}': {count}");
     }

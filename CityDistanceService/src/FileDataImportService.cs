@@ -21,6 +21,40 @@ public class FileDataImportService
     /// </summary>
     public List<string> LoadedLanguages { get; } = new();
 
+    /// <summary>
+    /// Returns language codes found in the data directory (fallback if LoadedLanguages is empty).
+    /// This scans the filesystem without loading actual city data.
+    /// </summary>
+    public List<string> GetAvailableLanguages()
+    {
+        if (LoadedLanguages.Count > 0)
+        {
+            return LoadedLanguages.ToList();
+        }
+
+        // Fallback: scan directory for language files
+        if (!Directory.Exists(dataPath))
+        {
+            return new List<string>();
+        }
+
+        var languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var jsonFiles = Directory.GetFiles(dataPath, "*_cities.json");
+        var csvFiles = Directory.GetFiles(dataPath, "*_cities.csv");
+
+        foreach (var file in jsonFiles.Concat(csvFiles))
+        {
+            var lang = ExtractLanguageCode(file);
+            if (!string.IsNullOrEmpty(lang))
+            {
+                languages.Add(lang);
+            }
+        }
+
+        return languages.OrderBy(l => l).ToList();
+    }
+
     public FileDataImportService(string dataPath, ILogger<FileDataImportService> logger)
     {
         this.dataPath = dataPath;
