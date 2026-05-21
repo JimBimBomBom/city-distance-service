@@ -21,8 +21,20 @@ public class ElasticSearchService : IElasticSearchService
 
         if (existsResponse.Exists)
         {
-            Console.WriteLine($"Index '{IndexName}' already exists.");
-            return;
+            var needsRecreate = await IndexNeedsRecreateAsync();
+            if (!needsRecreate)
+            {
+                Console.WriteLine($"Index '{IndexName}' already exists with correct mapping.");
+                return;
+            }
+
+            Console.WriteLine($"Index '{IndexName}' exists but mapping is outdated. Deleting and recreating...");
+            var deleteResponse = await _client.Indices.DeleteAsync(IndexName);
+            if (!deleteResponse.IsValidResponse)
+            {
+                Console.WriteLine($"Failed to delete old index: {deleteResponse.DebugInformation}");
+                throw new Exception($"Failed to delete outdated ES index '{IndexName}'");
+            }
         }
 
         var createResponse = await _client.Indices.CreateAsync(IndexName, c => c
@@ -50,6 +62,7 @@ public class ElasticSearchService : IElasticSearchService
                     // allNames is what we actually search against
                     .Text(d => d.AllNames, t => t
                         .Analyzer("city_analyzer")
+                        .Fielddata(true)
                         .Fields(f => f
                             .Text("_2gram", t2 => t2.Analyzer("standard"))
                             .Text("_3gram", t3 => t3.Analyzer("standard"))
@@ -72,6 +85,41 @@ public class ElasticSearchService : IElasticSearchService
         {
             Console.WriteLine($"Failed to create index: {createResponse.DebugInformation}");
             throw new Exception($"ES Index creation failed: {createResponse.DebugInformation}");
+        }
+    }
+
+    private async Task<bool> IndexNeedsRecreateAsync()
+    {
+        try
+        {
+            var mappingResponse = await _client.Indices.GetMappingAsync(new GetMappingRequest(IndexName));
+            if (!mappingResponse.IsValidResponse || mappingResponse.Indices == null)
+                return true;
+
+            foreach (var kvp in mappingResponse.Indices)
+            {
+                var properties = kvp.Value.Mappings?.Properties;
+                if (properties == null)
+                    continue;
+
+                foreach (var propKvp in properties)
+                {
+                    if (propKvp.Key == "allNames")
+                    {
+                        var json = System.Text.Json.JsonSerializer.Serialize(propKvp.Value);
+                        var hasFielddata = json.Contains("\"fielddata\":true", StringComparison.OrdinalIgnoreCase)
+                            || json.Contains("\"fielddata\": true", StringComparison.OrdinalIgnoreCase);
+                        return !hasFielddata;
+                    }
+                }
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking mapping: {ex.Message}");
+            return true;
         }
     }
 

@@ -272,10 +272,14 @@ app.MapGet("/es_health_check", async (IElasticSearchService esService) =>
 app.MapGet("/suggestions", async (
     HttpContext ctx,
     [FromQuery] string q,
+    [FromQuery] string? lang,
     IElasticSearchService esService) =>
 {
-    var lang = ctx.Request.Cookies["lang"] ?? "en";
-    return await RequestHandler.GetCitySuggestionsAsync(q, esService, lang);
+    var effectiveLang = !string.IsNullOrWhiteSpace(lang)
+        ? lang
+        : ctx.Request.Cookies["lang"] ?? "en";
+
+    return await RequestHandler.GetCitySuggestionsAsync(q, esService, effectiveLang);
 }).AllowAnonymous();
 
 app.MapPost("/distance", async (

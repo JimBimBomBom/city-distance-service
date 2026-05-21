@@ -8,6 +8,7 @@ data/cities_data/*
 !data/cities_data/.gitkeep
 
 cities_data/
+test/
 
 .caddy.env
 DefaultAppEnv.env
