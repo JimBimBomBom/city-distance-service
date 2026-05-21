@@ -1,7 +1,6 @@
 # Global options block
 {
     email email@gmail.com
-    debug
 }
 
 cds.moojtube.com:8443 {

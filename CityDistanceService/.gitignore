@@ -1,6 +1,9 @@
-**/caddy_data/
-**/caddy_config/
-**/esdata/
+data/caddy_data/*
+!data/caddy_data/.gitkeep
+data/caddy_config/*
+!data/caddy_config/.gitkeep
+data/esdata/*
+!data/esdata/.gitkeep
 
 /cities_data
 
