@@ -88,4 +88,3 @@ public class CitiesDistanceRequest
     public string City2Id { get; set; }
 }
 
-public record DistanceResult(double Distance, string Unit);

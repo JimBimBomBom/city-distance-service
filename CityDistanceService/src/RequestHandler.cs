@@ -15,41 +15,32 @@ public static class RequestHandler
     public static async Task<IResult> GetCitySuggestionsAsync(
         string query,
         IElasticSearchService esService,
-        ILocalizationService localization,
         string lang)
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             return Results.BadRequest(new
             {
-                Error = localization.Get(MsgKey.InvalidQuery, lang)
+                Error = "Query must be at least 2 characters."
             });
 
         var validationResult = await new StringValidator().ValidateAsync(query);
         if (!validationResult.IsValid)
             return Results.BadRequest(new
             {
-                Error = localization.Get(MsgKey.InvalidQuery, lang)
+                Error = "Invalid query."
             });
 
         try
         {
             var suggestions = await esService.GetCitySuggestionsAsync(query, lang);
-            var message = suggestions.Count > 0
-                ? localization.Get(MsgKey.SuggestionsFound, lang)
-                : localization.Get(MsgKey.NoSuggestions, lang);
-
-            return Results.Ok(new
-            {
-                Data    = suggestions,
-                Message = message
-            });
+            return Results.Ok(suggestions);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in GetCitySuggestionsAsync: {ex.Message}");
             return Results.Json(new
             {
-                Error = localization.Get(MsgKey.InternalError, lang),
+                Error = "Internal server error.",
                 statusCode = 500
             });
         }
@@ -59,9 +50,7 @@ public static class RequestHandler
 
     public static async Task<IResult> ProcessCityDistanceAsync(
         CitiesDistanceRequest request,
-        ICityDataService cityService,
-        ILocalizationService localization,
-        string lang)
+        ICityDataService cityService)
     {
         try
         {
@@ -73,24 +62,17 @@ public static class RequestHandler
             if (distanceKm == -1)
                 return Results.NotFound(new
                 {
-                    Error = localization.Get(MsgKey.CityNotFound, lang)
+                    Error = "City not found."
                 });
 
-            var formatted = localization.FormatDistance(distanceKm, lang);
-
-            return Results.Ok(new
-            {
-                Distance = formatted.Distance,
-                Unit     = formatted.Unit,
-                Message  = localization.Get(MsgKey.DistanceCalculated, lang)
-            });
+            return Results.Ok(new { DistanceKm = distanceKm });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in ProcessCityDistanceAsync: {ex.Message}");
             return Results.Json(new
             {
-                Error = localization.Get(MsgKey.InternalError, lang),
+                Error = "Internal server error.",
                 statusCode = 500
             });
         }
@@ -101,7 +83,6 @@ public static class RequestHandler
     public static async Task<IResult> ReturnCityInfoAsync(
         string cityId,
         ICityDataService cityService,
-        ILocalizationService localization,
         string lang)
     {
         try
@@ -110,21 +91,17 @@ public static class RequestHandler
             if (city == null)
                 return Results.NotFound(new
                 {
-                    Error = localization.Get(MsgKey.CityNotFound, lang)
+                    Error = "City not found."
                 });
 
-            return Results.Ok(new
-            {
-                Data    = city,
-                Message = localization.Get(MsgKey.CityFound, lang)
-            });
+            return Results.Ok(city);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in ReturnCityInfoAsync: {ex.Message}");
             return Results.Json(new
             {
-                Error = localization.Get(MsgKey.InternalError, lang),
+                Error = "Internal server error.",
                 statusCode = 500
             });
         }
@@ -132,9 +109,7 @@ public static class RequestHandler
 
     public static async Task<IResult> PostCityInfoAsync(
         NewCityInfo city,
-        ICityDataService cityService,
-        ILocalizationService localization,
-        string lang)
+        ICityDataService cityService)
     {
         try
         {
@@ -142,21 +117,17 @@ public static class RequestHandler
             if (added == null)
                 return Results.Conflict(new
                 {
-                    Error = localization.Get(MsgKey.CityAlreadyExists, lang)
+                    Error = "City already exists."
                 });
 
-            return Results.Created($"/city/{added.CityId}", new
-            {
-                Data    = added,
-                Message = localization.Get(MsgKey.CityAdded, lang)
-            });
+            return Results.Created($"/city/{added.CityId}", added);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in PostCityInfoAsync: {ex.Message}");
             return Results.Json(new
             {
-                Error = localization.Get(MsgKey.InternalError, lang),
+                Error = "Internal server error.",
                 statusCode = 500
             });
         }
@@ -164,25 +135,19 @@ public static class RequestHandler
 
     public static async Task<IResult> UpdateCityInfoAsync(
         CityInfo city,
-        ICityDataService cityService,
-        ILocalizationService localization,
-        string lang)
+        ICityDataService cityService)
     {
         try
         {
             var updated = await cityService.UpdateCityAsync(city);
-            return Results.Ok(new
-            {
-                Data    = updated,
-                Message = localization.Get(MsgKey.CityUpdated, lang)
-            });
+            return Results.Ok(updated);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in UpdateCityInfoAsync: {ex.Message}");
             return Results.Json(new
             {
-                Error = localization.Get(MsgKey.InternalError, lang),
+                Error = "Internal server error.",
                 statusCode = 500
             });
         }
@@ -191,9 +156,7 @@ public static class RequestHandler
     public static async Task<IResult> DeleteCityAsync(
         string cityId,
         IDatabaseService dbManager,
-        ICityDataService cityService,
-        ILocalizationService localization,
-        string lang)
+        ICityDataService cityService)
     {
         try
         {
@@ -201,14 +164,14 @@ public static class RequestHandler
             if (city == null)
                 return Results.NotFound(new
                 {
-                    Error = localization.Get(MsgKey.CityNotFound, lang)
+                    Error = "City not found."
                 });
 
             await cityService.DeleteCityAsync(cityId);
 
             return Results.Ok(new
             {
-                Message = localization.Get(MsgKey.CityDeleted, lang)
+                Message = "City deleted."
             });
         }
         catch (Exception ex)
@@ -216,7 +179,7 @@ public static class RequestHandler
             Console.WriteLine($"Error in DeleteCityAsync: {ex.Message}");
             return Results.Json(new
             {
-                Error = localization.Get(MsgKey.InternalError, lang),
+                Error = "Internal server error.",
                 statusCode = 500
             });
         }

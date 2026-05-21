@@ -130,11 +130,6 @@ builder.Services.AddSingleton<IElasticSearchService, ElasticSearchService>();
         new FileDataImportService(dataFilesPath,
             _.GetRequiredService<ILogger<FileDataImportService>>()));
 
-// Localization
-var resourcesPath = Path.Combine(AppContext.BaseDirectory, "Resources");
-builder.Services.AddSingleton<ILocalizationService>(
-    new LocalizationService(resourcesPath, defaultLang: "en"));
-
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<NewCityInfo>();
@@ -158,7 +153,6 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseMiddleware<ApplicationVersionMiddleware>();
-app.UseMiddleware<LocaleMiddleware>();
 
 // Startup sequence
 Console.WriteLine("=== Starting City Distance Service ===");
@@ -278,27 +272,22 @@ app.MapGet("/es_health_check", async (IElasticSearchService esService) =>
 app.MapGet("/suggestions", async (
     HttpContext ctx,
     [FromQuery] string q,
-    IElasticSearchService esService,
-    ILocalizationService localization) =>
+    IElasticSearchService esService) =>
 {
-    var lang = ctx.GetLanguage();
-    return await RequestHandler.GetCitySuggestionsAsync(q, esService, localization, lang);
+    var lang = ctx.Request.Cookies["lang"] ?? "en";
+    return await RequestHandler.GetCitySuggestionsAsync(q, esService, lang);
 }).AllowAnonymous();
 
 app.MapPost("/distance", async (
-    HttpContext ctx,
     CitiesDistanceRequest request,
     ICityDataService cityService,
-    ILocalizationService localization,
     IValidator<CitiesDistanceRequest> validator) =>
 {
-    Console.WriteLine($"Selected language: {ctx.GetLanguage()}");
     var validationResult = await validator.ValidateAsync(request);
     if (!validationResult.IsValid)
         return Results.BadRequest(new { Errors = validationResult.Errors });
 
-    var lang = ctx.GetLanguage();
-    return await RequestHandler.ProcessCityDistanceAsync(request, cityService, localization, lang);
+    return await RequestHandler.ProcessCityDistanceAsync(request, cityService);
 })
 .AddFluentValidationAutoValidation()
 .AllowAnonymous();
@@ -306,56 +295,46 @@ app.MapPost("/distance", async (
 app.MapGet("/city/{id}", async (
     HttpContext ctx,
     [FromRoute] string id,
-    ICityDataService cityService,
-    ILocalizationService localization) =>
+    ICityDataService cityService) =>
 {
-    var lang = ctx.GetLanguage();
-    return await RequestHandler.ReturnCityInfoAsync(id, cityService, localization, lang);
+    var lang = ctx.Request.Cookies["lang"] ?? "en";
+    return await RequestHandler.ReturnCityInfoAsync(id, cityService, lang);
 }).RequireAuthorization("BasicAuthentication");
 
 app.MapPost("/city", async (
-    HttpContext ctx,
     NewCityInfo city,
     ICityDataService cityService,
-    ILocalizationService localization,
     IValidator<NewCityInfo> validator) =>
 {
     var validationResult = await validator.ValidateAsync(city);
     if (!validationResult.IsValid)
         return Results.BadRequest(new { Errors = validationResult.Errors });
 
-    var lang = ctx.GetLanguage();
-    return await RequestHandler.PostCityInfoAsync(city, cityService, localization, lang);
+    return await RequestHandler.PostCityInfoAsync(city, cityService);
 })
 .AddFluentValidationAutoValidation()
 .RequireAuthorization("BasicAuthentication");
 
 app.MapPut("/city", async (
-    HttpContext ctx,
     CityInfo city,
     ICityDataService cityService,
-    ILocalizationService localization,
     IValidator<CityInfo> validator) =>
 {
     var validationResult = await validator.ValidateAsync(city);
     if (!validationResult.IsValid)
         return Results.BadRequest(new { Errors = validationResult.Errors });
 
-    var lang = ctx.GetLanguage();
-    return await RequestHandler.UpdateCityInfoAsync(city, cityService, localization, lang);
+    return await RequestHandler.UpdateCityInfoAsync(city, cityService);
 })
 .AddFluentValidationAutoValidation()
 .RequireAuthorization("BasicAuthentication");
 
 app.MapDelete("/city/{id}", async (
-    HttpContext ctx,
     [FromRoute] string id,
     IDatabaseService dbManager,
-    ICityDataService cityService,
-    ILocalizationService localization) =>
+    ICityDataService cityService) =>
 {
-    var lang = ctx.GetLanguage();
-    return await RequestHandler.DeleteCityAsync(id, dbManager, cityService, localization, lang);
+    return await RequestHandler.DeleteCityAsync(id, dbManager, cityService);
 }).RequireAuthorization("BasicAuthentication");
 
 Console.WriteLine("Now serving requests.");
