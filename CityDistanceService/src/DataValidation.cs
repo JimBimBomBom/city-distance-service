@@ -39,6 +39,6 @@ public class StringValidator : AbstractValidator<string>
             .NotEmpty().WithMessage("Value cannot be empty")
             .MinimumLength(1).WithMessage("Value must be at least 1 character")
             .MaximumLength(100).WithMessage("Value cannot exceed 100 characters")
-            .Matches(@"^[a-zA-Z0-9\s\-\.]+$").WithMessage("Value contains invalid characters");
+            .Matches(@"^[\p{L}\p{N}\s\-\.]+$").WithMessage("Value contains invalid characters");
     }
 }

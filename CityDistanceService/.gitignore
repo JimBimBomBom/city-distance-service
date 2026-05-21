@@ -4,8 +4,10 @@ data/caddy_config/*
 !data/caddy_config/.gitkeep
 data/esdata/*
 !data/esdata/.gitkeep
+data/cities_data/*
+!data/cities_data/.gitkeep
 
-/cities_data
+cities_data/
 
 .caddy.env
 DefaultAppEnv.env
@@ -16,6 +18,8 @@ obj/
 *.user
 
 data/app/*
+!data/app/.gitkeep
 data/elasticsearch/*
+!data/elasticsearch/.gitkeep
 data/mysql/*
-data/caddy/*
+!data/mysql/.gitkeep
