@@ -124,11 +124,11 @@ builder.Services.AddScoped<IDatabaseService>(_ => new MySQLManager(connectionStr
 builder.Services.AddScoped<ICityDataService, CityDataService>();
 builder.Services.AddSingleton<IElasticSearchService, ElasticSearchService>();
 
-// File data import service - loads JSON/CSV at startup from /cities_data
-var dataFilesPath = configuration["DATA_FILES_PATH"] ?? "/cities_data";
-builder.Services.AddSingleton<FileDataImportService>(_ =>
-    new FileDataImportService(dataFilesPath,
-        _.GetRequiredService<ILogger<FileDataImportService>>()));
+    // File data import service - loads CSV files at startup from /cities_data
+    var dataFilesPath = configuration["DATA_FILES_PATH"] ?? "/cities_data";
+    builder.Services.AddSingleton<FileDataImportService>(_ =>
+        new FileDataImportService(dataFilesPath,
+            _.GetRequiredService<ILogger<FileDataImportService>>()));
 
 // Localization
 var resourcesPath = Path.Combine(AppContext.BaseDirectory, "Resources");
@@ -178,21 +178,25 @@ _ = Task.Run(async () =>
         var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
         var esService = scope.ServiceProvider.GetRequiredService<IElasticSearchService>();
 
-        // Phase 1: Import English cities to MySQL (source of truth)
-        Console.WriteLine("[Background] Importing English cities to MySQL...");
-        var englishCities = await fileImporter.LoadEnglishCitiesAsync();
-        
-        if (englishCities.Count > 0)
+        // Phase 1: Load all CSV language variants (en_cities.csv is processed first)
+        Console.WriteLine("[Background] Loading all CSV language variants...");
+        var allCities = await fileImporter.LoadAllLanguageVariantsAsync();
+
+        if (allCities.Count == 0)
         {
-            await dbService.BulkUpsertCitiesAsync(englishCities);
-            Console.WriteLine($"[Background] Imported {englishCities.Count} English cities to MySQL");
-        }
-        else
-        {
-            Console.WriteLine("[Background] Warning: No English cities loaded");
+            Console.WriteLine("[Background] Warning: No cities loaded from CSV files - nothing to import");
+            return;
         }
 
-        // Phase 2: Ensure ES index exists (with retries)
+        Console.WriteLine($"[Background] Loaded {allCities.Count} city records across {fileImporter.LoadedLanguages.Count} languages");
+
+        // Phase 2: Insert into MySQL with INSERT IGNORE semantics
+        // en_cities.csv establishes the baseline; later duplicates for the same city_id are skipped
+        Console.WriteLine("[Background] Inserting cities into MySQL (INSERT IGNORE)...");
+        await dbService.BulkUpsertCitiesAsync(allCities);
+        Console.WriteLine($"[Background] MySQL import completed");
+
+        // Phase 3: Ensure ES index exists (with retries)
         Console.WriteLine("[Background] Ensuring Elasticsearch index exists...");
         try
         {
@@ -212,23 +216,14 @@ _ = Task.Run(async () =>
             return; // Skip ES indexing if ES is not available
         }
 
-        // Phase 3: Build Elasticsearch index with all language variants
-        Console.WriteLine("[Background] Loading all language variants for Elasticsearch...");
-        var allCities = await fileImporter.LoadAllLanguageVariantsAsync();
+        // Phase 4: Build Elasticsearch index with all language variants
+        Console.WriteLine("[Background] Indexing all language variants in Elasticsearch...");
+        await esService.BulkUpsertCitiesAsync(allCities);
+        Console.WriteLine($"[Background] Indexed {allCities.Count} city language variants in Elasticsearch");
 
-        if (allCities.Count > 0)
-        {
-            await esService.BulkUpsertCitiesAsync(allCities);
-            Console.WriteLine($"[Background] Indexed {allCities.Count} city language variants in Elasticsearch");
-
-            // Verify the index has documents
-            var docCount = await esService.GetDocumentCountAsync();
-            Console.WriteLine($"[Background] Elasticsearch index now contains {docCount} documents");
-        }
-        else
-        {
-            Console.WriteLine("[Background] Warning: No cities loaded from files");
-        }
+        // Verify the index has documents
+        var docCount = await esService.GetDocumentCountAsync();
+        Console.WriteLine($"[Background] Elasticsearch index now contains {docCount} documents");
         
         Console.WriteLine("[Background] Data import completed successfully");
     }

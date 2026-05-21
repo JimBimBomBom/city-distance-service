@@ -1,14 +1,13 @@
 using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using CsvHelper;
 using CsvHelper.Configuration;
 
 /// <summary>
-/// Service that imports city data from JSON and CSV files in the /cities_data folder.
-/// English cities go to MySQL as source of truth.
-/// All languages are aggregated and indexed in Elasticsearch.
-/// Tracks which languages were successfully loaded for the /languages endpoint.
+/// Service that imports city data from CSV files in the cities_data directory.
+/// CSV files are named as {language}_cities.csv (e.g., en_cities.csv, cs_cities.csv).
+///
+/// All CSV files feed into both MySQL (with INSERT IGNORE semantics) and Elasticsearch
+/// (grouped by city_id with all language variants merged).
 /// </summary>
 public class FileDataImportService
 {
@@ -16,44 +15,11 @@ public class FileDataImportService
     private readonly ILogger<FileDataImportService> logger;
 
     /// <summary>
-    /// Language codes that were successfully loaded from data files during startup.
-    /// Populated by LoadAllLanguageVariantsAsync(). Used by the /languages endpoint.
+    /// Language codes that were successfully loaded from CSV files during startup.
+    /// Populated by <see cref="LoadAllLanguageVariantsAsync"/>.
+    /// Used by the /languages endpoint.
     /// </summary>
     public List<string> LoadedLanguages { get; } = new();
-
-    /// <summary>
-    /// Returns language codes found in the data directory (fallback if LoadedLanguages is empty).
-    /// This scans the filesystem without loading actual city data.
-    /// </summary>
-    public List<string> GetAvailableLanguages()
-    {
-        if (LoadedLanguages.Count > 0)
-        {
-            return LoadedLanguages.ToList();
-        }
-
-        // Fallback: scan directory for language files
-        if (!Directory.Exists(dataPath))
-        {
-            return new List<string>();
-        }
-
-        var languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        var jsonFiles = Directory.GetFiles(dataPath, "*_cities.json");
-        var csvFiles = Directory.GetFiles(dataPath, "*_cities.csv");
-
-        foreach (var file in jsonFiles.Concat(csvFiles))
-        {
-            var lang = ExtractLanguageCode(file);
-            if (!string.IsNullOrEmpty(lang))
-            {
-                languages.Add(lang);
-            }
-        }
-
-        return languages.OrderBy(l => l).ToList();
-    }
 
     public FileDataImportService(string dataPath, ILogger<FileDataImportService> logger)
     {
@@ -62,46 +28,33 @@ public class FileDataImportService
     }
 
     /// <summary>
-    /// Loads English cities for MySQL (source of truth).
-    /// Tries en_cities.json first, then en_cities.csv.
+    /// Returns language codes found in the data directory.
+    /// Scans for *_cities.csv files and extracts the language prefix.
     /// </summary>
-    public async Task<List<SparQLCityInfo>> LoadEnglishCitiesAsync()
+    public List<string> GetAvailableLanguages()
     {
-        var jsonFile = Path.Combine(dataPath, "en_cities.json");
-        var csvFile = Path.Combine(dataPath, "en_cities.csv");
-
-        List<SparQLCityInfo> cities = new();
-
-        if (File.Exists(jsonFile))
+        if (!Directory.Exists(dataPath))
         {
-            logger.LogInformation("Loading English cities from JSON: {Path}", jsonFile);
-            cities = await LoadCitiesFromJsonFileAsync(jsonFile);
-        }
-        else if (File.Exists(csvFile))
-        {
-            logger.LogInformation("Loading English cities from CSV: {Path}", csvFile);
-            cities = await LoadCitiesFromCsvFileAsync(csvFile);
-        }
-        else
-        {
-            logger.LogWarning("English cities file not found (tried: {JsonPath}, {CsvPath})", jsonFile, csvFile);
-            return new List<SparQLCityInfo>();
+            return new List<string>();
         }
 
-        // Set language code for all cities
-        foreach (var city in cities)
-        {
-            city.Language = "en";
-        }
+        var languages = Directory
+            .GetFiles(dataPath, "*_cities.csv")
+            .Select(ExtractLanguageCode)
+            .Where(lang => !string.IsNullOrEmpty(lang))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(l => l)
+            .ToList();
 
-        logger.LogInformation("Loaded {Count} English cities", cities.Count);
-        return cities;
+        return languages;
     }
 
     /// <summary>
-    /// Loads all language variants from all JSON and CSV files.
-    /// Each city record includes its language code for ES aggregation.
-    /// Also populates LoadedLanguages with successfully loaded language codes.
+    /// Loads all language variants from all *_cities.csv files in the data directory.
+    /// Files are sorted so that <c>en_cities.csv</c> is processed first, ensuring that
+    /// English records establish the baseline when used with <c>INSERT IGNORE</c> semantics.
+    /// Each record includes its language code so that Elasticsearch can aggregate
+    /// names per city_id for the /suggestions endpoint.
     /// </summary>
     public async Task<List<SparQLCityInfo>> LoadAllLanguageVariantsAsync()
     {
@@ -113,35 +66,29 @@ public class FileDataImportService
             return new List<SparQLCityInfo>();
         }
 
-        // Get all city files (both JSON and CSV)
-        var jsonFiles = Directory.GetFiles(dataPath, "*_cities.json");
         var csvFiles = Directory.GetFiles(dataPath, "*_cities.csv");
 
-        // Combine and deduplicate by language (JSON takes precedence over CSV)
-        var allFiles = jsonFiles.ToList();
-        var jsonLanguages = jsonFiles.Select(f => ExtractLanguageCode(f)).Where(l => l != null).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // Only add CSV files for languages not covered by JSON
-        foreach (var csvFile in csvFiles)
+        if (csvFiles.Length == 0)
         {
-            var lang = ExtractLanguageCode(csvFile);
-            if (lang != null && !jsonLanguages.Contains(lang))
-            {
-                allFiles.Add(csvFile);
-            }
-        }
-
-        if (allFiles.Count == 0)
-        {
-            logger.LogWarning("No city files (JSON or CSV) found in {Path}", dataPath);
+            logger.LogWarning("No CSV city files found in {Path}", dataPath);
             return new List<SparQLCityInfo>();
         }
 
-        logger.LogInformation("Found {Count} language files to process", allFiles.Count);
+        // Sort so that en_cities.csv is processed first
+        var sortedFiles = csvFiles
+            .OrderBy(f =>
+            {
+                var lang = ExtractLanguageCode(f);
+                return lang == "en" ? 0 : 1;
+            })
+            .ThenBy(f => Path.GetFileName(f))
+            .ToArray();
+
+        logger.LogInformation("Found {Count} CSV language files to process", sortedFiles.Length);
 
         var allCities = new List<SparQLCityInfo>();
 
-        foreach (var file in allFiles)
+        foreach (var file in sortedFiles)
         {
             var languageCode = ExtractLanguageCode(file);
             if (string.IsNullOrEmpty(languageCode))
@@ -152,22 +99,7 @@ public class FileDataImportService
 
             logger.LogInformation("Processing {Language} cities from {File}", languageCode, Path.GetFileName(file));
 
-            List<SparQLCityInfo> cities;
-            var extension = Path.GetExtension(file).ToLowerInvariant();
-
-            if (extension == ".json")
-            {
-                cities = await LoadCitiesFromJsonFileAsync(file);
-            }
-            else if (extension == ".csv")
-            {
-                cities = await LoadCitiesFromCsvFileAsync(file);
-            }
-            else
-            {
-                logger.LogWarning("Unknown file extension for {File}", file);
-                continue;
-            }
+            var cities = await LoadCitiesFromCsvFileAsync(file);
 
             if (cities.Count == 0)
             {
@@ -175,7 +107,6 @@ public class FileDataImportService
                 continue;
             }
 
-            // Set the language code for all cities from this file
             foreach (var city in cities)
             {
                 city.Language = languageCode;
@@ -187,50 +118,13 @@ public class FileDataImportService
 
         LoadedLanguages.Sort();
 
-        logger.LogInformation("Loaded {Count} total city records from {LangCount} languages: {Languages}",
-            allCities.Count, LoadedLanguages.Count, string.Join(", ", LoadedLanguages));
+        logger.LogInformation(
+            "Loaded {Count} total city records from {LangCount} languages: {Languages}",
+            allCities.Count,
+            LoadedLanguages.Count,
+            string.Join(", ", LoadedLanguages));
 
         return allCities;
-    }
-
-    /// <summary>
-    /// Loads cities from a single JSON file.
-    /// </summary>
-    private async Task<List<SparQLCityInfo>> LoadCitiesFromJsonFileAsync(string filePath)
-    {
-        try
-        {
-            var json = await File.ReadAllTextAsync(filePath);
-            var document = JsonSerializer.Deserialize<JsonCityFile>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            if (document?.Cities == null)
-            {
-                logger.LogWarning("No cities found in {File}", filePath);
-                return new List<SparQLCityInfo>();
-            }
-
-            logger.LogDebug("Loaded {Count} cities from {File}", document.Cities.Count, Path.GetFileName(filePath));
-
-            return document.Cities.Select(c => new SparQLCityInfo
-            {
-                WikidataId = c.CityId,
-                CityName = c.CityName,
-                Latitude = c.Latitude,
-                Longitude = c.Longitude,
-                Country = c.Country,
-                CountryCode = c.CountryCode,
-                AdminRegion = c.AdminRegion,
-                Population = c.Population
-            }).ToList();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to parse JSON file: {File}", filePath);
-            return new List<SparQLCityInfo>();
-        }
     }
 
     /// <summary>
@@ -246,7 +140,7 @@ public class FileDataImportService
             using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
             {
                 HeaderValidated = null,
-                MissingFieldFound = null
+                MissingFieldFound = null,
             });
 
             await foreach (var record in csv.GetRecordsAsync<CsvCityRecord>())
@@ -265,7 +159,7 @@ public class FileDataImportService
                     Country = record.Country,
                     CountryCode = record.CountryCode,
                     AdminRegion = record.AdminRegion,
-                    Population = record.Population
+                    Population = record.Population,
                 });
             }
 
@@ -280,7 +174,7 @@ public class FileDataImportService
     }
 
     /// <summary>
-    /// Extracts language code from filename (e.g., "en_cities.json" -> "en").
+    /// Extracts language code from filename (e.g., "en_cities.csv" -> "en").
     /// </summary>
     private static string? ExtractLanguageCode(string filePath)
     {
@@ -297,79 +191,11 @@ public class FileDataImportService
 }
 
 /// <summary>
-/// Represents the structure of the JSON city files.
-/// </summary>
-public class JsonCityFile
-{
-    public JsonMetadata? Metadata { get; set; }
-
-    public List<JsonCityRecord> Cities { get; set; } = new();
-}
-
-/// <summary>
-/// Metadata section of JSON city files.
-/// </summary>
-public class JsonMetadata
-{
-    [JsonPropertyName("language")]
-    public string Language { get; set; } = string.Empty;
-
-    [JsonPropertyName("fetched_at")]
-    public string FetchedAt { get; set; } = string.Empty;
-
-    [JsonPropertyName("source")]
-    public string Source { get; set; } = string.Empty;
-
-    [JsonPropertyName("tool")]
-    public string Tool { get; set; } = string.Empty;
-
-    [JsonPropertyName("tool_version")]
-    public string ToolVersion { get; set; } = string.Empty;
-
-    [JsonPropertyName("total_records")]
-    public int TotalRecords { get; set; }
-}
-
-/// <summary>
-/// Represents a single city record from the JSON files (snake_case fields).
-/// </summary>
-public class JsonCityRecord
-{
-    [JsonPropertyName("city_id")]
-    public string CityId { get; set; } = string.Empty;
-
-    [JsonPropertyName("city_name")]
-    public string CityName { get; set; } = string.Empty;
-
-    [JsonPropertyName("language")]
-    public string Language { get; set; } = string.Empty;
-
-    [JsonPropertyName("latitude")]
-    public double Latitude { get; set; }
-
-    [JsonPropertyName("longitude")]
-    public double Longitude { get; set; }
-
-    [JsonPropertyName("country")]
-    public string? Country { get; set; }
-
-    [JsonPropertyName("country_code")]
-    public string? CountryCode { get; set; }
-
-    [JsonPropertyName("admin_region")]
-    public string? AdminRegion { get; set; }
-
-    [JsonPropertyName("population")]
-    public int? Population { get; set; }
-}
-
-/// <summary>
 /// Represents a single city record from CSV files.
 /// Supports flexible column naming via CsvHelper mapping.
 /// </summary>
 public class CsvCityRecord
 {
-    // Using CsvHelper.Name attribute to support multiple column naming conventions
     [CsvHelper.Configuration.Attributes.Name("city_id", "id", "wikidata_id", "cityId")]
     public string CityId { get; set; } = string.Empty;
 

@@ -319,17 +319,13 @@ public class MySQLManager : IDatabaseService
                 var command = connection.CreateCommand();
                 command.Transaction = transaction;
 
-                // INSERT IGNORE only adds new cities, doesn't update existing
-                // Use ON DUPLICATE KEY UPDATE if you want to update metadata
+                // INSERT IGNORE skips existing rows (by CityId) without error.
+                // English (en_cities.csv) is processed first so it establishes the baseline.
+                // Later language files for the same city_id are silently skipped.
                 command.CommandText = @"
-                    INSERT INTO cities 
+                    INSERT IGNORE INTO cities
                     (CityId, CityName, Latitude, Longitude, CountryCode, Country, AdminRegion, Population)
-                    VALUES (@CityId, @CityName, @Latitude, @Longitude, @CountryCode, @Country, @AdminRegion, @Population)
-                    ON DUPLICATE KEY UPDATE
-                        CountryCode = VALUES(CountryCode),
-                        Country = VALUES(Country),
-                        AdminRegion = VALUES(AdminRegion),
-                        Population = VALUES(Population);";
+                    VALUES (@CityId, @CityName, @Latitude, @Longitude, @CountryCode, @Country, @AdminRegion, @Population);";
 
                 var idParam = command.Parameters.Add("@CityId", MySqlDbType.VarChar);
                 var nameParam = command.Parameters.Add("@CityName", MySqlDbType.VarChar);
