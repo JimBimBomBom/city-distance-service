@@ -1,0 +1,101 @@
+city_id,city_name,language,latitude,longitude,country,country_code,admin_region,population
+QTEST_TOKYO,Tokyo,fr,35.6895,139.6917,Japan,JP,Tokyo,14264798
+QTEST_LONDON,Londres,fr,51.5074,-0.1278,United Kingdom,GB,Greater London,9648110
+QTEST_PARIS,Paris,fr,48.8566,2.3522,France,FR,Île-de-France,2148000
+QTEST_MOSCOW,Moscou,fr,55.7558,37.6173,Russia,RU,Moscow,12655050
+QTEST_CAIRO,Le Caire,fr,30.0444,31.2357,Egypt,EG,Cairo Governorate,10100166
+QTEST_BERLIN,Berlin,fr,52.52,13.405,Germany,DE,Berlin,3769495
+QTEST_ROME,Rome,fr,41.9028,12.4964,Italy,IT,Lazio,2761000
+QTEST_MADRID,Madrid,fr,40.4168,-3.7038,Spain,ES,Madrid,3223000
+QTEST_BEIJING,Pékin,fr,39.9042,116.4074,China,CN,Beijing,21893000
+QTEST_MUMBAI,Bombay,fr,19.076,72.8777,India,IN,Maharashtra,20411000
+QTEST_NEWYORK,New York,fr,40.7128,-74.006,United States,US,New York,8336000
+QTEST_SYDNEY,Sydney,fr,-33.8688,151.2093,Australia,AU,New South Wales,5312000
+QTEST_ISTANBUL,Istanbul,fr,41.0082,28.9784,Turkey,TR,Istanbul,15462000
+QTEST_TORONTO,Toronto,fr,43.6532,-79.3832,Canada,CA,Ontario,2930000
+QTEST_LA,Los Angeles,fr,34.0522,-118.2437,United States,US,California,3979000
+QTEST_SANFRAN,San Francisco,fr,37.7749,-122.4194,United States,US,California,873965
+QTEST_BARCELONA,Barcelone,fr,41.3851,2.1734,Spain,ES,Catalonia,1620000
+QTEST_VIENNA,Vienne,fr,48.2082,16.3738,Austria,AT,Vienna,1911000
+QTEST_PRAGUE,Prague,fr,50.0755,14.4378,Czech Republic,CZ,Prague,1309000
+QTEST_WARSAW,Varsovie,fr,52.2297,21.0122,Poland,PL,Masovia,1790658
+QTEST_BUDAPEST,Budapest,fr,47.4979,19.0402,Hungary,HU,Budapest,1752000
+QTEST_ATHENS,Athènes,fr,37.9838,23.7275,Greece,GR,Attica,664046
+QTEST_LISBON,Lisbonne,fr,38.7223,-9.1393,Portugal,PT,Lisbon,505526
+QTEST_DUBLIN,Dublin,fr,53.3498,-6.2603,Ireland,IE,Leinster,554554
+QTEST_AMSTERDAM,Amsterdam,fr,52.3676,4.9041,Netherlands,NL,North Holland,872680
+QTEST_TOBA,Toba,fr,34.4823,136.8456,Japan,JP,Mie Prefecture,18120
+QTEST_TOKAT,Tokat,fr,40.3167,36.55,Turkey,TR,Tokat Province,145753
+QTEST_TOKMAK,Tokmak,fr,47.2547,35.7142,Ukraine,UA,Zaporizhzhia Oblast,30358
+QTEST_TOLEDO,Tolède,fr,39.8628,-4.0273,Spain,ES,Castilla–La Mancha,83741
+QTEST_TOMSK,Tomsk,fr,56.4977,84.9744,Russia,RU,Tomsk Oblast,576624
+QTEST_TOBOLSK,Tobolsk,fr,58.1992,68.2542,Russia,RU,Tyumen Oblast,98772
+QTEST_TONGLING,Tongling,fr,30.945,117.8121,China,CN,Anhui,1605000
+QTEST_TOPEKA,Topeka,fr,39.0473,-95.6752,United States,US,Kansas,125310
+QTEST_TONGEREN,Tongres,fr,50.7806,5.4647,Belgium,BE,Limburg,30789
+QTEST_TONGCHENG,Tongcheng,fr,31.0517,116.95,China,CN,Anhui,750000
+QTEST_SYN001,Saburn,fr,-60,-179,,,,1000
+QTEST_SYN002,Salinor,fr,-58.3,-174.1,,,,1137
+QTEST_SYN003,Sandiri,fr,-56.6,-169.2,,,,1274
+QTEST_SYN004,Saporo,fr,-54.9,-164.3,,,,1411
+QTEST_SYN005,Sarnov,fr,-53.2,-159.4,,,,1548
+QTEST_SYN006,Savina,fr,-51.5,-154.5,,,,1685
+QTEST_SYN007,Selton,fr,-49.8,-149.6,,,,1822
+QTEST_SYN008,Senova,fr,-48.1,-144.7,,,,1959
+QTEST_SYN009,Serenia,fr,-46.4,-139.8,,,,2096
+QTEST_SYN010,Shorbach,fr,-44.7,-134.9,,,,2233
+QTEST_SYN011,Silvar,fr,-43,-130,,,,2370
+QTEST_SYN012,Skalden,fr,-41.3,-125.1,,,,2507
+QTEST_SYN013,Solveig,fr,-39.6,-120.2,,,,2644
+QTEST_SYN014,Storfen,fr,-37.9,-115.3,,,,2781
+QTEST_SYN015,Sumika,fr,-36.2,-110.4,,,,2918
+QTEST_SYN016,Sungavi,fr,-34.5,-105.5,,,,3055
+QTEST_SYN017,Suzaka,fr,-32.8,-100.6,,,,3192
+QTEST_SYN018,Sverda,fr,-31.1,-95.7,,,,3329
+QTEST_SYN019,Talburn,fr,-29.4,-90.8,,,,3466
+QTEST_SYN020,Tamora,fr,-27.7,-85.9,,,,3603
+QTEST_SYN021,Tarnia,fr,-26,-81,,,,3740
+QTEST_SYN022,Tavira,fr,-24.3,-76.1,,,,3877
+QTEST_SYN023,Telvin,fr,-22.6,-71.2,,,,4014
+QTEST_SYN024,Tenova,fr,-20.9,-66.3,,,,4151
+QTEST_SYN025,Terburg,fr,-19.2,-61.4,,,,4288
+QTEST_SYN026,Tessar,fr,-17.5,-56.5,,,,4425
+QTEST_SYN027,Tilmore,fr,-15.8,-51.6,,,,4562
+QTEST_SYN028,Tindor,fr,-14.1,-46.7,,,,4699
+QTEST_SYN029,Tirashi,fr,-12.4,-41.8,,,,4836
+QTEST_SYN030,Toburg,fr,-10.7,-36.9,,,,4973
+QTEST_SYN031,Tomanto,fr,-9,-32,,,,5110
+QTEST_SYN032,Torindel,fr,-7.3,-27.1,,,,5247
+QTEST_SYN033,Tovasi,fr,-5.6,-22.2,,,,5384
+QTEST_SYN034,Tovira,fr,-3.9,-17.3,,,,5521
+QTEST_SYN035,Tremola,fr,-2.2,-12.4,,,,5658
+QTEST_SYN036,Trinova,fr,-0.5,-7.5,,,,5795
+QTEST_SYN037,Tukana,fr,1.2,-2.6,,,,5932
+QTEST_SYN038,Tulvan,fr,2.9,2.3,,,,6069
+QTEST_SYN039,Tuverno,fr,4.6,7.2,,,,6206
+QTEST_SYN040,Tyresso,fr,6.3,12.1,,,,6343
+QTEST_SYN041,Ubaldi,fr,8,17,,,,6480
+QTEST_SYN042,Uleren,fr,9.7,21.9,,,,6617
+QTEST_SYN043,Umberto,fr,11.4,26.8,,,,6754
+QTEST_SYN044,Undara,fr,13.1,31.7,,,,6891
+QTEST_SYN045,Uravna,fr,14.8,36.6,,,,7028
+QTEST_SYN046,Urlanga,fr,16.5,41.5,,,,7165
+QTEST_SYN047,Uvalde,fr,18.2,46.4,,,,7302
+QTEST_SYN048,Vakarno,fr,19.9,51.3,,,,7439
+QTEST_SYN049,Valborg,fr,21.6,56.2,,,,7576
+QTEST_SYN050,Vandrim,fr,23.3,61.1,,,,7713
+QTEST_SYN051,Vasilev,fr,25,66,,,,7850
+QTEST_SYN052,Veldarn,fr,26.7,70.9,,,,7987
+QTEST_SYN053,Verkala,fr,28.4,75.8,,,,8124
+QTEST_SYN054,Vesmara,fr,30.1,80.7,,,,8261
+QTEST_SYN055,Vidura,fr,31.8,85.6,,,,8398
+QTEST_SYN056,Vilnara,fr,33.5,90.5,,,,8535
+QTEST_SYN057,Vinarov,fr,35.2,95.4,,,,8672
+QTEST_SYN058,Vintora,fr,36.9,100.3,,,,8809
+QTEST_SYN059,Voldura,fr,38.6,105.2,,,,8946
+QTEST_SYN060,Vrenta,fr,40.3,110.1,,,,9083
+QTEST_SYN061,Walmont,fr,42,115,,,,9220
+QTEST_SYN062,Waterka,fr,43.7,119.9,,,,9357
+QTEST_SYN063,Wenrod,fr,45.4,124.8,,,,9494
+QTEST_SYN064,Weshira,fr,47.1,129.7,,,,9631
+QTEST_SYN065,Wickbury,fr,48.8,134.6,,,,9768

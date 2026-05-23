@@ -1,0 +1,101 @@
+city_id,city_name,language,latitude,longitude,country,country_code,admin_region,population
+QTEST_TOKYO,طوكيو,ar,35.6895,139.6917,Japan,JP,Tokyo,14264798
+QTEST_LONDON,لندن,ar,51.5074,-0.1278,United Kingdom,GB,Greater London,9648110
+QTEST_PARIS,باريس,ar,48.8566,2.3522,France,FR,Île-de-France,2148000
+QTEST_MOSCOW,موسكو,ar,55.7558,37.6173,Russia,RU,Moscow,12655050
+QTEST_CAIRO,القاهرة,ar,30.0444,31.2357,Egypt,EG,Cairo Governorate,10100166
+QTEST_BERLIN,برلين,ar,52.52,13.405,Germany,DE,Berlin,3769495
+QTEST_ROME,روما,ar,41.9028,12.4964,Italy,IT,Lazio,2761000
+QTEST_MADRID,مدريد,ar,40.4168,-3.7038,Spain,ES,Madrid,3223000
+QTEST_BEIJING,بكين,ar,39.9042,116.4074,China,CN,Beijing,21893000
+QTEST_MUMBAI,مومباي,ar,19.076,72.8777,India,IN,Maharashtra,20411000
+QTEST_NEWYORK,نيويورك,ar,40.7128,-74.006,United States,US,New York,8336000
+QTEST_SYDNEY,سيدني,ar,-33.8688,151.2093,Australia,AU,New South Wales,5312000
+QTEST_ISTANBUL,إسطنبول,ar,41.0082,28.9784,Turkey,TR,Istanbul,15462000
+QTEST_TORONTO,تورونتو,ar,43.6532,-79.3832,Canada,CA,Ontario,2930000
+QTEST_LA,لوس أنجلوس,ar,34.0522,-118.2437,United States,US,California,3979000
+QTEST_SANFRAN,سان فرانسيسكو,ar,37.7749,-122.4194,United States,US,California,873965
+QTEST_BARCELONA,برشلونة,ar,41.3851,2.1734,Spain,ES,Catalonia,1620000
+QTEST_VIENNA,فيينا,ar,48.2082,16.3738,Austria,AT,Vienna,1911000
+QTEST_PRAGUE,براغ,ar,50.0755,14.4378,Czech Republic,CZ,Prague,1309000
+QTEST_WARSAW,وارسو,ar,52.2297,21.0122,Poland,PL,Masovia,1790658
+QTEST_BUDAPEST,بودابست,ar,47.4979,19.0402,Hungary,HU,Budapest,1752000
+QTEST_ATHENS,أثينا,ar,37.9838,23.7275,Greece,GR,Attica,664046
+QTEST_LISBON,لشبونة,ar,38.7223,-9.1393,Portugal,PT,Lisbon,505526
+QTEST_DUBLIN,دبلن,ar,53.3498,-6.2603,Ireland,IE,Leinster,554554
+QTEST_AMSTERDAM,أمستردام,ar,52.3676,4.9041,Netherlands,NL,North Holland,872680
+QTEST_TOBA,توبا,ar,34.4823,136.8456,Japan,JP,Mie Prefecture,18120
+QTEST_TOKAT,توقات,ar,40.3167,36.55,Turkey,TR,Tokat Province,145753
+QTEST_TOKMAK,توكماك,ar,47.2547,35.7142,Ukraine,UA,Zaporizhzhia Oblast,30358
+QTEST_TOLEDO,طليطلة,ar,39.8628,-4.0273,Spain,ES,Castilla–La Mancha,83741
+QTEST_TOMSK,تومسك,ar,56.4977,84.9744,Russia,RU,Tomsk Oblast,576624
+QTEST_TOBOLSK,توبولسك,ar,58.1992,68.2542,Russia,RU,Tyumen Oblast,98772
+QTEST_TONGLING,تونغلينغ,ar,30.945,117.8121,China,CN,Anhui,1605000
+QTEST_TOPEKA,توبيكا,ar,39.0473,-95.6752,United States,US,Kansas,125310
+QTEST_TONGEREN,تونغيرين,ar,50.7806,5.4647,Belgium,BE,Limburg,30789
+QTEST_TONGCHENG,تونغتشنغ,ar,31.0517,116.95,China,CN,Anhui,750000
+QTEST_SYN001,Saburn,ar,-60,-179,,,,1000
+QTEST_SYN002,Salinor,ar,-58.3,-174.1,,,,1137
+QTEST_SYN003,Sandiri,ar,-56.6,-169.2,,,,1274
+QTEST_SYN004,Saporo,ar,-54.9,-164.3,,,,1411
+QTEST_SYN005,Sarnov,ar,-53.2,-159.4,,,,1548
+QTEST_SYN006,Savina,ar,-51.5,-154.5,,,,1685
+QTEST_SYN007,Selton,ar,-49.8,-149.6,,,,1822
+QTEST_SYN008,Senova,ar,-48.1,-144.7,,,,1959
+QTEST_SYN009,Serenia,ar,-46.4,-139.8,,,,2096
+QTEST_SYN010,Shorbach,ar,-44.7,-134.9,,,,2233
+QTEST_SYN011,Silvar,ar,-43,-130,,,,2370
+QTEST_SYN012,Skalden,ar,-41.3,-125.1,,,,2507
+QTEST_SYN013,Solveig,ar,-39.6,-120.2,,,,2644
+QTEST_SYN014,Storfen,ar,-37.9,-115.3,,,,2781
+QTEST_SYN015,Sumika,ar,-36.2,-110.4,,,,2918
+QTEST_SYN016,Sungavi,ar,-34.5,-105.5,,,,3055
+QTEST_SYN017,Suzaka,ar,-32.8,-100.6,,,,3192
+QTEST_SYN018,Sverda,ar,-31.1,-95.7,,,,3329
+QTEST_SYN019,Talburn,ar,-29.4,-90.8,,,,3466
+QTEST_SYN020,Tamora,ar,-27.7,-85.9,,,,3603
+QTEST_SYN021,Tarnia,ar,-26,-81,,,,3740
+QTEST_SYN022,Tavira,ar,-24.3,-76.1,,,,3877
+QTEST_SYN023,Telvin,ar,-22.6,-71.2,,,,4014
+QTEST_SYN024,Tenova,ar,-20.9,-66.3,,,,4151
+QTEST_SYN025,Terburg,ar,-19.2,-61.4,,,,4288
+QTEST_SYN026,Tessar,ar,-17.5,-56.5,,,,4425
+QTEST_SYN027,Tilmore,ar,-15.8,-51.6,,,,4562
+QTEST_SYN028,Tindor,ar,-14.1,-46.7,,,,4699
+QTEST_SYN029,Tirashi,ar,-12.4,-41.8,,,,4836
+QTEST_SYN030,Toburg,ar,-10.7,-36.9,,,,4973
+QTEST_SYN031,Tomanto,ar,-9,-32,,,,5110
+QTEST_SYN032,Torindel,ar,-7.3,-27.1,,,,5247
+QTEST_SYN033,Tovasi,ar,-5.6,-22.2,,,,5384
+QTEST_SYN034,Tovira,ar,-3.9,-17.3,,,,5521
+QTEST_SYN035,Tremola,ar,-2.2,-12.4,,,,5658
+QTEST_SYN036,Trinova,ar,-0.5,-7.5,,,,5795
+QTEST_SYN037,Tukana,ar,1.2,-2.6,,,,5932
+QTEST_SYN038,Tulvan,ar,2.9,2.3,,,,6069
+QTEST_SYN039,Tuverno,ar,4.6,7.2,,,,6206
+QTEST_SYN040,Tyresso,ar,6.3,12.1,,,,6343
+QTEST_SYN041,Ubaldi,ar,8,17,,,,6480
+QTEST_SYN042,Uleren,ar,9.7,21.9,,,,6617
+QTEST_SYN043,Umberto,ar,11.4,26.8,,,,6754
+QTEST_SYN044,Undara,ar,13.1,31.7,,,,6891
+QTEST_SYN045,Uravna,ar,14.8,36.6,,,,7028
+QTEST_SYN046,Urlanga,ar,16.5,41.5,,,,7165
+QTEST_SYN047,Uvalde,ar,18.2,46.4,,,,7302
+QTEST_SYN048,Vakarno,ar,19.9,51.3,,,,7439
+QTEST_SYN049,Valborg,ar,21.6,56.2,,,,7576
+QTEST_SYN050,Vandrim,ar,23.3,61.1,,,,7713
+QTEST_SYN051,Vasilev,ar,25,66,,,,7850
+QTEST_SYN052,Veldarn,ar,26.7,70.9,,,,7987
+QTEST_SYN053,Verkala,ar,28.4,75.8,,,,8124
+QTEST_SYN054,Vesmara,ar,30.1,80.7,,,,8261
+QTEST_SYN055,Vidura,ar,31.8,85.6,,,,8398
+QTEST_SYN056,Vilnara,ar,33.5,90.5,,,,8535
+QTEST_SYN057,Vinarov,ar,35.2,95.4,,,,8672
+QTEST_SYN058,Vintora,ar,36.9,100.3,,,,8809
+QTEST_SYN059,Voldura,ar,38.6,105.2,,,,8946
+QTEST_SYN060,Vrenta,ar,40.3,110.1,,,,9083
+QTEST_SYN061,Walmont,ar,42,115,,,,9220
+QTEST_SYN062,Waterka,ar,43.7,119.9,,,,9357
+QTEST_SYN063,Wenrod,ar,45.4,124.8,,,,9494
+QTEST_SYN064,Weshira,ar,47.1,129.7,,,,9631
+QTEST_SYN065,Wickbury,ar,48.8,134.6,,,,9768

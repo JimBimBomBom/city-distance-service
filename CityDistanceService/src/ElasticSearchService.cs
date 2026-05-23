@@ -7,11 +7,12 @@ using Elastic.Clients.Elasticsearch.Core.Search;
 public class ElasticSearchService : IElasticSearchService
 {
     private readonly ElasticsearchClient _client;
-    private const string IndexName = "cities";
+    private readonly string IndexName;
 
-    public ElasticSearchService(ElasticsearchClient client)
+    public ElasticSearchService(ElasticsearchClient client, string indexName = "cities")
     {
         _client = client;
+        IndexName = indexName;
     }
 
     // Call this on startup to create the index with proper settings
@@ -27,17 +28,27 @@ public class ElasticSearchService : IElasticSearchService
 
         var createResponse = await _client.Indices.CreateAsync(IndexName, c => c
             .Settings(s => s
+                .MaxNgramDiff(2)
                 .Analysis(a => a
                     .Analyzers(an => an
-                        .Custom("city_analyzer", ca => ca
+                        .Custom("city_ngram_analyzer", ca => ca
                             .Tokenizer("standard")
-                            .Filter(new[] { "lowercase", "asciifolding", "city_edge_ngram" })
+                            .Filter(new[] { "lowercase", "asciifolding", "city_ngram_filter" })
+                        )
+                        .Custom("city_plain_analyzer", ca => ca
+                            .Tokenizer("standard")
+                            .Filter(new[] { "lowercase", "asciifolding" })
                         )
                     )
                     .TokenFilters(tf => tf
-                        .EdgeNGram("city_edge_ngram", en => en
+                        .NGram("city_ngram_filter", n => n
                             .MinGram(2)
-                            .MaxGram(15)
+                            .MaxGram(4)
+                        )
+                    )
+                    .Normalizers(n => n
+                        .Custom("city_keyword_normalizer", cn => cn
+                            .Filter(new[] { "lowercase", "asciifolding" })
                         )
                     )
                 )
@@ -47,12 +58,22 @@ public class ElasticSearchService : IElasticSearchService
                     .Keyword(d => d.CityId)
                     // cityNames is an object with dynamic keys — ES handles this as "object" type
                     .Object(d => d.CityNames, o => o.Enabled(true))
-                    // allNames is what we actually search against
                     .Text(d => d.AllNames, t => t
-                        .Analyzer("city_analyzer")
+                        .Analyzer("city_ngram_analyzer")
+                        .SearchAnalyzer("city_ngram_analyzer")
+                        .Norms(false)
                         .Fields(f => f
-                            .Text("_2gram", t2 => t2.Analyzer("standard"))
-                            .Text("_3gram", t3 => t3.Analyzer("standard"))
+                            // Normalized keyword subfield for exact full-name matches.
+                            .Keyword("keyword", k => k.Normalizer("city_keyword_normalizer"))
+                            // Plain-analyzed (no n-grams) subfield used for fuzzy
+                            // matching against the full token. This is the only place
+                            // ES's Fuzziness can correct typos in the leading chars
+                            // (e.g. "tkyo" -> "tokyo") without being drowned by the
+                            // n-gram term space.
+                            .Text("plain", ft => ft
+                                .Analyzer("city_plain_analyzer")
+                                .SearchAnalyzer("city_plain_analyzer")
+                            )
                         )
                     )
                     .GeoPoint(d => d.Location)
@@ -79,125 +100,105 @@ public class ElasticSearchService : IElasticSearchService
     {
         try
         {
-            // First try a simple match query to ensure basic search works
-            var simpleResponse = await _client.SearchAsync<CityDoc>(s => s
-                .Index(IndexName)
-                .Query(q => q
-                    .Match(m => m
-                        .Field(f => f.AllNames)
-                        .Query(partialName)
-                    )
-                )
-                .Size(10)
-            );
+            // Normalize the query for the keyword-based clauses (term/prefix). The
+            // AllNames.keyword subfield's normalizer lowercases + asciifolds at index
+            // time, but term/prefix queries do NOT run the normalizer on the input.
+            var normalizedQuery = partialName.Trim().ToLowerInvariant();
 
-            if (simpleResponse.IsValidResponse && simpleResponse.Documents.Count > 0)
-            {
-                Console.WriteLine($"Simple search found {simpleResponse.Documents.Count} results for '{partialName}'");
-            }
-            else if (!simpleResponse.IsValidResponse)
-            {
-                Console.WriteLine($"Simple search error: {simpleResponse.DebugInformation}");
-            }
-
-            // Now do the advanced search with proper sorting
+            // Search strategy (clauses are OR-ed; minimum_should_match: 1):
+            //   1. term  on AllNames.keyword               -> exact full-name match  boost 1000
+            //                                                 (pins exact hits to the top)
+            //   2. match on AllNames (1- and 2-grams)      -> character n-gram       boost 100
+            //                                                 overlap with MinimumShouldMatch
+            //                                                 "70%" so weakly-related docs
+            //                                                 are filtered out.
+            //   3. match on AllNames.plain with Fuzziness  -> typo correction        boost 30
+            //                                                 (e.g. "tkyo" -> "tokyo",
+            //                                                  "pris" -> "paris" — the
+            //                                                  cases the n-gram clause
+            //                                                  cannot rank highly because
+            //                                                  the typo destroys n-gram
+            //                                                  overlap).
+            //
+            // Wrapped in a function_score that multiplies the text score by
+            // log1p(population) so among equally-good text matches the more
+            // populous city wins decisively (Tokyo 14M -> ~16x, Tokod 4k -> ~8x).
             var searchRequest = new SearchRequestDescriptor<CityDoc>()
                 .Index(IndexName)
                 .Query(q => q
-                    .Bool(b => b
-                        .Should(
-                            // Exact match on city name
-                            sh => sh.MatchPhrase(m => m
-                                .Field(f => f.AllNames)
-                                .Query(partialName)
-                                .Boost(100)
-                            ),
-                            // Prefix match — good for autocomplete
-                            sh => sh.MultiMatch(m => m
-                                .Query(partialName)
-                                .Type(TextQueryType.BoolPrefix)
-                                .Fields(new[] { "allNames", "allNames._2gram", "allNames._3gram" })
-                                .Boost(10)
-                            ),
-                            // Standard match
-                            sh => sh.Match(m => m
-                                .Field(f => f.AllNames)
-                                .Query(partialName)
-                                .Boost(5)
-                            ),
-                            // Fuzzy match — handles typos
-                            sh => sh.Match(m => m
-                                .Field(f => f.AllNames)
-                                .Query(partialName)
-                                .Fuzziness(new Fuzziness("AUTO"))
-                                .Boost(1)
+                    .FunctionScore(fs => fs
+                        .Query(qq => qq
+                            .Bool(b => b
+                                .Should(
+                                    sh => sh.Term(t => t
+                                        .Field("allNames.keyword")
+                                        .Value(normalizedQuery)
+                                        .Boost(1000)
+                                    ),
+                                    sh => sh.Match(m => m
+                                        .Field(f => f.AllNames)
+                                        .Query(partialName)
+                                        .Operator(Operator.Or)
+                                        .MinimumShouldMatch("70%")
+                                        .Boost(100)
+                                    ),
+                                    sh => sh.Match(m => m
+                                        .Field("allNames.plain")
+                                        .Query(partialName)
+                                        .Fuzziness(new Fuzziness(2))
+                                        .PrefixLength(1)
+                                        .MaxExpansions(500)
+                                        .Boost(30)
+                                    )
+                                )
+                                .MinimumShouldMatch(1)
                             )
                         )
-                        .MinimumShouldMatch(1)
+                        .Functions(fn => fn
+                            .FieldValueFactor(fvf => fvf
+                                .Field(f => f.Population)
+                                .Modifier(FieldValueFactorModifier.Log1p)
+                                .Factor(1.0)
+                                .Missing(1)
+                            )
+                        )
+                        .ScoreMode(FunctionScoreMode.Sum)
+                        // Multiply so the population log scales the text-relevance score.
+                        // For two docs that match the query equally in the edge-ngram
+                        // field, the more-populous one wins by a clear multiplicative
+                        // margin (e.g. Tokyo's 14M -> ~16x vs Tokod's 4k -> ~8x).
+                        .BoostMode(FunctionBoostMode.Multiply)
                     )
                 )
                 .Size(50);
 
-            // Sort by relevance score only; exact matches are already boosted
-            // via the MatchPhrase clause with Boost(100), so no script sorts are needed.
-            var sortOptions = new List<SortOptions>
+            searchRequest.Sort(new List<SortOptions>
             {
-                SortOptions.Score(new ScoreSort { Order = SortOrder.Desc })
-            };
-
-            searchRequest.Sort(sortOptions);
+                SortOptions.Score(new ScoreSort { Order = SortOrder.Desc }),
+            });
 
             var response = await _client.SearchAsync<CityDoc>(searchRequest);
 
             if (!response.IsValidResponse)
             {
                 Console.WriteLine($"ES Search Error: {response.DebugInformation}");
-                
-                // Fallback to simple search if advanced search fails
-                if (simpleResponse.IsValidResponse)
-                {
-                    Console.WriteLine("Using fallback simple search results");
-                    return simpleResponse.Documents
-                        .Select(d => new CitySuggestion
-                        {
-                            Id = d.CityId,
-                            Name = d.CityNames.GetValueOrDefault(language)
-                                ?? d.CityNames.GetValueOrDefault(Constants.DefaultLanguage)
-                                ?? d.AllNames.FirstOrDefault()
-                                ?? "Unknown",
-                            CountryCode = d.CountryCode,
-                            Country = d.Country.GetValueOrDefault(language)
-                                ?? d.Country.GetValueOrDefault(Constants.DefaultLanguage)
-                                ?? "",
-                            AdminRegion = d.AdminRegion.GetValueOrDefault(language)
-                                ?? d.AdminRegion.GetValueOrDefault(Constants.DefaultLanguage)
-                                ?? "",
-                            Population = d.Population
-                        })
-                        .Take(10)
-                        .ToList();
-                }
-                
                 return new List<CitySuggestion>();
             }
 
-            Console.WriteLine($"Advanced search found {response.Documents.Count} results for '{partialName}'");
+            Console.WriteLine($"Search found {response.Documents.Count} results for '{partialName}'");
 
             return response.Documents
             .Select(d => new CitySuggestion
             {
                 Id = d.CityId,
-                // Return the name in the requested language, fall back to English, then any name
-                Name = d.CityNames.GetValueOrDefault(language)
-                    ?? d.CityNames.GetValueOrDefault(Constants.DefaultLanguage)
+                // Localization fallback chain: requested language -> country's primary language -> English -> any name
+                Name = CountryLanguageMap.ResolveLocalized(d.CityNames, language, d.CountryCode, Constants.DefaultLanguage)
                     ?? d.AllNames.FirstOrDefault()
                     ?? "Unknown",
                 CountryCode = d.CountryCode,
-                Country = d.Country.GetValueOrDefault(language)
-                    ?? d.Country.GetValueOrDefault(Constants.DefaultLanguage)
+                Country = CountryLanguageMap.ResolveLocalized(d.Country, language, d.CountryCode, Constants.DefaultLanguage)
                     ?? "",
-                AdminRegion = d.AdminRegion.GetValueOrDefault(language)
-                    ?? d.AdminRegion.GetValueOrDefault(Constants.DefaultLanguage)
+                AdminRegion = CountryLanguageMap.ResolveLocalized(d.AdminRegion, language, d.CountryCode, Constants.DefaultLanguage)
                     ?? "",
                 Population = d.Population
             })
